@@ -1,9 +1,7 @@
 import { useState } from "react";
 import {
   Activity,
-  ArrowDownRight,
   ArrowRight,
-  AudioLines,
   BookOpen,
   Check,
   CheckCircle2,
@@ -19,7 +17,6 @@ import {
   ShieldCheck,
   Sun,
   TrendingUp,
-  Volume2,
   X,
 } from "lucide-react";
 
@@ -75,16 +72,14 @@ export default function Home() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="privacy-note"><ShieldCheck size={17} /><span>Your pace. Your privacy.</span></div>
           <button className="warning-link" onClick={() => setModal("warning")}><CircleHelp size={19} /><span>Warning signs</span><ChevronRight size={16} /></button>
-          <div className="sidebar-foot">A little progress,<br />one day at a time.</div>
         </div>
       </aside>
 
       <main className="main-area" id="home">
         <header className="topbar">
           <div className="mobile-brand"><span className="brand-symbol small"><Activity size={21} /></span><span>steady<span>steps</span></span></div>
-          <div className="today-label"><span className="live-pulse" /> YOUR RECOVERY SPACE <span className="today-divider">·</span> THURSDAY, 24 SEPTEMBER</div>
+          <div className="today-label">THURSDAY, 24 SEPTEMBER</div>
           <div className="top-actions">
             <button className={`utility-button ${largeText ? "toggled" : ""}`} aria-label={largeText ? "Use standard text size" : "Make text larger"} onClick={() => setLargeText(!largeText)} title="Text size"><span className="aa">A</span><Plus size={12} /></button>
             <button className={`utility-button ${highContrast ? "toggled" : ""}`} aria-label="Toggle stronger contrast" onClick={() => setHighContrast(!highContrast)} title="Stronger contrast"><Sun size={19} /></button>
@@ -95,11 +90,10 @@ export default function Home() {
         <div className="page-content">
           <section className="welcome-row">
             <div>
-              <div className="eyebrow"><span className="eyebrow-line" /> A FRESH START, AT YOUR PACE</div>
+              <div className="eyebrow"><span className="eyebrow-line" /> YOUR RECOVERY SPACE</div>
               <h1>Good afternoon,<br className="mobile-break" /> Molly<span className="title-period">.</span></h1>
-              <p className="welcome-copy">You’re doing something good for yourself today.</p>
+              <p className="welcome-copy">Your recovery, at a glance.</p>
             </div>
-            <div className="tech-badge"><span className="badge-icon"><AudioLines size={18} /></span><span><b>Made for your journey</b><small>Thoughtful support, one step at a time</small></span><span className="badge-signal"><i /><i /><i /></span></div>
           </section>
 
           {notice && <div className="notice-banner" role="status"><CheckCircle2 size={21} /><span>{notice}</span><button onClick={() => setNotice("")} aria-label="Dismiss message"><X size={18} /></button></div>}
@@ -108,66 +102,58 @@ export default function Home() {
             <div className="primary-column">
               <section className="today-card" aria-labelledby="today-title">
                 <div className="today-card-top">
-                  <div className="today-overline"><span className="status-light" /> TODAY’S PLAN <span className="overline-divider">/</span> 1 SMALL STEP</div>
-                  <div className="secure-tag"><ShieldCheck size={15} /> YOUR PLAN</div>
+                  <div className="today-overline"><span className="status-light" /> NEXT STEP</div>
                 </div>
                 <div className="today-card-layout">
                   <div className="today-card-copy">
-                    <p className="soft-kicker">A gentle place to begin</p>
-                    <h2 id="today-title">Let’s check in<br />with you first.</h2>
-                    <p className="today-description">There’s no rush, Molly. We’ll take things one step at a time.</p>
+                    <h2 id="today-title">A gentle start<br />for today.</h2>
+                    <p className="today-description">Tell us how you’re feeling, and we’ll find a comfortable next step.</p>
                     <button className={`button-primary ${checkinDone ? "button-complete" : ""}`} onClick={() => setModal("checkin")}>
-                      {checkinDone ? <><Check size={19} /> Check-in complete</> : <>Start with a check-in <ArrowRight size={19} /></>}
+                      {checkinDone ? <><Check size={19} /> Check-in complete</> : <>Begin check-in <ArrowRight size={19} /></>}
                     </button>
-                    <div className="time-note"><Clock3 size={16} /> About 1 minute <span>·</span> Take your time</div>
+                    <div className="time-note"><Clock3 size={16} /> About 1 minute</div>
                   </div>
                   <div className="illustration-panel" aria-label="A seedling growing, representing steady progress" role="img">
                     <img src="/manus-storage/recovery-tech-illustration_23810c9b.png" alt="" />
-                    <div className="illustration-orbit orbit-one" /><div className="illustration-orbit orbit-two" />
-                    <div className="illustration-glow" />
-                    <div className="illustration-sprout"><span className="leaf leaf-left" /><span className="leaf leaf-right" /><span className="sprout-stem" /><span className="sprout-base" /></div>
-                    <div className="tech-node node-a" /><div className="tech-node node-b" /><div className="tech-node node-c" />
-                    <div className="illustration-caption"><span className="caption-dot" /> Small steps add up</div>
+
                   </div>
                 </div>
-                <div className="step-footer"><div className="step-track"><span className="step-filled" /></div><span>One thing at a time</span><span className="step-number">01 <i>/</i> 03</span></div>
+                <div className="step-footer" aria-label="Step 1 of 3"><div className="step-track"><span className="step-filled" /></div><span className="step-number">STEP 1 OF 3</span></div>
               </section>
 
               <section className="recovery-section" aria-labelledby="recovery-title">
-                <div className="section-heading-row"><div><div className="eyebrow small-eyebrow">YOUR JOURNEY</div><h2 className="section-title" id="recovery-title">Every bit counts.</h2></div><button className="text-link" onClick={() => setModal("journey")}>See your progress <ArrowRight size={17} /></button></div>
+                <div className="section-heading-row"><h2 className="section-title" id="recovery-title">Your progress</h2><button className="text-link" onClick={() => setModal("journey")}>See details <ArrowRight size={17} /></button></div>
                 <div className="recovery-cards">
-                  <article className="recovery-card reach-card"><div className="recovery-card-head"><span className="recovery-icon"><TrendingUp size={20} /></span><span className="mini-status"><span /> Building</span></div><h3>Reaching</h3><div className="progress-track"><span style={{ width: "58%" }} /></div><p>Small reaches make a difference.</p></article>
-                  <article className="recovery-card hand-card"><div className="recovery-card-head"><span className="recovery-icon"><Hand size={21} /></span><span className="mini-status"><span /> Building</span></div><h3>Hand practice</h3><div className="progress-track"><span style={{ width: "44%" }} /></div><p>Your practice is adding up.</p></article>
-                  <article className="recovery-card walk-card"><div className="recovery-card-head"><span className="recovery-icon"><Activity size={21} /></span><span className="mini-status"><span /> Steady</span></div><h3>Moving about</h3><div className="progress-track"><span style={{ width: "72%" }} /></div><p>One step at a time.</p></article>
+                  <article className="recovery-card reach-card"><div className="recovery-card-head"><span className="recovery-icon"><TrendingUp size={20} /></span><span className="mini-status"><span /> Building</span></div><h3>Reaching</h3><div className="progress-track" role="progressbar" aria-label="Reaching practice" aria-valuemin={0} aria-valuemax={100} aria-valuenow={58}><span style={{ width: "58%" }} /></div></article>
+                  <article className="recovery-card hand-card"><div className="recovery-card-head"><span className="recovery-icon"><Hand size={21} /></span><span className="mini-status"><span /> Building</span></div><h3>Hand control</h3><div className="progress-track" role="progressbar" aria-label="Hand control practice" aria-valuemin={0} aria-valuemax={100} aria-valuenow={44}><span style={{ width: "44%" }} /></div></article>
+                  <article className="recovery-card walk-card"><div className="recovery-card-head"><span className="recovery-icon"><Activity size={21} /></span><span className="mini-status"><span /> Steady</span></div><h3>Moving about</h3><div className="progress-track" role="progressbar" aria-label="Moving about practice" aria-valuemin={0} aria-valuemax={100} aria-valuenow={72}><span style={{ width: "72%" }} /></div></article>
                 </div>
               </section>
             </div>
 
             <aside className="side-column" aria-label="Your support">
               <section className="support-card">
-                <div className="support-header"><div className="alira-avatar"><MessageCircle size={21} /></div><div><h2>Here with you</h2><span className="availability"><i /> Alira is ready to help</span></div><button className="tiny-more" aria-label="More help options" onClick={() => setModal("help")}>···</button></div>
-                <p>Need a hand, or just a little encouragement? I’m here.</p>
+                <div className="support-header"><div className="alira-avatar"><MessageCircle size={21} /></div><div><h2>Alira</h2><span className="availability"><i /> Available to help</span></div></div>
+                <p>Questions about your plan? I can help.</p>
                 <button className="support-button" onClick={() => setModal("help")}>Talk with Alira <ArrowRight size={17} /></button>
                 <div className="support-trust"><ShieldCheck size={15} /> Your conversations stay private</div>
               </section>
 
               <section className="week-card">
-                <div className="card-heading"><div><span className="eyebrow small-eyebrow">A GENTLE LOOK BACK</span><h2>This week</h2></div><button aria-label="See weekly summary" onClick={() => setModal("journey")}><ArrowDownRight size={19} /></button></div>
-                <div className="week-days" aria-label="Weekly practice: Monday through Sunday"><div className="day-cell"><span>M</span><b className="day-done">✓</b></div><div className="day-cell"><span>T</span><b className="day-done">✓</b></div><div className="day-cell"><span>W</span><b className="day-done">✓</b></div><div className="day-cell today-day"><span>T</span><b>24</b></div><div className="day-cell"><span>F</span><b>25</b></div><div className="day-cell"><span>S</span><b>26</b></div><div className="day-cell"><span>S</span><b>27</b></div></div>
-                <div className="week-message"><span className="week-spark">✳</span><span><b>3 little steps so far</b><small>That’s something to feel good about.</small></span></div>
+                <div className="card-heading"><h2>This week</h2></div>
+                <div className="week-days" aria-label="Practice completed Monday, Tuesday, and Wednesday. Today is Thursday."><div className="day-cell"><span>M</span><b className="day-done">✓</b></div><div className="day-cell"><span>T</span><b className="day-done">✓</b></div><div className="day-cell"><span>W</span><b className="day-done">✓</b></div><div className="day-cell today-day"><span>T</span><b>24</b></div><div className="day-cell"><span>F</span><b>25</b></div><div className="day-cell"><span>S</span><b>26</b></div><div className="day-cell"><span>S</span><b>27</b></div></div>
               </section>
 
               <section className="activity-card">
-                <div className="activity-top"><span className="eyebrow small-eyebrow">WHEN YOU FEEL READY</span><span className="activity-duration"><Clock3 size={14} /> 5 MIN</span></div>
-                <div className="activity-visual"><span className="activity-icon"><Hand size={23} /></span><span className="activity-signal"><i /><i /><i /><i /></span></div>
-                <h2>A little hand practice</h2><p>Try a slow, comfortable hand stretch.</p>
+                <div className="activity-top"><span className="eyebrow small-eyebrow">OPTIONAL ACTIVITY</span><span className="activity-duration"><Clock3 size={14} /> 5 MIN</span></div>
+                <div className="activity-visual"><span className="activity-icon"><Hand size={23} /></span></div>
+                <h2>Hand stretch</h2><p>Try a slow, comfortable hand stretch.</p>
                 <button className={`activity-button ${activityDone ? "activity-finished" : ""}`} onClick={() => setModal("activity")}>{activityDone ? <><CheckCircle2 size={17} /> Done for today</> : <>See the activity <ChevronRight size={18} /></>}</button>
               </section>
-              <div className="gentle-reminder"><Heart size={16} /> It’s okay to pause whenever you need.</div>
             </aside>
           </div>
 
-          <footer className="page-footer"><span><span className="footer-pulse" /> Your recovery, at your own pace</span><button onClick={() => setNotice("This demo does not save personal information or share it with a care team.")}>About this demo</button></footer>
+          <footer className="page-footer"><span>This is a demo with sample information. It is not connected to care records.</span></footer>
         </div>
       </main>
 
