@@ -221,19 +221,6 @@ button { color: inherit; }
 .hero-primary { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 52px; margin-top: 27px; padding: 0 23px; border-radius: 999px; color: #fff; background: #a76a51; box-shadow: 0 9px 25px rgba(16,33,26,.2); font-size: 14px; font-weight: 750; text-decoration: none; transition: transform .16s ease, background .16s ease; }
 .hero-primary:hover { transform: translateY(-2px); background: #915941; }
 .hero-primary:active { transform: scale(.98); }
-.sample-progress { position: absolute; z-index: 2; right: clamp(18px, 4.6vw, 70px); bottom: 76px; width: min(284px, calc(100vw - 36px)); padding: 15px 16px 14px; border: 1px solid rgba(255,255,255,.62); border-radius: 17px; color: #274237; background: rgba(249,248,242,.95); box-shadow: 0 12px 40px rgba(10,29,22,.2); backdrop-filter: blur(13px); }
-.sample-progress-top { display: flex; align-items: center; gap: 8px; padding-bottom: 11px; border-bottom: 1px solid #dfe7dc; }
-.sample-phone-icon { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 9px; color: #426c58; background: #e9f0e7; }
-.sample-caption { color: #65786a; font: 800 9px/1 "Manrope",sans-serif; letter-spacing: 1.05px; }
-.sample-progress-main { padding: 12px 1px 10px; }
-.sample-label { margin: 0 0 5px; color: #607166; font-size: 11px; font-weight: 600; }
-.sample-value { margin: 0; color: #29483a; font: 600 22px/1 "Newsreader",Georgia,serif; }
-.sample-value span { margin-left: 4px; color: #68766d; font: 600 11px/1.2 "DM Sans",sans-serif; }
-.sample-meter { height: 6px; overflow: hidden; border-radius: 999px; background: #dfe8de; }
-.sample-meter span { display: block; width: 66.67%; height: 100%; border-radius: inherit; background: #73977e; }
-.sample-steps { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 11px; }
-.sample-step { display: flex; align-items: center; gap: 6px; color: #51675a; font-size: 10px; }
-.sample-step-check { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; color: #fff; background: #73977e; }
 .video-toggle { position: absolute; z-index: 3; left: clamp(18px, 4.6vw, 70px); bottom: 27px; display: inline-flex; align-items: center; gap: 8px; min-height: 39px; padding: 0 13px; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; color: #fff; background: rgba(20,44,35,.4); backdrop-filter: blur(10px); font-size: 12px; font-weight: 650; transition: background .16s ease; }
 .video-toggle:hover { background: rgba(20,44,35,.72); }
 .hero-note { position: absolute; z-index: 2; right: clamp(18px, 4.6vw, 70px); bottom: 18px; max-width: min(570px, 55vw); margin: 0; color: rgba(255,255,255,.82); font-size: 9px; line-height: 1.4; text-align: right; text-shadow: 0 1px 8px rgba(8,22,17,.45); }
@@ -249,15 +236,6 @@ button { color: inherit; }
   .hero-copy h1 { font-size: clamp(43px, 10.7vw, 66px); letter-spacing: -1.2px; }
   .hero-subtitle { max-width: 420px; margin-top: 16px; font-size: 16px; }
   .hero-primary { min-height: 48px; margin-top: 21px; font-size: 13px; }
-  .sample-progress { right: 13px; bottom: 64px; width: 222px; padding: 10px 12px 11px; border-radius: 14px; }
-  .sample-progress-top { gap: 6px; padding-bottom: 8px; }
-  .sample-phone-icon { width: 23px; height: 23px; }
-  .sample-caption { font-size: 8px; letter-spacing: .8px; }
-  .sample-progress-main { padding: 8px 1px; }
-  .sample-value { font-size: 20px; }
-  .sample-value span { font-size: 9px; }
-  .sample-steps { gap: 8px; margin-top: 8px; }
-  .sample-step { font-size: 9px; }
   .video-toggle { left: 13px; bottom: 13px; min-height: 36px; padding: 0 10px; }
   .video-toggle span { display: none; }
   .hero-note { right: 12px; bottom: 14px; max-width: calc(100% - 76px); font-size: 8px; }
@@ -266,8 +244,6 @@ button { color: inherit; }
   .hero-copy { margin-top: -54px; }
   .hero-copy h1 { font-size: 43px; }
   .hero-subtitle { max-width: 300px; font-size: 14px; }
-  .sample-progress { width: 206px; right: 10px; bottom: 58px; padding: 9px 10px; }
-  .sample-value { font-size: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-footage { display: none; }
