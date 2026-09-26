@@ -215,6 +215,7 @@ button { color: inherit; }
 .landing-brand-icon { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 13px; color: #fff; background: rgba(245,247,237,.15); border: 1px solid rgba(255,255,255,.32); backdrop-filter: blur(8px); }
 .hero-copy { position: relative; z-index: 1; width: min(100% - 36px, 940px); margin: 32px auto 0; text-align: center; text-shadow: 0 3px 28px rgba(8,22,17,.27); }
 .hero-copy h1 { margin: 0; color: #fff; font: 600 clamp(46px, 5.1vw, 72px)/1.02 "Newsreader", Georgia, serif; letter-spacing: -1.5px; text-wrap: balance; }
+.hero-subtitle { max-width: 600px; margin: 22px auto 0; color: rgba(255,255,255,.95); font-size: clamp(16px, 1.4vw, 19px); line-height: 1.5; text-shadow: 0 2px 15px rgba(8,22,17,.4); }
 .hero-primary { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 52px; margin-top: 27px; padding: 0 23px; border-radius: 999px; color: #fff; background: #a76a51; box-shadow: 0 9px 25px rgba(16,33,26,.2); font-size: 14px; font-weight: 750; text-decoration: none; transition: transform .16s ease, background .16s ease; }
 .hero-primary:hover { transform: translateY(-2px); background: #915941; }
 .hero-primary:active { transform: scale(.98); }
@@ -230,6 +231,7 @@ button { color: inherit; }
   .hero-shade { background: linear-gradient(180deg, rgba(12,34,27,.43) 0%, rgba(15,37,29,.2) 24%, rgba(14,34,27,.37) 62%, rgba(13,31,25,.67) 100%), linear-gradient(90deg, rgba(12,32,26,.23), rgba(12,32,26,.10)); }
   .hero-copy { width: min(100% - 30px, 600px); margin-top: -54px; }
   .hero-copy h1 { font-size: clamp(43px, 10.7vw, 66px); letter-spacing: -1.2px; }
+  .hero-subtitle { max-width: 420px; margin-top: 16px; font-size: 16px; }
   .hero-primary { min-height: 48px; margin-top: 21px; font-size: 13px; }
   .video-toggle { left: 13px; bottom: 13px; min-height: 36px; padding: 0 10px; }
   .video-toggle span { display: none; }
@@ -238,6 +240,7 @@ button { color: inherit; }
 @media (max-width: 400px) {
   .hero-copy { margin-top: -54px; }
   .hero-copy h1 { font-size: 43px; }
+  .hero-subtitle { max-width: 300px; font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-footage { display: none; }
