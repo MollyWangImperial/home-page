@@ -44,6 +44,7 @@ export default function Landing() {
 
         <div className="hero-copy" id="top">
           <h1 id="hero-title">Every small step<br />is worth seeing at home.</h1>
+          <p className="hero-subtitle">Gentle practice at home. Progress your family can see.</p>
           <a className="hero-primary" href="/app">Open Rehyn <ArrowRight size={18} /></a>
         </div>
 
