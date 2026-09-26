@@ -61,6 +61,11 @@ export default function Landing() {
           <source src="/manus-storage/rehyn-senior-couple-hero_632dd71e.mp4" type="video/mp4" />
         </video>
         <div className="hero-shade" aria-hidden="true" />
+        <img
+          className="hero-tripod"
+          src="/manus-storage/rehyn-smartphone-tripod_969056e3.png"
+          alt="A smartphone on a tripod, set up to film the home exercise"
+        />
 
         <header className="landing-header">
           <a className="landing-brand" href="#top" aria-label="Rehyn home">
