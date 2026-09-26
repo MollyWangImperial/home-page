@@ -61,9 +61,7 @@ export default function Landing() {
         </header>
 
         <div className="hero-copy" id="top">
-          <p className="hero-kicker"><span />Recovery, together</p>
           <h1 id="hero-title">Every small step<br />is worth seeing.</h1>
-          <p className="hero-subtitle">Gentle practice at home. Progress your family can see.</p>
           <a className="hero-primary" href="/app">Open Rehyn <ArrowRight size={18} /></a>
         </div>
 
