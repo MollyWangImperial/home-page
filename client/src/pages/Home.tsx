@@ -19,6 +19,7 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
+import { useLocation } from "wouter";
 
 type ModalName = "checkin" | "activity" | "help" | "warning" | "journey" | null;
 type NavItem = "Home" | "My journey" | "Alira" | "My time";
@@ -31,6 +32,7 @@ const navItems: { name: NavItem; icon: typeof HomeIcon }[] = [
 ];
 
 export default function Home() {
+  const [, setLocation] = useLocation();
   const [modal, setModal] = useState<ModalName>(null);
   const [selectedFeeling, setSelectedFeeling] = useState("");
   const [checkinDone, setCheckinDone] = useState(false);
@@ -42,9 +44,9 @@ export default function Home() {
 
   function chooseNav(name: NavItem) {
     setActiveNav(name);
-    if (name === "Alira") setModal("help");
-    else if (name === "My journey") setModal("journey");
-    else if (name === "My time") setNotice("Your quiet moment is ready whenever you are.");
+    if (name === "Alira") setLocation("/alira");
+    else if (name === "My journey") setLocation("/journey");
+    else if (name === "My time") setLocation("/my-time");
     else setNotice("");
   }
 
