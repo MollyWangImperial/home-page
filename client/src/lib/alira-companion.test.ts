@@ -6,7 +6,11 @@ import {
   loadRememberedCheckIn,
   forgetCheckIn,
 } from "./alira-check-ins";
-import { createAliraSpeech } from "./alira-speech";
+import {
+  createAliraSpeech,
+  fetchAliraVoice,
+  silentSpeech,
+} from "./alira-speech";
 import voiceClips from "./alira-voice-clips.json";
 
 afterEach(() => {
@@ -63,132 +67,167 @@ describe("check-in continuity", () => {
   });
 });
 
-function speechFixture(voices = [{ localService: true, lang: "en-GB" }]) {
-  const synth = { getVoices: () => voices, cancel: vi.fn(), speak: vi.fn() };
+function speechFixture(
+  requestAudio = vi.fn(
+    async (_text: string, _signal: AbortSignal) => new Blob(["audio"])
+  )
+) {
   const changed = vi.fn();
-  const utterances: SpeechSynthesisUtterance[] = [];
-  const playback = createAliraSpeech(
-    synth as unknown as SpeechSynthesis,
-    text => {
-      const utterance = { text } as SpeechSynthesisUtterance;
-      utterances.push(utterance);
-      return utterance;
+  const audios: HTMLAudioElement[] = [];
+  const revokeUrl = vi.fn();
+  const playback = createAliraSpeech(changed, {
+    requestAudio,
+    makeAudio: () => {
+      const audio = {
+        play: vi.fn(async () => {}),
+        pause: vi.fn(),
+        load: vi.fn(),
+        removeAttribute: vi.fn(),
+      } as unknown as HTMLAudioElement;
+      audios.push(audio);
+      return audio;
     },
-    changed
-  );
-  return { playback, synth, changed, utterances };
+    createUrl: () => "blob:alira",
+    revokeUrl,
+  });
+  return { playback, changed, audios, requestAudio, revokeUrl };
 }
 
-describe("optional voice playback", () => {
-  it("ships an audio clip for each check-in acknowledgment", () => {
-    for (const answer of Object.values(checkInAnswers)) {
-      expect((voiceClips as Record<string, string>)[answer.response]).toMatch(
-        /^\/audio\/alira\/.+\.wav$/
-      );
-    }
+describe("ElevenLabs voice playback", () => {
+  it("has a registered phrase for every check-in reply", () => {
+    for (const answer of Object.values(checkInAnswers))
+      expect(
+        (voiceClips as Record<string, string>)[answer.response]
+      ).toBeTruthy();
   });
-  it("plays packaged audio when a browser has no device voices, and cleans up on stop", async () => {
-    vi.useFakeTimers();
-    const audio = {
-      play: vi.fn().mockResolvedValue(undefined),
-      pause: vi.fn(),
-      removeAttribute: vi.fn(),
-      load: vi.fn(),
-      onplaying: null,
-      onended: null,
-      onerror: null,
-    } as unknown as HTMLAudioElement;
-    const changed = vi.fn();
-    const playback = createAliraSpeech(null, vi.fn(), changed, () => audio);
-    playback.play("hello", "Hello Molly");
-    expect(audio.play).toHaveBeenCalledOnce();
-    audio.onplaying?.(new Event("playing"));
+  it("never autoplays and animates only while audio is actually playing", async () => {
+    const { playback, changed, audios, requestAudio, revokeUrl } =
+      speechFixture();
+    expect(requestAudio).not.toHaveBeenCalled();
+    await playback.play("one", "Hello");
     expect(changed).toHaveBeenLastCalledWith({
-      activeId: "hello",
-      speaking: true,
+      activeId: "one",
+      speaking: false,
+      loading: true,
       error: "",
     });
+    audios[0].onplaying?.call(audios[0], new Event("playing"));
+    expect(changed.mock.lastCall?.[0].speaking).toBe(true);
+    audios[0].onended?.call(audios[0], new Event("ended"));
+    expect(changed).toHaveBeenLastCalledWith(silentSpeech);
+    expect(revokeUrl).toHaveBeenCalledWith("blob:alira");
+  });
+  it("cancels pending generation and ignores a late response", async () => {
+    let resolve!: (blob: Blob) => void;
+    const request = vi.fn(
+      (_text: string, _signal: AbortSignal) =>
+        new Promise<Blob>(done => {
+          resolve = done;
+        })
+    );
+    const { playback, audios, changed } = speechFixture(request);
+    const pending = playback.play("one", "Hello");
     playback.stop();
-    expect(audio.pause).toHaveBeenCalledOnce();
-    expect(changed).toHaveBeenLastCalledWith({
-      activeId: null,
-      speaking: false,
-      error: "",
-    });
+    expect(request.mock.calls[0][1].aborted).toBe(true);
+    resolve(new Blob(["audio"]));
+    await pending;
+    expect(audios).toHaveLength(0);
+    expect(changed).toHaveBeenLastCalledWith(silentSpeech);
+  });
+  it("replaces playback, ignores stale callbacks and reuses cached audio", async () => {
+    const { playback, audios, changed, requestAudio } = speechFixture();
+    await playback.play("one", "Hello");
+    const latePlaying = audios[0].onplaying!;
+    await playback.play("two", "Second");
     const calls = changed.mock.calls.length;
-    audio.onended?.(new Event("ended"));
-    vi.advanceTimersByTime(6000);
+    latePlaying.call(audios[0], new Event("playing"));
     expect(changed).toHaveBeenCalledTimes(calls);
+    expect(audios[0].pause).toHaveBeenCalled();
+    await playback.play("two", "Second");
+    expect(changed).toHaveBeenLastCalledWith(silentSpeech);
+    await playback.play("one", "Hello");
+    expect(requestAudio).toHaveBeenCalledTimes(2);
+    playback.stop();
   });
-  it("reports rejected audio playback without leaving the avatar speaking", async () => {
-    const audio = {
-      play: vi.fn().mockRejectedValue(Error("not allowed")),
-      pause: vi.fn(),
-      removeAttribute: vi.fn(),
-      load: vi.fn(),
-    } as unknown as HTMLAudioElement;
-    const changed = vi.fn();
-    const playback = createAliraSpeech(null, vi.fn(), changed, () => audio);
-    playback.play("hello", "Hello Molly");
-    await Promise.resolve();
-    expect(changed.mock.lastCall?.[0].speaking).toBe(false);
-    expect(changed.mock.lastCall?.[0].error).toContain("couldn’t play");
-  });
-  it("never auto-plays and only animates as speaking after playback starts", () => {
+  it("handles loading stalls, waiting during playback, and cleanup", async () => {
     vi.useFakeTimers();
-    const { playback, synth, changed, utterances } = speechFixture();
-    expect(synth.speak).not.toHaveBeenCalled();
-    playback.play("hello", "Hello Molly");
-    expect(changed).toHaveBeenLastCalledWith({
-      activeId: "hello",
-      speaking: false,
-      error: "",
-    });
-    utterances[0].onstart?.(new Event("start") as SpeechSynthesisEvent);
-    expect(changed).toHaveBeenLastCalledWith({
-      activeId: "hello",
-      speaking: true,
-      error: "",
-    });
-    utterances[0].onend?.(new Event("end") as SpeechSynthesisEvent);
-    expect(changed).toHaveBeenLastCalledWith({
-      activeId: null,
-      speaking: false,
-      error: "",
-    });
-    vi.advanceTimersByTime(6000);
-    expect(changed.mock.lastCall?.[0].error).toBe("");
-  });
-  it("can stop, replace playback and ignore callbacks from an old utterance", () => {
-    vi.useFakeTimers();
-    const { playback, synth, changed, utterances } = speechFixture();
-    playback.play("one", "First message");
-    playback.play("two", "Second message");
-    const calls = changed.mock.calls.length;
-    utterances[0].onend?.(new Event("end") as SpeechSynthesisEvent);
-    expect(changed).toHaveBeenCalledTimes(calls);
-    playback.play("two", "Second message");
-    expect(synth.cancel).toHaveBeenCalledTimes(2);
-    expect(changed.mock.lastCall?.[0].activeId).toBeNull();
-  });
-  it("handles unavailable local voices without sending text to a remote voice", () => {
-    const { playback, synth, changed } = speechFixture([
-      { localService: false, lang: "en-GB" },
-    ]);
-    playback.play("hello", "Hello Molly");
-    expect(synth.speak).not.toHaveBeenCalled();
-    expect(changed.mock.lastCall?.[0].error).toContain("isn’t available");
-  });
-  it("recovers from stalled playback and cancels pending work on cleanup", () => {
-    vi.useFakeTimers();
-    const { playback, changed } = speechFixture();
-    playback.play("hello", "Hello Molly");
-    vi.advanceTimersByTime(5000);
-    expect(changed.mock.lastCall?.[0].error).toContain("didn’t start");
-    playback.play("hello", "Hello Molly");
+    const { playback, audios, changed } = speechFixture();
+    await playback.play("one", "Hello");
+    audios[0].onplaying?.call(audios[0], new Event("playing"));
+    audios[0].onwaiting?.call(audios[0], new Event("waiting"));
+    expect(changed.mock.lastCall?.[0].loading).toBe(true);
+    vi.advanceTimersByTime(30000);
+    expect(changed.mock.lastCall?.[0].error).toContain("too long");
+    await playback.play("one", "Hello");
     playback.stop(false);
     const calls = changed.mock.calls.length;
-    vi.advanceTimersByTime(6000);
+    vi.advanceTimersByTime(30000);
     expect(changed).toHaveBeenCalledTimes(calls);
+  });
+  it("shows safe errors and never leaves the avatar speaking after failure", async () => {
+    const request = vi.fn(async () => {
+      throw Error("private upstream diagnostic");
+    });
+    const { playback, changed } = speechFixture(request);
+    await playback.play("one", "Hello");
+    expect(changed.mock.lastCall?.[0]).toMatchObject({
+      activeId: null,
+      speaking: false,
+      loading: false,
+    });
+    expect(changed.mock.lastCall?.[0].error).not.toContain("private");
+  });
+  it("sends only a known phrase ID to the same-origin server", async () => {
+    const request = vi.fn(
+      async () =>
+        new Response(new Blob(["audio"]), {
+          headers: { "Content-Type": "audio/mpeg" },
+        })
+    );
+    vi.stubGlobal("fetch", request);
+    const [text, clip] = Object.entries(voiceClips)[0];
+    const signal = new AbortController().signal;
+    await fetchAliraVoice(text, signal);
+    expect(request).toHaveBeenCalledWith(
+      "/api/alira/voice",
+      expect.objectContaining({
+        body: JSON.stringify({
+          phraseId: clip.split("/").pop()!.replace(".wav", ""),
+        }),
+        signal,
+      })
+    );
+    await expect(
+      fetchAliraVoice("unregistered private message", signal)
+    ).rejects.toThrow("isn’t available");
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+  it("reports connection errors and rejects invalid audio", async () => {
+    const text = Object.keys(voiceClips)[0];
+    const signal = new AbortController().signal;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ code: "VOICE_NOT_CONFIGURED" }), {
+            status: 503,
+          })
+      )
+    );
+    await expect(fetchAliraVoice(text, signal)).rejects.toThrow(
+      "isn’t connected"
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response("<html>oops</html>", {
+            headers: { "Content-Type": "text/html" },
+          })
+      )
+    );
+    await expect(fetchAliraVoice(text, signal)).rejects.toThrow(
+      "couldn’t load"
+    );
   });
 });

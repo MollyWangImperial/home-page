@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+import { createAliraVoiceRouter } from "./server/alira-voice";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -203,7 +204,16 @@ function vitePluginStorageProxy(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy()];
+const aliraVoicePlugin: Plugin = {
+  name: "alira-elevenlabs-voice",
+  configureServer(server) {
+    server.middlewares.use("/api/alira/voice", createAliraVoiceRouter({ root: PROJECT_ROOT }));
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use("/api/alira/voice", createAliraVoiceRouter({ root: PROJECT_ROOT }));
+  },
+};
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy(), aliraVoicePlugin];
 
 export default defineConfig({
   plugins,

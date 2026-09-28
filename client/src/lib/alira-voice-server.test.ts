@@ -1,0 +1,143 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import type { Server } from "node:http";
+import {
+  createAliraVoiceRouter,
+  type VoiceConfig,
+} from "../../../server/alira-voice";
+import voiceClips from "./alira-voice-clips.json";
+
+const [text, clip] = Object.entries(voiceClips)[0];
+const phraseId = path.basename(clip, ".wav");
+const config: VoiceConfig = {
+  apiKey: "test-secret-do-not-expose",
+  voiceId: "test-voice",
+  modelId: "eleven_multilingual_v2",
+};
+const fixtures: { server: Server; root: string }[] = [];
+const audioResponse = () =>
+  new Response(new Uint8Array(200).fill(42), {
+    headers: { "Content-Type": "audio/mpeg" },
+  });
+async function fixture(
+  request = vi.fn(async () => audioResponse()),
+  settings = config
+) {
+  const root = await mkdtemp(path.join(tmpdir(), "alira-voice-test-"));
+  const app = createAliraVoiceRouter({
+    root,
+    request: request as typeof fetch,
+    getConfig: () => settings,
+  });
+  const server = await new Promise<Server>(resolve => {
+    const server = app.listen(0, "127.0.0.1", () => resolve(server));
+  });
+  fixtures.push({ server, root });
+  const address = server.address() as { port: number };
+  const url = `http://127.0.0.1:${address.port}`;
+  const post = (body: unknown = { phraseId }, origin?: string) =>
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(origin ? { Origin: origin } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  return { url, post, request };
+}
+afterEach(async () => {
+  for (const { server, root } of fixtures.splice(0)) {
+    await new Promise<void>((resolve, reject) =>
+      server.close(error => (error ? reject(error) : resolve()))
+    );
+    if (
+      !path
+        .resolve(root)
+        .startsWith(path.resolve(tmpdir()) + path.sep + "alira-voice-test-")
+    )
+      throw Error("Unexpected test folder");
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+describe("Alira voice server", () => {
+  it("keeps credentials server-side and reports a missing configuration", async () => {
+    const { url, post, request } = await fixture(undefined, {
+      ...config,
+      apiKey: "",
+    });
+    expect(await (await fetch(`${url}/status`)).json()).toMatchObject({
+      provider: "elevenlabs",
+      configured: false,
+    });
+    const response = await post();
+    expect(response.status).toBe(503);
+    expect((await response.json()).code).toBe("VOICE_NOT_CONFIGURED");
+    expect(request).not.toHaveBeenCalled();
+  });
+  it("rejects unknown phrases, arbitrary text, and cross-origin requests before generation", async () => {
+    const { post, request } = await fixture();
+    expect((await post({ text: "private patient text" })).status).toBe(400);
+    expect((await post({ phraseId: "unknown" })).status).toBe(400);
+    expect(
+      (await post({ phraseId }, "https://another-site.example")).status
+    ).toBe(403);
+    expect(request).not.toHaveBeenCalled();
+  });
+  it("uses ElevenLabs settings and caches repeat listens", async () => {
+    const { url, post, request } = await fixture();
+    const response = await post({ phraseId }, url);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("X-Alira-Voice-Provider")).toBe("elevenlabs");
+    expect((await response.arrayBuffer()).byteLength).toBe(200);
+    const [upstreamUrl, options] = (
+      request.mock.calls as unknown as [string, RequestInit][]
+    )[0];
+    expect(upstreamUrl).toContain(
+      "https://api.elevenlabs.io/v1/text-to-speech/test-voice"
+    );
+    expect(options.headers).toMatchObject({ "xi-api-key": config.apiKey });
+    expect(JSON.parse(options.body as string)).toMatchObject({
+      text,
+      model_id: config.modelId,
+      voice_settings: { speed: 0.94 },
+    });
+    await post();
+    expect(request).toHaveBeenCalledTimes(1);
+    const status = await (await fetch(`${url}/status`)).text();
+    expect(status).not.toContain(config.apiKey);
+  });
+  it("deduplicates simultaneous requests for the same phrase", async () => {
+    const request = vi.fn(async () => {
+      await new Promise(resolve => setTimeout(resolve, 40));
+      return audioResponse();
+    });
+    const { post } = await fixture(request);
+    const responses = await Promise.all([post(), post(), post()]);
+    expect(responses.every(response => response.status === 200)).toBe(true);
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+  it("does not expose provider diagnostics or credentials", async () => {
+    const request = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ secret: config.apiKey }), { status: 401 })
+    );
+    const { post } = await fixture(request);
+    const response = await post();
+    expect(response.status).toBe(502);
+    const result = await response.text();
+    expect(result).toContain("VOICE_ACCESS_DENIED");
+    expect(result).not.toContain(config.apiKey);
+  });
+  it("rejects invalid upstream content", async () => {
+    const { post } = await fixture(
+      vi.fn(async () => new Response("not audio"))
+    );
+    const response = await post();
+    expect(response.status).toBe(502);
+    expect((await response.json()).code).toBe("INVALID_AUDIO");
+  });
+});

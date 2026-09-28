@@ -14,14 +14,12 @@ import RecoveryShell from "@/components/RecoveryShell";
 import {
   checkInAnswers,
   checkInQuestions,
-  forgetCheckIn,
   loadRememberedCheckIn,
   rememberCheckIn,
   type CheckInAnswer,
   type RememberedCheckIn,
 } from "@/lib/alira-check-ins";
 import { createAliraSpeech, silentSpeech } from "@/lib/alira-speech";
-import voiceClips from "@/lib/alira-voice-clips.json";
 
 type Message = { from: "Molly" | "Alira"; text: string; group?: string };
 
@@ -99,17 +97,7 @@ export default function Alira() {
           : "idle";
 
   useEffect(() => {
-    const synth = "speechSynthesis" in window ? window.speechSynthesis : null;
-    synth?.getVoices();
-    speech.current = createAliraSpeech(
-      synth,
-      text => new SpeechSynthesisUtterance(text),
-      setSpeechState,
-      text => {
-        const url = (voiceClips as Record<string, string>)[text];
-        return url ? new Audio(url) : null;
-      }
-    );
+    speech.current = createAliraSpeech(setSpeechState);
     return () => speech.current?.stop(false);
   }, []);
 
@@ -235,13 +223,13 @@ export default function Alira() {
               setMemory(rememberCheckIn(answer));
               replyTo(answer.message, answer.response);
             }}
-            onForget={() => {
-              if (!forgetCheckIn()) return false;
-              setMemory(null);
-              return true;
-            }}
           />
         </section>
+        {speechState.loading && (
+          <p className="alira-voice-notice" role="status">
+            Getting Alira’s voice ready…
+          </p>
+        )}
         {speechState.error && (
           <p className="alira-voice-notice" role="status">
             {speechState.error}
@@ -446,16 +434,13 @@ function AliraCheckIn({
   memory,
   busy,
   onAnswer,
-  onForget,
 }: {
   memory: RememberedCheckIn | null;
   busy: boolean;
   onAnswer: (answer: CheckInAnswer) => void;
-  onForget: () => boolean;
 }) {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answer, setAnswer] = useState<CheckInAnswer | null>(null);
-  const [memoryError, setMemoryError] = useState("");
   const question = checkInQuestions[questionIndex];
   const rememberedQuestion =
     memory && questionIndex === 0
@@ -527,35 +512,6 @@ function AliraCheckIn({
             </button>
           ))}
         </div>
-      )}
-      <div className="alira-check-in-memory">
-        <span>
-          {memory
-            ? "Last check-in remembered on this device"
-            : "Your check-in stays on this device"}
-        </span>
-        {memory && (
-          <button
-            type="button"
-            onClick={() => {
-              if (onForget()) {
-                setAnswer(null);
-                setQuestionIndex(0);
-                setMemoryError("");
-              } else
-                setMemoryError(
-                  "Couldn’t forget the check-in. Please try again."
-                );
-            }}
-          >
-            Forget
-          </button>
-        )}
-      </div>
-      {memoryError && (
-        <span className="alira-memory-error" role="status">
-          {memoryError}
-        </span>
       )}
     </aside>
   );

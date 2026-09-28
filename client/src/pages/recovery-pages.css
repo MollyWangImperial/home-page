@@ -121,13 +121,10 @@
 .alira-check-in button:disabled { opacity:.55; cursor:default; }
 .alira-check-in-answered { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-top:8px; min-height:36px; }
 .alira-check-in-answered > span { display:inline-flex; align-items:center; gap:5px; color:#285b49; font-size:12px; font-weight:700; }
-.alira-check-in-answered button,.alira-check-in-memory button {
+.alira-check-in-answered button {
   padding:5px 0; border:0; color:#365f49; background:transparent; font-size:10px; font-weight:700;
   text-decoration:underline; text-underline-offset:3px;
 }
-.alira-check-in-memory { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; margin-top:8px; color:#536c5a; font-size:9px; line-height:1.4; }
-.alira-check-in-memory button { margin-left:auto; }
-.alira-memory-error { display:block; margin-top:5px; color:#934426; font-size:11px; }
 .alira-listen-greeting { display:flex; align-items:center; gap:5px; min-height:30px; margin-top:5px; padding:0; border:0; background:transparent; color:#3c6952; font-size:10px; font-weight:700; }
 .alira-listen-greeting:hover { color:#153e2c; }
 .alira-message-listen { display:grid; place-items:center; flex:0 0 28px; height:28px; align-self:center; padding:0; border:1px solid #d2e0d5; border-radius:50%; background:#fffefa; color:#426f55; }
