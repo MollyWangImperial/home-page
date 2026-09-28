@@ -4,20 +4,26 @@ import {
   ArrowUp,
   Heart,
   HelpCircle,
-  Mic,
+  Check,
   Send,
   Sparkles,
+  Square,
+  Volume2,
 } from "lucide-react";
 import RecoveryShell from "@/components/RecoveryShell";
+import {
+  checkInAnswers,
+  checkInQuestions,
+  forgetCheckIn,
+  loadRememberedCheckIn,
+  rememberCheckIn,
+  type CheckInAnswer,
+  type RememberedCheckIn,
+} from "@/lib/alira-check-ins";
+import { createAliraSpeech, silentSpeech } from "@/lib/alira-speech";
+import voiceClips from "@/lib/alira-voice-clips.json";
 
 type Message = { from: "Molly" | "Alira"; text: string; group?: string };
-
-const checkInQuestions = [
-  "How are you feeling today, Molly?",
-  "How is your energy feeling today?",
-  "What’s one small win you’re proud of?",
-  "Is there anything you’d like to talk through?",
-];
 
 const suggestions = [
   {
@@ -75,17 +81,37 @@ export default function Alira() {
   const [isReplying, setIsReplying] = useState(false);
   const [composerFocused, setComposerFocused] = useState(false);
   const [isGreeting, setIsGreeting] = useState(false);
+  const [memory, setMemory] = useState(loadRememberedCheckIn);
+  const [speechState, setSpeechState] = useState(silentSpeech);
+  const speech = useRef<ReturnType<typeof createAliraSpeech> | null>(null);
   const replyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const greetingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const threadEnd = useRef<HTMLDivElement>(null);
   const previousMessages = useRef(messages);
-  const presence = isReplying
-    ? "replying"
-    : isGreeting
-      ? "greeting"
-      : composerFocused || draft.trim()
-        ? "attentive"
-        : "idle";
+  const presence = speechState.speaking
+    ? "speaking"
+    : isReplying
+      ? "replying"
+      : isGreeting
+        ? "greeting"
+        : composerFocused || draft.trim()
+          ? "attentive"
+          : "idle";
+
+  useEffect(() => {
+    const synth = "speechSynthesis" in window ? window.speechSynthesis : null;
+    synth?.getVoices();
+    speech.current = createAliraSpeech(
+      synth,
+      text => new SpeechSynthesisUtterance(text),
+      setSpeechState,
+      text => {
+        const url = (voiceClips as Record<string, string>)[text];
+        return url ? new Audio(url) : null;
+      }
+    );
+    return () => speech.current?.stop(false);
+  }, []);
 
   useEffect(
     () => () => {
@@ -101,10 +127,9 @@ export default function Alira() {
       messages !== previousMessages.current
     ) {
       threadEnd.current?.scrollIntoView({
-        behavior:
-          window.matchMedia("(prefers-reduced-motion: reduce)").matches
-            ? "instant"
-            : "smooth",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "instant"
+          : "smooth",
         block: "nearest",
       });
     }
@@ -123,6 +148,7 @@ export default function Alira() {
 
   const replyTo = (message: string, response: string) => {
     if (replyTimer.current !== null) return;
+    speech.current?.stop();
     setIsGreeting(false);
     setMessages(current => [...current, { from: "Molly", text: message }]);
     setIsReplying(true);
@@ -130,6 +156,9 @@ export default function Alira() {
       setMessages(current => [...current, { from: "Alira", text: response }]);
       setIsReplying(false);
       replyTimer.current = null;
+      setIsGreeting(true);
+      if (greetingTimer.current !== null) clearTimeout(greetingTimer.current);
+      greetingTimer.current = setTimeout(() => setIsGreeting(false), 1500);
     }, 850);
   };
 
@@ -146,10 +175,7 @@ export default function Alira() {
 
   return (
     <RecoveryShell active="Alira" dateLabel="">
-      <div
-        className="recovery-page alira-page"
-        data-presence={presence}
-      >
+      <div className="recovery-page alira-page" data-presence={presence}>
         <section className="alira-heading">
           <div className="alira-heading-title">
             <button
@@ -175,10 +201,52 @@ export default function Alira() {
               <span className="alira-companion-caption">
                 Your recovery companion
               </span>
+              <button
+                type="button"
+                className="alira-listen-greeting"
+                onClick={() =>
+                  speech.current?.play(
+                    "greeting",
+                    "Hello, Molly. It’s lovely to see you. How are you feeling today?"
+                  )
+                }
+                aria-label={
+                  speechState.activeId === "greeting"
+                    ? "Stop greeting"
+                    : "Hear Alira’s greeting"
+                }
+              >
+                {speechState.activeId === "greeting" ? (
+                  <Square size={12} />
+                ) : (
+                  <Volume2 size={14} />
+                )}
+                {speechState.activeId === "greeting"
+                  ? "Stop audio"
+                  : "Hear Alira"}
+              </button>
             </div>
           </div>
-          <AliraCheckIn />
+          <AliraCheckIn
+            memory={memory}
+            busy={isReplying}
+            onAnswer={answer => {
+              if (replyTimer.current !== null) return;
+              setMemory(rememberCheckIn(answer));
+              replyTo(answer.message, answer.response);
+            }}
+            onForget={() => {
+              if (!forgetCheckIn()) return false;
+              setMemory(null);
+              return true;
+            }}
+          />
         </section>
+        {speechState.error && (
+          <p className="alira-voice-notice" role="status">
+            {speechState.error}
+          </p>
+        )}
         <div className="alira-layout">
           <section
             className="alira-chat-card"
@@ -221,7 +289,7 @@ export default function Alira() {
                 {messages.map((message, index) => (
                   <div
                     key={`${message.text}-${index}`}
-                    className={`alira-message-row ${message.from === "Molly" ? "from-molly" : "from-alira"} ${index >= initialMessages.length ? "is-new" : ""}`}
+                    className={`alira-message-row ${message.from === "Molly" ? "from-molly" : "from-alira"} ${index >= initialMessages.length ? "is-new" : ""} ${speechState.speaking && speechState.activeId === `message-${index}` ? "is-speaking" : ""}`}
                   >
                     {message.group && (
                       <span className="alira-day-divider">{message.group}</span>
@@ -232,6 +300,26 @@ export default function Alira() {
                       </span>
                     )}
                     <p>{message.text}</p>
+                    {message.from === "Alira" && (
+                      <button
+                        type="button"
+                        className="alira-message-listen"
+                        aria-label={
+                          speechState.activeId === `message-${index}`
+                            ? "Stop audio"
+                            : "Listen to this message"
+                        }
+                        onClick={() =>
+                          speech.current?.play(`message-${index}`, message.text)
+                        }
+                      >
+                        {speechState.activeId === `message-${index}` ? (
+                          <Square size={12} />
+                        ) : (
+                          <Volume2 size={14} />
+                        )}
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -272,9 +360,29 @@ export default function Alira() {
               <button
                 type="button"
                 className="alira-mic"
-                aria-label="Speak to Alira"
+                aria-label={
+                  speechState.activeId ? "Stop audio" : "Listen to latest reply"
+                }
+                onClick={() => {
+                  if (speechState.activeId) {
+                    speech.current?.stop();
+                    return;
+                  }
+                  const index = messages.findLastIndex(
+                    message => message.from === "Alira"
+                  );
+                  if (index >= 0)
+                    speech.current?.play(
+                      `message-${index}`,
+                      messages[index].text
+                    );
+                }}
               >
-                <Mic size={18} />
+                {speechState.activeId ? (
+                  <Square size={16} />
+                ) : (
+                  <Volume2 size={18} />
+                )}
               </button>
               <button
                 type="submit"
@@ -334,31 +442,154 @@ export default function Alira() {
   );
 }
 
-function AliraCheckIn() {
+function AliraCheckIn({
+  memory,
+  busy,
+  onAnswer,
+  onForget,
+}: {
+  memory: RememberedCheckIn | null;
+  busy: boolean;
+  onAnswer: (answer: CheckInAnswer) => void;
+  onForget: () => boolean;
+}) {
   const [questionIndex, setQuestionIndex] = useState(0);
+  const [answer, setAnswer] = useState<CheckInAnswer | null>(null);
+  const [memoryError, setMemoryError] = useState("");
+  const question = checkInQuestions[questionIndex];
+  const rememberedQuestion =
+    memory && questionIndex === 0
+      ? checkInAnswers[memory.answerId].followUp
+      : null;
+  const answers =
+    rememberedQuestion && memory
+      ? (checkInQuestions.find(item =>
+          item.answers.some(option => option.id === memory.answerId)
+        )?.answers ?? question.answers)
+      : question.answers;
 
   return (
-    <aside className="alira-check-in" aria-label="A question from Alira">
+    <aside
+      className="alira-check-in"
+      aria-label="A question from Alira"
+      data-answered={Boolean(answer)}
+      aria-busy={busy}
+    >
       <p
-        key={questionIndex}
+        key={`${questionIndex}-${answer?.id ?? "question"}`}
         className="alira-check-in-question"
-        onAnimationEnd={() =>
-          setQuestionIndex(current => (current + 1) % checkInQuestions.length)
-        }
+        onAnimationEnd={() => {
+          if (!answer && !busy)
+            setQuestionIndex(
+              current => (current + 1) % checkInQuestions.length
+            );
+        }}
       >
-        {checkInQuestions[questionIndex]}
+        {answer
+          ? "Thank you for sharing, Molly."
+          : (rememberedQuestion ?? question.text)}
       </p>
+      {answer ? (
+        <div className="alira-check-in-answered">
+          <span>
+            <Check size={14} /> {answer.label}
+          </span>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setAnswer(null);
+              setQuestionIndex(
+                current => (current + 1) % checkInQuestions.length
+              );
+            }}
+          >
+            Check in again
+          </button>
+        </div>
+      ) : (
+        <div
+          className="alira-check-in-answers"
+          role="group"
+          aria-label="Your check-in answer"
+        >
+          {answers.map(option => (
+            <button
+              key={option.id}
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setAnswer(option);
+                onAnswer(option);
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="alira-check-in-memory">
+        <span>
+          {memory
+            ? "Last check-in remembered on this device"
+            : "Your check-in stays on this device"}
+        </span>
+        {memory && (
+          <button
+            type="button"
+            onClick={() => {
+              if (onForget()) {
+                setAnswer(null);
+                setQuestionIndex(0);
+                setMemoryError("");
+              } else
+                setMemoryError(
+                  "Couldn’t forget the check-in. Please try again."
+                );
+            }}
+          >
+            Forget
+          </button>
+        )}
+      </div>
+      {memoryError && (
+        <span className="alira-memory-error" role="status">
+          {memoryError}
+        </span>
+      )}
     </aside>
   );
 }
 
 function AliraAvatar() {
   return (
-    <img
+    <svg
       className="alira-avatar-image"
-      src="/images/alira-avatar.png"
-      alt=""
+      viewBox="0 0 80 80"
       aria-hidden="true"
-    />
+      focusable="false"
+    >
+      <circle cx="40" cy="40" r="39" fill="#dfe7df" />
+      <circle cx="40" cy="40" r="34" fill="#285b49" />
+      <path
+        className="alira-pulse-line"
+        d="M24 40h9l6-10 9 20 6-10h5"
+        fill="none"
+        stroke="#f5faf3"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        className="alira-pulse-trace"
+        d="M24 40h9l6-10 9 20 6-10h5"
+        pathLength="100"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
