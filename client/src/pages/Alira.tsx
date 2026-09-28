@@ -29,6 +29,7 @@ import {
   type RememberedCheckIn,
 } from "@/lib/alira-check-ins";
 import { createAliraSpeech, silentSpeech } from "@/lib/alira-speech";
+import "./alira-save-refinements.css";
 
 type Message = { from: "Molly" | "Alira"; text: string; group?: string };
 
@@ -275,13 +276,13 @@ export default function Alira() {
                     Five days in a row, Molly. Every repetition is your brain
                     building a new path. That’s real, and it’s yours.
                   </p>
-                  <button
+                  <div className="alira-save-row"><button
                     className={`alira-save-button ${saved ? "is-saved" : ""}`}
                     aria-pressed={saved}
                     onClick={() => setSaved(!saved)}
                   >
                     <span className="alira-save-heart" aria-hidden="true">
-                      <Heart size={14} fill={saved ? "currentColor" : "none"} />
+                      <Heart size={17} fill={saved ? "currentColor" : "none"} />
                     </span>
                     {saved ? "Saved" : "Save words"}
                     <span className="alira-save-burst" aria-hidden="true">
@@ -290,7 +291,7 @@ export default function Alira() {
                       <i />
                       <i />
                     </span>
-                  </button>
+                  </button><span className="alira-save-confirmation" role="status">{saved && <><Check size={13} /> Kept for a little encouragement.</>}</span></div>
                 </article>
                 <div
                   className="alira-messages"

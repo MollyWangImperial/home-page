@@ -21,11 +21,22 @@
 .mytime-page .breathing-start { transition:transform .2s ease,background .2s ease; }
 .mytime-page .breathing-start:active { transform:scale(.97); }
 .mytime-page .breathing-finished { grid-column:1/-1; max-width:none; margin-top:20px; color:#37644e; font-size:12px; }
-.mytime-page .circle-heading h2 { margin:0 65px 18px 0; }
-.circle-heading > div i { transition:transform .25s ease; }
-.circle-heading:hover > div i:nth-child(1) { transform:translateY(-3px) rotate(-8deg); }
-.circle-heading:hover > div i:nth-child(2) { transform:translateY(-5px); }
-.circle-heading:hover > div i:nth-child(3) { transform:translateY(-3px) rotate(8deg); }
+.mytime-page .circle-heading h2 { margin:0 84px 18px 0; font-weight:650; }
+.circle-avatar { display:block; width:42px; height:42px; flex-shrink:0; overflow:hidden; border:2px solid #fffefa; border-radius:50%; background:#e4e9dc; box-shadow:0 0 0 1px #d6dfd2; }
+.circle-avatar img { display:block; width:100%; height:100%; object-fit:cover; }
+.circle-heading .circle-avatar { width:32px; height:32px; margin-left:-9px; transition:transform .25s ease; }
+.circle-heading:hover .circle-avatar:nth-child(1) { transform:translateY(-3px) rotate(-5deg); }
+.circle-heading:hover .circle-avatar:nth-child(2) { transform:translateY(-5px); }
+.circle-heading:hover .circle-avatar:nth-child(3) { transform:translateY(-3px) rotate(5deg); }
+.mytime-page .circle-list article { grid-template-columns:42px minmax(0,1fr); gap:7px 10px; padding:13px 0; }
+.circle-list article > .circle-avatar { grid-row:1 / span 2; }
+.mytime-page .circle-list p { color:#40564a; font-size:12px; font-weight:600; line-height:1.45; }
+.mytime-page .circle-list p b { color:#233f31; font-weight:800; }
+.mytime-page .circle-list strong { margin-top:6px; color:#2c4435; font-size:17px; font-weight:650; line-height:1.15; }
+.mytime-page .circle-list time { margin:0; color:#66786b; font-size:10px; font-weight:600; }
+.circle-person-footer { grid-column:2; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:7px; }
+.mytime-page .circle-person-footer button { min-height:32px; padding:0 9px; font-size:10px; font-weight:750; }
+.mytime-page .circle-share { font-size:12px; font-weight:800; }
 .mytime-page .circle-list button,.mytime-page .circle-share,.mytime-page .sounds-card button { transition:transform .2s ease,background .2s ease,box-shadow .2s ease; }
 .mytime-page .circle-list button:hover,.mytime-page .circle-share:hover,.mytime-page .sounds-card button:hover { transform:translateY(-2px); }
 .circle-list button.is-replied svg,.circle-share.is-shared > svg { animation:mytime-pop .4s ease-out; }

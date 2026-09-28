@@ -1,0 +1,26 @@
+.alira-save-row { display:flex; flex-wrap:wrap; align-items:center; gap:10px 13px; }
+.alira-page .alira-save-button {
+  min-height:38px; min-width:120px; justify-content:center; gap:7px; padding:0 13px; border-radius:12px;
+  box-shadow:0 3px 8px #9b482323; transition:background .2s ease,box-shadow .2s ease,transform .2s ease;
+}
+.alira-page .alira-save-button:not(.is-saved) { animation:alira-save-lift 6s ease-in-out infinite; }
+.alira-page .alira-save-button:not(.is-saved)::before {
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background:linear-gradient(110deg,transparent 30%,#fff5 48%,transparent 66%) 180% 0 / 260% 100%;
+  animation:alira-save-sheen 6s ease-in-out infinite;
+}
+.alira-page .alira-save-button:not(.is-saved) .alira-save-heart { animation:alira-save-warm-heart 6s ease-in-out infinite; }
+.alira-page .alira-save-button:hover,.alira-page .alira-save-button:focus-visible { box-shadow:0 5px 14px #8c422b3a; }
+.alira-page .alira-save-button:focus-visible { outline:2px solid #713f29; outline-offset:5px; }
+.alira-page .alira-save-button.is-saved { animation:alira-save-settle .45s ease-out; box-shadow:0 2px 6px #2d674f20; }
+.alira-save-confirmation { display:inline-flex; align-items:center; gap:5px; color:#31573f; font-size:11px; font-weight:700; }
+.alira-save-confirmation:not(:empty) { animation:alira-save-confirm .3s ease-out; }
+.alira-save-confirmation svg { flex-shrink:0; }
+@keyframes alira-save-lift { 0%,8%,32%,100% { transform:translateY(0); } 16%,23% { transform:translateY(-2px); } }
+@keyframes alira-save-warm-heart { 0%,8%,19%,32%,100% { transform:scale(1) rotate(0); } 13% { transform:scale(1.3) rotate(-8deg); } 24% { transform:scale(1.2) rotate(6deg); } }
+@keyframes alira-save-sheen { 0%,8% { background-position:180% 0; } 34%,100% { background-position:-80% 0; } }
+@keyframes alira-save-settle { 0%,100% { transform:scale(1); } 45% { transform:scale(1.04); } }
+@keyframes alira-save-confirm { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
+@media (prefers-reduced-motion:reduce) {
+  .alira-page .alira-save-button::before { display:none; }
+}
