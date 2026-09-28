@@ -460,6 +460,7 @@ function AliraCheckIn({
       data-answered={Boolean(answer)}
       aria-busy={busy}
     >
+      <AliraThoughts />
       <p
         key={`${questionIndex}-${answer?.id ?? "question"}`}
         className="alira-check-in-question"
@@ -514,6 +515,71 @@ function AliraCheckIn({
         </div>
       )}
     </aside>
+  );
+}
+
+// Decorative neural connections: staggered signals flow between softly firing nodes.
+function AliraThoughts() {
+  const connections = [
+    "M18 28 Q48 8 83 18 T144 42 Q176 50 214 20 T351 24",
+    "M83 18 Q102 69 43 105 Q74 123 109 136 T189 113",
+    "M144 42 Q172 69 189 113 Q228 148 265 134 T338 113",
+    "M214 20 Q237 35 275 50 Q310 76 338 113 T392 74",
+    "M351 24 Q335 61 275 50 Q231 59 189 113 T109 136",
+    "M18 28 Q27 75 43 105 Q94 79 144 42 M265 134 Q298 157 338 113 Q378 105 392 74",
+  ];
+  const nodes = [
+    [18, 28],
+    [83, 18],
+    [144, 42],
+    [214, 20],
+    [275, 50],
+    [351, 24],
+    [392, 74],
+    [338, 113],
+    [265, 134],
+    [189, 113],
+    [109, 136],
+    [43, 105],
+  ];
+  return (
+    <svg
+      className="alira-thought-network"
+      viewBox="0 0 400 160"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {connections.map((connection, index) => (
+        <g key={connection}>
+          <path className="alira-thought-connection" d={connection} />
+          <path
+            className="alira-thought-signal"
+            d={connection}
+            pathLength="100"
+            style={{ animationDelay: `${index * -0.47}s` }}
+          />
+        </g>
+      ))}
+      {nodes.map(([x, y], index) => (
+        <g key={`${x}-${y}`}>
+          <circle
+            className="alira-thought-node-halo"
+            cx={x}
+            cy={y}
+            r="7"
+            style={{ animationDelay: `${index * -0.31}s` }}
+          />
+          <circle
+            className="alira-thought-node"
+            cx={x}
+            cy={y}
+            r="2.5"
+            style={{ animationDelay: `${index * -0.31}s` }}
+          />
+        </g>
+      ))}
+    </svg>
   );
 }
 
