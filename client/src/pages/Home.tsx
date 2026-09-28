@@ -152,7 +152,6 @@ export default function Home() {
             </aside>
           </div>
 
-          <footer className="page-footer"><span>This is a demo with sample information. It is not connected to care records.</span></footer>
         </div>
       </main>
 
