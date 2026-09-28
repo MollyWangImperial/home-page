@@ -339,7 +339,6 @@ function AliraCheckIn() {
 
   return (
     <aside className="alira-check-in" aria-label="A question from Alira">
-      <span className="alira-check-in-label">Alira asks</span>
       <p
         key={questionIndex}
         className="alira-check-in-question"
