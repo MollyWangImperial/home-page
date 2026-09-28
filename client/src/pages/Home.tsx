@@ -22,6 +22,7 @@ import {
 import { useLocation } from "wouter";
 import AliraAvatar from "@/components/AliraAvatar";
 import RecoverySeedling from "@/components/RecoverySeedling";
+import { SettingsButton, useSettings } from "@/components/AccountSettings";
 import "./home-dashboard.css";
 
 type ModalName = "checkin" | "help" | "warning" | "journey" | null;
@@ -43,6 +44,7 @@ export default function Home() {
   const [highContrast, setHighContrast] = useState(false);
   const [activeNav, setActiveNav] = useState<NavItem>("Home");
   const [notice, setNotice] = useState("");
+  const openSettings = useSettings();
 
   function chooseNav(name: NavItem) {
     setActiveNav(name);
@@ -77,17 +79,18 @@ export default function Home() {
         </nav>
         <div className="sidebar-bottom">
           <button className="warning-link" onClick={() => setModal("warning")}><CircleHelp size={19} /><span>Warning signs</span><ChevronRight size={16} /></button>
+          <SettingsButton />
         </div>
       </aside>
 
       <main className="main-area" id="home">
         <header className="topbar">
-          <div className="mobile-brand"><span className="brand-symbol small"><Activity size={21} /></span><span>Rehyn</span></div>
+          <div className="settings-mobile-brand-group"><SettingsButton mobile /><div className="mobile-brand"><span className="brand-symbol small"><Activity size={21} /></span><span>Rehyn</span></div></div>
           <div className="today-label">THURSDAY, 24 SEPTEMBER</div>
           <div className="top-actions">
             <button className={`utility-button ${largeText ? "toggled" : ""}`} aria-label={largeText ? "Use standard text size" : "Make text larger"} onClick={() => setLargeText(!largeText)} title="Text size"><span className="aa">A</span><Plus size={12} /></button>
             <button className={`utility-button ${highContrast ? "toggled" : ""}`} aria-label="Toggle stronger contrast" onClick={() => setHighContrast(!highContrast)} title="Stronger contrast"><Sun size={19} /></button>
-            <button className="profile-chip" aria-label="Molly's profile" onClick={() => setNotice("Welcome back, Molly. Your settings are just as you left them.")}>M</button>
+            <button className="profile-chip" aria-label="Molly's profile" aria-haspopup="dialog" onClick={event => openSettings(event.currentTarget)}>M</button>
           </div>
         </header>
 

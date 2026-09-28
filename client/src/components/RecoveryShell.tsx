@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { useLocation } from "wouter";
+import { SettingsButton, useSettings } from "./AccountSettings";
 import {
   Activity,
   BookOpen,
@@ -34,6 +35,7 @@ export default function RecoveryShell({ active, children, dateLabel = "THURSDAY,
   const [largeText, setLargeText] = useState(false);
   const [strongContrast, setStrongContrast] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
+  const openSettings = useSettings();
 
   const go = (href: string) => setLocation(href);
 
@@ -54,19 +56,19 @@ export default function RecoveryShell({ active, children, dateLabel = "THURSDAY,
             </button>
           ))}
         </nav>
-        <button className="recovery-warning-link" onClick={() => setShowWarning(true)}>
+        <div className="recovery-sidebar-bottom"><button className="recovery-warning-link" onClick={() => setShowWarning(true)}>
           <CircleHelp size={19} /><span>Warning signs</span><ChevronRight size={16} />
-        </button>
+        </button><SettingsButton /></div>
       </aside>
 
       <main className="recovery-main">
         <header className="recovery-topbar">
-          <button className="recovery-mobile-brand" onClick={() => go("/")} aria-label="Rehyn home"><span><Activity size={19} /></span><b>Rehyn</b></button>
+          <div className="settings-mobile-brand-group"><SettingsButton mobile /><button className="recovery-mobile-brand" onClick={() => go("/")} aria-label="Rehyn home"><span><Activity size={19} /></span><b>Rehyn</b></button></div>
           <div className="recovery-date">{dateLabel}</div>
           <div className="recovery-top-actions">
             <button className={`recovery-utility ${largeText ? "is-on" : ""}`} onClick={() => setLargeText(!largeText)} aria-label={largeText ? "Use standard text" : "Use larger text"} title="Larger text"><b>A</b><Plus size={11} /></button>
             <button className={`recovery-utility ${strongContrast ? "is-on" : ""}`} onClick={() => setStrongContrast(!strongContrast)} aria-label="Toggle stronger contrast" title="Stronger contrast"><Sun size={18} /></button>
-            <button className="recovery-profile" aria-label="Molly's profile">M</button>
+            <button className="recovery-profile" aria-label="Molly's profile" aria-haspopup="dialog" onClick={event => openSettings(event.currentTarget)}>M</button>
           </div>
         </header>
         {children}

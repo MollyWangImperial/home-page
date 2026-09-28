@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Journey from "./pages/Journey";
 import Alira from "./pages/Alira";
 import MyTime from "./pages/MyTime";
+import { SettingsProvider } from "./components/AccountSettings";
 import "./pages/recovery-pages.css";
 
 
@@ -39,7 +40,7 @@ function App() {
       >
         <TooltipProvider>
           <Toaster />
-          <Router />
+          <SettingsProvider><Router /></SettingsProvider>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
