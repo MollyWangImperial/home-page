@@ -95,44 +95,31 @@
   border:1px solid #d3e2d5; border-radius:18px 18px 18px 4px;
   background:#e4eee4;
 }
-/* Neural signals remain behind the question and never intercept its controls. */
+/* A single quiet heartbeat trace sits below the question and behind its controls. */
 .alira-check-in {
   background:radial-gradient(ellipse at 88% 12%,#cbe4d5 0%,transparent 62%),#e4eee4;
-  --thought-speed:2.8s;
+  --wave-speed:2.4s;
 }
 .alira-check-in > * { position:relative; z-index:1; }
-.alira-check-in > .alira-thought-network {
-  position:absolute; z-index:0; inset:0; width:100%; height:100%; pointer-events:none;
-  mask-image:linear-gradient(to bottom,#000 0%,#0009 35%,#0009 65%,#000 100%);
+.alira-check-in > .alira-check-in-wave {
+  position:absolute; z-index:0; left:0; bottom:45px; width:100%; height:28px; pointer-events:none;
+  mask-image:linear-gradient(to right,transparent,#000 12%,#000 88%,transparent);
 }
-.alira-thought-connection,.alira-thought-signal { fill:none; stroke-linecap:round; stroke-linejoin:round; }
-.alira-thought-connection { stroke:#4b886d; stroke-width:1; opacity:.22; }
-.alira-thought-signal {
-  stroke:#367e61; stroke-width:2.4; stroke-dasharray:7 93;
-  animation:alira-neural-signal var(--thought-speed) linear infinite;
+.alira-wave-track,.alira-wave-light { fill:none; stroke-linecap:round; stroke-linejoin:round; }
+.alira-wave-track { stroke:#508b72; stroke-width:1.5; opacity:.2; }
+.alira-wave-light {
+  stroke:#397f61; stroke-width:2; stroke-dasharray:22 78;
+  filter:drop-shadow(0 0 2px #80bda166);
+  animation:alira-wave-travel var(--wave-speed) linear infinite;
 }
-.alira-thought-node { fill:#387b5e; opacity:.4; animation:alira-neural-node var(--thought-speed) ease-in-out infinite; }
-.alira-thought-node-halo {
-  fill:#71ac8c; opacity:.16; transform-box:fill-box; transform-origin:center;
-  animation:alira-neural-halo var(--thought-speed) ease-out infinite;
-}
-.alira-page[data-presence="replying"] .alira-check-in { --thought-speed:1.7s; }
-@keyframes alira-neural-signal {
+.alira-page[data-presence="replying"] .alira-check-in { --wave-speed:1.6s; }
+@keyframes alira-wave-travel {
   0% { stroke-dashoffset:100; opacity:0; }
-  16%,76% { opacity:.7; }
+  18%,75% { opacity:.65; }
   100% { stroke-dashoffset:0; opacity:0; }
 }
-@keyframes alira-neural-node {
-  0%,58%,100% { opacity:.3; }
-  24% { opacity:.85; }
-}
-@keyframes alira-neural-halo {
-  0% { transform:scale(.5); opacity:0; }
-  24% { opacity:.25; }
-  70%,100% { transform:scale(1.8); opacity:0; }
-}
 @media (prefers-reduced-motion:reduce) {
-  .alira-thought-signal,.alira-thought-node-halo { display:none; }
+  .alira-wave-light { display:none; }
 }
 .alira-heading .alira-check-in-question {
   display:grid; align-content:center; min-height:3.9em; margin:0; color:#163e2f;
