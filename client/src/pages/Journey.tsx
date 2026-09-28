@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
-  Award,
   Check,
   ChevronRight,
   Mic,
@@ -9,14 +8,16 @@ import {
 } from "lucide-react";
 import RecoveryShell from "@/components/RecoveryShell";
 import AliraAvatar from "@/components/AliraAvatar";
+import MedalArtwork, { type MedalIcon } from "@/components/MedalArtwork";
 import { MoodFace, MoodHistory, moodOptions, type MoodIndex } from "@/components/JournalMood";
 import { useLocation } from "wouter";
 import "./journey-refinements.css";
 import "./journal-refinements.css";
+import "./medal-refinements.css";
 
 type Tab = "Progress" | "Journal" | "Medals";
 type JournalEntry = { id: string; date: string; mood: MoodIndex; text: string; voice?: number; tags: string[]; shared?: boolean };
-type Medal = { name: string; symbol: string; done?: boolean; date?: string; current?: number; total?: number; unit?: string; description: string };
+type Medal = { name: string; icon: MedalIcon; done?: boolean; date?: string; current?: number; total?: number; unit?: string; description: string };
 type MedalCategory = { name: string; tone: string; earned: string; medals: Medal[] };
 
 const journalTagColors: Record<string, { background: string; border: string; ink: string }> = {
@@ -49,28 +50,28 @@ const referenceEntries: JournalEntry[] = [
 const referenceMoods: MoodIndex[] = [2, 3, 1, 2, 3, 3, 2, 2, 4, 1, 3, 3, 2, -1];
 const medalCategories: MedalCategory[] = [
   { name: "Consistency", tone: "consistency", earned: "2 of 4", medals: [
-    { name: "First Step", symbol: "⇧", done: true, date: "8 Sep", description: "Complete your very first session." },
-    { name: "Seven Sunrises", symbol: "☼", current: 5, total: 7, unit: "days", description: "Practise seven days in a row." },
-    { name: "Weekend Warrior", symbol: "↔", done: true, date: "20 Sep", description: "Practise on a Saturday and a Sunday." },
-    { name: "Month of Mornings", symbol: "▣", current: 5, total: 30, unit: "days", description: "Practise on thirty different days." },
+    { name: "First Step", icon: "first-step", done: true, date: "8 Sep", description: "Complete your very first session." },
+    { name: "Seven Sunrises", icon: "sunrise", current: 5, total: 7, unit: "days", description: "Practise seven days in a row." },
+    { name: "Weekend Warrior", icon: "weekend", done: true, date: "20 Sep", description: "Practise on a Saturday and a Sunday." },
+    { name: "Month of Mornings", icon: "month", current: 5, total: 30, unit: "days", description: "Practise on thirty different days." },
   ] },
   { name: "Milestones", tone: "milestones", earned: "2 of 4", medals: [
-    { name: "Baseline Set", symbol: "⚑", done: true, date: "8 Sep", description: "Complete your first assessment." },
-    { name: "Ten Up", symbol: "↑", done: true, date: "21 Sep", description: "Raise any recovery score by ten points." },
-    { name: "Steady Hand", symbol: "✋", current: 80, total: 90, unit: "points", description: "Reach a hand control score of 90." },
-    { name: "Reassessment Ready", symbol: "◎", current: 3, total: 5, unit: "weeks", description: "Reach your week 5 reassessment." },
+    { name: "Baseline Set", icon: "baseline", done: true, date: "8 Sep", description: "Complete your first assessment." },
+    { name: "Ten Up", icon: "ten-up", done: true, date: "21 Sep", description: "Raise any recovery score by ten points." },
+    { name: "Steady Hand", icon: "steady-hand", current: 80, total: 90, unit: "points", description: "Reach a hand control score of 90." },
+    { name: "Reassessment Ready", icon: "reassessment", current: 3, total: 5, unit: "weeks", description: "Reach your week 5 reassessment." },
   ] },
   { name: "Courage", tone: "courage", earned: "3 of 4", medals: [
-    { name: "Found My Voice", symbol: "◉", done: true, date: "20 Sep", description: "Record your first voice note." },
-    { name: "Asked Alira", symbol: "▢", done: true, date: "17 Sep", description: "Ask Alira your first question." },
-    { name: "Honest Day", symbol: "♡", done: true, date: "20 Sep", description: "Write about a hard day in your journal." },
-    { name: "Shared It", symbol: "⌘", current: 0, total: 1, unit: "shares", description: "Share a win with someone you love." },
+    { name: "Found My Voice", icon: "voice", done: true, date: "20 Sep", description: "Record your first voice note." },
+    { name: "Asked Alira", icon: "alira", done: true, date: "17 Sep", description: "Ask Alira your first question." },
+    { name: "Honest Day", icon: "honest-day", done: true, date: "20 Sep", description: "Write about a hard day in your journal." },
+    { name: "Shared It", icon: "shared", current: 0, total: 1, unit: "shares", description: "Share a win with someone you love." },
   ] },
   { name: "Everyday life", tone: "everyday", earned: "2 of 4", medals: [
-    { name: "First Win", symbol: "☆", done: true, date: "16 Sep", description: "Log your first everyday win." },
-    { name: "Self Care", symbol: "≡", done: true, date: "22 Sep", description: "Log a win with grooming or getting ready." },
-    { name: "Five Wins", symbol: "✓", current: 3, total: 5, unit: "wins", description: "Log five everyday wins." },
-    { name: "Kitchen Helper", symbol: "☕", current: 0, total: 1, unit: "wins", description: "Log a win in the kitchen." },
+    { name: "First Win", icon: "first-win", done: true, date: "16 Sep", description: "Log your first everyday win." },
+    { name: "Self Care", icon: "self-care", done: true, date: "22 Sep", description: "Log a win with grooming or getting ready." },
+    { name: "Five Wins", icon: "five-wins", current: 3, total: 5, unit: "wins", description: "Log five everyday wins." },
+    { name: "Kitchen Helper", icon: "kitchen", current: 0, total: 1, unit: "wins", description: "Log a win in the kitchen." },
   ] },
 ] as const;
 
@@ -106,6 +107,7 @@ export default function Journey() {
   const allMedals = useMemo(() => medalCategories.flatMap((category) => category.medals.map((medal) => ({ ...medal, category: category.name, tone: category.tone }))), []);
   const selectedMedalDetails = allMedals[selectedMedal] ?? allMedals[1];
   const earnedCount = allMedals.filter((medal) => medal.done || (medal.current && medal.total && medal.current >= medal.total)).length;
+  const selectedMedalEarned = Boolean(selectedMedalDetails.done || (selectedMedalDetails.total && (selectedMedalDetails.current ?? 0) >= selectedMedalDetails.total));
 
   const addWin = () => setAddedWin(true);
   const toggleTag = (tag: string) => setSelectedTags((current) => current.includes(tag) ? current.filter((value) => value !== tag) : [...current, tag]);
@@ -196,7 +198,7 @@ export default function Journey() {
               </section>
               <section className="journey-next-medal">
                 <span className="recovery-overline">NEXT MEDAL</span>
-                <div><span className="medal-sun"><Award size={27} /></span><h2>Seven Sunrises</h2><p>Practise seven days in a row.</p></div>
+                <div><span className="medal-sun"><MedalArtwork icon="sunrise" /></span><h2>Seven Sunrises</h2><p>Practise seven days in a row.</p></div>
                 <div className="medal-progress"><span style={{ width: "71%" }} /></div>
                 <button onClick={() => { setTab("Medals"); setSelectedMedal(1); }}>See all medals <ChevronRight size={16} /></button>
               </section>
@@ -220,9 +222,40 @@ export default function Journey() {
           </div>
         </section>}
 
-        {tab === "Medals" && <section className="reference-medals" aria-labelledby="medals-title">
-          <div className="medal-catalog">{medalCategories.map((category) => <section key={category.name} className={`medal-category ${category.tone}`}><h2><i />{category.name} <small>{category.earned}</small></h2><div>{category.medals.map((medal, index) => { const flatIndex = allMedals.findIndex((current) => current.name === medal.name); const isEarned = Boolean(medal.done || (medal.current && medal.total && medal.current >= medal.total)); const progress = medal.total ? Math.round(((medal.current ?? 0) / medal.total) * 100) : 100; return <button key={medal.name} className={`${selectedMedal === flatIndex ? "is-selected" : ""} ${isEarned ? "is-earned" : "is-locked"}`} onClick={() => setSelectedMedal(flatIndex)}><span className="medal-symbol">{medal.symbol}</span><b>{medal.name}</b>{isEarned ? <small>Earned {medal.date}</small> : <><i className="medal-lock">⌁</i><em><span style={{ width: `${progress}%` }} /></em><small>{medal.current} of {medal.total} {medal.unit}</small></>}</button>; })}</div></section>)}</div>
-          <aside className="medal-reference-panel"><section className="collection-summary"><span>YOUR COLLECTION</span><h2>{earnedCount} <small>of 16 earned</small></h2><div><i style={{ width: "56.25%" }} /></div><p>Next up: Seven Sunrises, two days away.</p></section><section className="selected-medal-card"><span className="selected-medal-symbol">{selectedMedalDetails.symbol}</span><p>{selectedMedalDetails.category.toUpperCase()}</p><h2>{selectedMedalDetails.name}</h2><strong>{selectedMedalDetails.description}</strong>{selectedMedalDetails.total ? <><div className="selected-medal-progress"><i style={{ width: `${Math.round(((selectedMedalDetails.current ?? 0) / selectedMedalDetails.total) * 100)}%` }} /></div><b>{selectedMedalDetails.current} of {selectedMedalDetails.total} {selectedMedalDetails.unit}</b></> : <b>Earned {selectedMedalDetails.date}</b>}<button onClick={() => setTab("Progress")}>Go to today’s session</button></section></aside>
+        {tab === "Medals" && <section className="reference-medals" aria-label="Your medals">
+          <div className="medal-catalog">
+            {medalCategories.map((category) => <section key={category.name} className={`medal-category ${category.tone}`}>
+              <h2><i />{category.name} <small>{category.earned}</small></h2>
+              <div>{category.medals.map((medal) => {
+                const flatIndex = allMedals.findIndex((current) => current.name === medal.name);
+                const isEarned = Boolean(medal.done || (medal.total && (medal.current ?? 0) >= medal.total));
+                const progress = medal.total ? Math.min(100, Math.round(((medal.current ?? 0) / medal.total) * 100)) : 100;
+                const state = isEarned ? "is-earned" : medal.current ? "is-in-progress" : "is-waiting";
+                return <button
+                  key={medal.name}
+                  className={`${selectedMedal === flatIndex ? "is-selected" : ""} ${state}`}
+                  style={{ "--medal-delay": `${-(flatIndex % 4) * 1.4}s` } as React.CSSProperties}
+                  aria-pressed={selectedMedal === flatIndex}
+                  aria-controls="selected-medal-details"
+                  onClick={() => setSelectedMedal(flatIndex)}
+                >
+                  <span className="medal-symbol"><MedalArtwork icon={medal.icon} />{isEarned && <span className="medal-earned-mark"><Check size={10} /></span>}</span>
+                  <b>{medal.name}</b>
+                  {isEarned ? <small>Earned {medal.date}</small> : <><em aria-hidden="true"><span style={{ width: `${progress}%` }} /></em><small>{medal.current} of {medal.total} {medal.unit}</small></>}
+                </button>;
+              })}</div>
+            </section>)}
+          </div>
+          <aside className="medal-reference-panel">
+            <section className="collection-summary"><span>YOUR COLLECTION</span><h2>{earnedCount} <small>of {allMedals.length} earned</small></h2><div><i style={{ width: `${earnedCount / allMedals.length * 100}%` }} /></div></section>
+            <section id="selected-medal-details" className={`selected-medal-card ${selectedMedalEarned ? "is-earned" : selectedMedalDetails.current ? "is-in-progress" : "is-waiting"}`} data-medal-tone={selectedMedalDetails.tone} aria-live="polite">
+              <span key={selectedMedalDetails.icon} className="selected-medal-symbol"><MedalArtwork icon={selectedMedalDetails.icon} /></span>
+              <h2>{selectedMedalDetails.name}</h2>
+              <strong>{selectedMedalDetails.description}</strong>
+              {selectedMedalDetails.total ? <div className="selected-medal-progress" role="progressbar" aria-label={`${selectedMedalDetails.name} progress`} aria-valuemin={0} aria-valuemax={selectedMedalDetails.total} aria-valuenow={selectedMedalDetails.current ?? 0}><i style={{ width: `${Math.min(100, Math.round(((selectedMedalDetails.current ?? 0) / selectedMedalDetails.total) * 100))}%` }} /></div> : <b>Earned {selectedMedalDetails.date}</b>}
+              <button onClick={() => setTab("Progress")}>Go to today’s session</button>
+            </section>
+          </aside>
         </section>}
       </div>
     </RecoveryShell>

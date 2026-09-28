@@ -1,0 +1,93 @@
+.medal-category,.selected-medal-card,.journey-next-medal {
+  --medal:#96573b; --medal-paper:#fffdf7; --medal-accent:#f2d0af; --medal-warm:#f3c165; --medal-wash:#fff3e2;
+}
+.medal-category.milestones,.selected-medal-card[data-medal-tone="milestones"] {
+  --medal:#39735c; --medal-accent:#bddcc9; --medal-warm:#ebce7e; --medal-wash:#eef6ed;
+}
+.medal-category.courage,.selected-medal-card[data-medal-tone="courage"] {
+  --medal:#887021; --medal-accent:#e5d99b; --medal-warm:#f1cc72; --medal-wash:#fbf6df;
+}
+.medal-category.everyday,.selected-medal-card[data-medal-tone="everyday"] {
+  --medal:#9d6049; --medal-accent:#eac4b1; --medal-warm:#ebc86e; --medal-wash:#fcf0e7;
+}
+.medal-artwork { display:block; width:76%; height:76%; overflow:visible; }
+.medal-art-accent { fill:var(--medal-accent); }
+.medal-art-warm { fill:var(--medal-warm); }
+.medal-art-paper { fill:var(--medal-paper); }
+.journey-page .medal-symbol,.journey-page .selected-medal-symbol,.journey-page .medal-sun {
+  position:relative; isolation:isolate; flex-shrink:0; color:var(--medal);
+  border:2px solid color-mix(in srgb,var(--medal) 35%,white);
+  background:radial-gradient(circle at 34% 24%,#fffefa 10%,var(--medal-wash) 78%);
+  box-shadow:inset 0 0 0 4px #ffffff80,0 4px 9px #6548270a;
+}
+.journey-page .medal-category button { min-height:146px; padding:13px 7px 11px; }
+.journey-page .medal-symbol { width:64px; height:64px; margin-bottom:10px; }
+.journey-page .medal-category button.is-in-progress { color:#46554b; background:#fffefa; }
+.journey-page .medal-category button.is-waiting { color:#687269; background:#fbfbf7; }
+.journey-page .medal-category button.is-waiting .medal-symbol { border-style:dashed; }
+.journey-page .medal-category button > small { color:#66746a; }
+.journey-page .medal-category button.is-earned > small { color:#43745f; }
+.journey-page .medal-category button > em { margin-top:8px; height:5px; }
+.journey-page .medal-category button:focus-visible { outline:2px solid var(--medal); outline-offset:4px; }
+.medal-earned-mark {
+  position:absolute; right:-2px; bottom:0; display:grid; place-items:center; width:18px; height:18px;
+  color:#fffdf6; background:var(--medal); border:2px solid #fffefa; border-radius:50%;
+}
+
+/* Keep progress truthful: only the already-filled portion gets a passing glint. */
+.medal-category button > em > span,.selected-medal-progress > i,.journey-next-medal .medal-progress > span { position:relative; overflow:hidden; }
+.medal-category .is-in-progress > em > span::after,
+.selected-medal-card.is-in-progress .selected-medal-progress > i::after,
+.journey-next-medal .medal-progress > span::after {
+  content:""; position:absolute; inset:0; background:linear-gradient(100deg,transparent 10%,#fff9 50%,transparent 90%);
+  transform:translateX(-110%); animation:medal-progress-glint 4.8s var(--medal-delay,0s) ease-in-out infinite;
+}
+.medal-category .is-in-progress .medal-symbol::before,
+.selected-medal-card.is-in-progress .selected-medal-symbol::before,
+.journey-next-medal .medal-sun::before {
+  content:""; position:absolute; inset:-5px; border:1px solid var(--medal); border-radius:50%; opacity:0;
+  animation:medal-halo 5.6s var(--medal-delay,0s) ease-out infinite; pointer-events:none;
+}
+.medal-category .is-in-progress .medal-artwork { animation:medal-breathe 5.6s var(--medal-delay,0s) ease-in-out infinite; }
+.medal-category .is-waiting .medal-artwork { animation:medal-breathe 7s var(--medal-delay,0s) ease-in-out infinite; }
+.medal-category .is-earned .medal-symbol::after {
+  content:""; position:absolute; top:3px; right:4px; width:8px; height:8px; background:var(--medal-warm);
+  clip-path:polygon(50% 0,63% 37%,100% 50%,63% 63%,50% 100%,37% 63%,0 50%,37% 37%);
+  animation:medal-sparkle 8s var(--medal-delay,0s) ease-in-out infinite; pointer-events:none;
+}
+.journey-page .medal-category button:hover .medal-artwork,
+.journey-page .medal-category button:focus-visible .medal-artwork { animation:medal-invite .75s ease-in-out; }
+
+.journey-page .journey-next-medal > div:nth-child(2) { grid-template-columns:61px 1fr; }
+.journey-page .medal-sun { width:59px; height:59px; }
+.journey-next-medal .medal-artwork { animation:medal-invite 5.5s ease-in-out infinite; }
+.journey-page .selected-medal-card { min-height:345px; padding-top:27px; }
+.journey-page .selected-medal-symbol { width:112px; height:112px; margin-bottom:21px; border-width:3px; }
+.selected-medal-symbol .medal-artwork { animation:medal-invite 5.5s ease-in-out infinite; }
+.selected-medal-card.is-earned .medal-artwork { animation:medal-breathe 6s ease-in-out infinite; }
+.journey-page .selected-medal-card h2 { font-size:28px; }
+.journey-page .selected-medal-card strong { line-height:1.5; margin-bottom:23px; }
+.journey-page .selected-medal-progress { margin-bottom:21px; }
+.journey-page .selected-medal-progress > i { background:var(--medal); transition:width .45s ease; }
+.journey-page .selected-medal-card > b { margin-top:auto; }
+
+@keyframes medal-invite {
+  0%,9%,27%,100% { transform:rotate(0) translateY(0); }
+  12% { transform:rotate(-8deg) translateY(-2px); }
+  16% { transform:rotate(7deg) translateY(-2px); }
+  20% { transform:rotate(-4deg); }
+  24% { transform:rotate(2deg); }
+}
+@keyframes medal-breathe { 0%,65%,100% { transform:translateY(0) scale(1); } 30% { transform:translateY(-2px) scale(1.035); } }
+@keyframes medal-halo { 0%,70%,100% { opacity:0; transform:scale(.98); } 15% { opacity:.28; } 55% { opacity:0; transform:scale(1.12); } }
+@keyframes medal-progress-glint { 0%,35% { transform:translateX(-110%); } 70%,100% { transform:translateX(110%); } }
+@keyframes medal-sparkle { 0%,65%,100% { opacity:.2; transform:scale(.7); } 78% { opacity:1; transform:scale(1.2) rotate(25deg); } 90% { opacity:.2; transform:scale(.7); } }
+
+@media (max-width:620px) {
+  .journey-page .medal-category button { min-height:142px; }
+  .journey-page .selected-medal-card { min-height:335px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .medal-symbol::before,.selected-medal-symbol::before,.medal-sun::before { display:none; }
+  .medal-category button > em > span::after,.selected-medal-progress > i::after,.journey-next-medal .medal-progress > span::after { display:none; }
+}
