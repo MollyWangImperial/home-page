@@ -95,39 +95,39 @@
   border:1px solid #cbded0; border-radius:18px 18px 18px 4px;
   background:#e4eee4;
   box-shadow:inset 0 1px 0 #ffffffa6,inset 0 -1px 0 #64816a12,0 3px 12px #285b4906;
-  animation:alira-check-in-colour 7s ease-in-out infinite;
+  animation:alira-check-in-colour 6s ease-in-out infinite;
 }
-/* Independently fading colour and light layers add depth without drawing lines. */
+/* Broad, overlapping washes travel in opposite directions for a fluid colour flow. */
 .alira-check-in::before,.alira-check-in::after {
-  content:""; position:absolute; z-index:0; inset:-25%; pointer-events:none;
+  content:""; position:absolute; z-index:0; inset:-35%; pointer-events:none;
 }
 .alira-check-in::before {
   background:
-    radial-gradient(ellipse at 82% 72%,#589e927a 0%,#90c1ad40 31%,transparent 60%),
-    radial-gradient(ellipse at 16% 28%,#b6cf8f8c 0%,transparent 55%);
-  opacity:.8;
-  animation:alira-colour-depth 8s ease-in-out infinite alternate;
+    radial-gradient(ellipse at 34% 66%,#5cae9db8 0%,#83c2a97a 28%,transparent 58%),
+    radial-gradient(ellipse at 72% 30%,#afd18dc2 0%,#c8dfa373 26%,transparent 55%);
+  opacity:.9;
+  animation:alira-colour-depth 5s ease-in-out infinite alternate;
 }
 .alira-check-in::after {
   background:
-    radial-gradient(ellipse at 70% 18%,#faffedc2 0%,transparent 54%),
-    radial-gradient(ellipse at 20% 85%,#c4e6d6a3 0%,transparent 52%);
-  opacity:.7;
-  animation:alira-colour-light 10s -3s ease-in-out infinite alternate;
+    radial-gradient(ellipse at 62% 35%,#f7ffe8e6 0%,#e2f4cc80 24%,transparent 52%),
+    radial-gradient(ellipse at 30% 80%,#b3e5d6b3 0%,transparent 48%);
+  opacity:.8;
+  animation:alira-colour-light 6s -2s ease-in-out infinite alternate;
 }
 .alira-check-in > * { position:relative; z-index:1; }
 @keyframes alira-check-in-colour {
-  0%,100% { background-color:#e4eee4; border-color:#cbded0; }
-  33% { background-color:#d6e9e2; border-color:#b8d6c9; }
-  66% { background-color:#e0ebd8; border-color:#c3d6b6; }
+  0%,100% { background-color:#e2eee1; border-color:#cbded0; }
+  33% { background-color:#d1e8df; border-color:#aecfc1; }
+  66% { background-color:#e0ebd3; border-color:#bdd3ae; }
 }
 @keyframes alira-colour-depth {
-  from { opacity:.55; transform:translate(-4%,2%) scale(.96); }
-  to { opacity:1; transform:translate(4%,-3%) scale(1.05); }
+  from { opacity:.8; transform:translate(-15%,7%) rotate(-8deg) scale(1.04); }
+  to { opacity:1; transform:translate(15%,-7%) rotate(8deg) scale(1.1); }
 }
 @keyframes alira-colour-light {
-  from { opacity:.4; transform:translate(3%,-3%); }
-  to { opacity:.9; transform:translate(-4%,4%); }
+  from { opacity:.6; transform:translate(17%,-9%) rotate(7deg); }
+  to { opacity:.95; transform:translate(-17%,9%) rotate(-7deg) scale(1.06); }
 }
 .alira-heading .alira-check-in-question {
   display:grid; align-content:center; min-height:3.9em; margin:0; color:#163e2f;
