@@ -1,0 +1,71 @@
+.journey-page .journey-heading { min-height:80px; align-items:center; margin-bottom:20px; }
+.journey-page .journey-heading h1 { margin:0; }
+.journey-page .journey-path-card { overflow:clip; }
+.journey-page .journey-path-card h2 { margin-top:0; }
+
+/* Week 3 remains the current week when another week is selected for review. */
+.journey-week.is-current::after {
+  content:""; position:absolute; inset:-7px; border:2px solid transparent;
+  border-top-color:#b87554; border-right-color:#b8755440; border-radius:50%;
+  pointer-events:none; animation:journey-current-orbit 4.5s linear infinite;
+}
+.journey-page .journey-week.is-selected:not(.is-current) { outline:2px solid #3c7d61; outline-offset:3px; }
+.journey-page .journey-week:focus-visible { outline:2px solid #2f705a; outline-offset:8px; }
+
+.journey-page .journey-stat-row article { min-height:72px; }
+.journey-page .journey-card-heading > button { flex-shrink:0; white-space:nowrap; }
+.journey-page .journey-skill { grid-template-columns:minmax(94px,1fr) minmax(70px,2fr) 36px auto; gap:12px; }
+.journey-page .journey-next-medal > button { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+.journey-page .journey-next-medal > button svg { flex-shrink:0; }
+
+.journey-page .journey-win-list article > span {
+  --win-phase:0s; position:relative; color:#ad712f; background:#fbefdc;
+  animation:journey-win-twinkle 6s var(--win-phase) ease-in-out infinite;
+}
+.journey-page .journey-win-list article:nth-child(2) > span { --win-phase:-2s; }
+.journey-page .journey-win-list article:nth-child(3) > span { --win-phase:-4s; }
+.journey-win-list article > span::after {
+  content:""; position:absolute; inset:-3px; border:1px solid #d0a461; border-radius:50%;
+  opacity:0; pointer-events:none; animation:journey-win-glow 6s var(--win-phase) ease-out infinite;
+}
+.journey-page .journey-win-list article:hover > span { animation:journey-win-twinkle 1.2s ease-in-out; }
+.journey-alira-avatar { position:relative; z-index:1; width:48px; height:48px; margin-bottom:16px; }
+.journey-alira-avatar .alira-avatar-image { animation:journey-alira-breathe 4.8s ease-in-out infinite; }
+.journey-alira-avatar::before {
+  content:""; position:absolute; inset:-3px; border:1px solid #bfdfcc; border-radius:50%;
+  pointer-events:none; animation:journey-alira-halo 4.8s ease-out infinite;
+}
+
+@keyframes journey-current-orbit { to { transform:rotate(360deg); } }
+@keyframes journey-win-twinkle {
+  0%,10%,45%,100% { transform:scale(1) rotate(0); }
+  22% { transform:scale(1.16) rotate(-12deg); }
+  34% { transform:scale(1.05) rotate(8deg); }
+}
+@keyframes journey-win-glow {
+  0%,10%,50%,100% { opacity:0; transform:scale(.9); }
+  23% { opacity:.7; transform:scale(1); }
+  44% { opacity:0; transform:scale(1.4); }
+}
+@keyframes journey-alira-breathe { 0%,100% { transform:scale(1); } 50% { transform:scale(1.06); } }
+@keyframes journey-alira-halo { 0% { opacity:.65; transform:scale(.9); } 80%,100% { opacity:0; transform:scale(1.45); } }
+
+@media (min-width:621px) and (max-width:1150px) {
+  .journey-page .journey-skill { gap:8px; }
+}
+@media (max-width:620px) {
+  .journey-page .journey-heading { min-height:0; }
+  .journey-page .journey-weeks { row-gap:30px; }
+  .journey-page .journey-week em { display:block; left:auto; right:0; }
+  .journey-page .journey-stat-row article { min-height:65px; }
+  .journey-page .journey-skill { grid-template-columns:minmax(0,1fr) auto; gap:8px 16px; }
+  .journey-page .journey-skill > b { grid-column:1; grid-row:1; }
+  .journey-page .journey-skill > strong { grid-column:2; grid-row:1; }
+  .journey-page .journey-skill .journey-bar { grid-column:1; grid-row:2; }
+  .journey-page .journey-skill > em { grid-column:2; grid-row:2; margin-top:0; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .journey-page *,.journey-page *::before,.journey-page *::after { animation:none !important; transition:none !important; }
+  .journey-week.is-current::after { border-color:#b8755455; }
+  .journey-alira-avatar::before { opacity:.3; }
+}
