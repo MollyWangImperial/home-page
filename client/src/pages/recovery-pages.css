@@ -48,7 +48,6 @@
 .alira-start-card button:not(:disabled):hover { transform:translateY(-2px); box-shadow:0 4px 10px #285b4910; }
 .alira-encouragement button:hover { transform:translateY(-1px); }
 .alira-encouragement button:active,.alira-send:not(:disabled):active { transform:scale(.96); }
-.alira-encouragement button.is-saved svg { animation:alira-save 300ms ease-out; }
 .alira-send:not(:disabled) { background:#285b49; }
 .alira-send:not(:disabled):hover { background:#36745b; }
 .alira-send:disabled,.alira-start-card button:disabled { cursor:default; opacity:.55; }
@@ -59,7 +58,6 @@
 .alira-typing-dots i:nth-child(2) { animation-delay:120ms; }
 .alira-typing-dots i:nth-child(3) { animation-delay:240ms; }
 @keyframes alira-arrive { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
-@keyframes alira-save { 50% { transform:scale(1.2); } }
 @keyframes alira-typing { 0%,60%,100% { transform:translateY(0); opacity:.5; } 30% { transform:translateY(-3px); opacity:1; } }
 /* Alira's presence responds to the conversation, without moving the layout. */
 .alira-heading-title { gap:18px; }
@@ -118,8 +116,65 @@
 .alira-page[data-presence="attentive"] .alira-composer-avatar { --presence-speed:3.2s; }
 .alira-page[data-presence="replying"] .alira-composer-avatar { --presence-speed:1.8s; }
 .alira-composer:focus-within { background:#f0f6ef; box-shadow:inset 0 2px #c8dece; }
-.alira-page[data-presence="replying"] .alira-typing .alira-avatar-image { animation:alira-breathe 1.8s ease-in-out infinite; }
-.alira-message-row.from-alira.is-new .alira-avatar-image { animation:alira-hello 700ms ease-out; }
+/* Keep Alira present beside every message, including the existing examples. */
+.alira-message-avatar {
+  --conversation-speed:4.8s; --conversation-phase:0s;
+  position:relative; isolation:isolate;
+}
+.alira-message-row:nth-child(3n+2) .alira-message-avatar { --conversation-phase:-1.6s; }
+.alira-message-row:nth-child(3n) .alira-message-avatar { --conversation-phase:-3.2s; }
+.alira-message-avatar .alira-avatar-image {
+  position:relative; z-index:1;
+  animation:alira-breathe var(--conversation-speed) var(--conversation-phase) ease-in-out infinite;
+}
+.alira-composer-avatar { position:relative; isolation:isolate; }
+.alira-message-avatar::before,.alira-composer-avatar::before {
+  content:""; position:absolute; z-index:0; inset:-2px; pointer-events:none;
+  border:1px solid #75a58a80; border-radius:50%; opacity:0;
+  animation:alira-halo var(--conversation-speed,var(--presence-speed)) var(--conversation-phase,0s) ease-out infinite;
+}
+.alira-typing .alira-message-avatar { --conversation-speed:1.8s; }
+.alira-message-row.from-alira.is-new .alira-avatar-image {
+  animation:alira-hello 700ms ease-out,alira-breathe var(--conversation-speed) 700ms ease-in-out infinite;
+}
+/* A brief invitation to save, then a one-time celebration of that action. */
+.alira-save-button { position:relative; isolation:isolate; }
+.alira-save-heart { display:inline-flex; transform-origin:center; }
+.alira-save-button:not(.is-saved) .alira-save-heart { animation:alira-save-heartbeat 6s ease-in-out infinite; }
+.alira-save-button:not(.is-saved)::after {
+  content:""; position:absolute; inset:-3px; border:1px solid #b5644566;
+  border-radius:12px; pointer-events:none; opacity:0;
+  animation:alira-save-invitation 6s ease-out infinite;
+}
+.alira-save-button:not(.is-saved):hover .alira-save-heart,
+.alira-save-button:not(.is-saved):focus-visible .alira-save-heart { animation-duration:2s; }
+.alira-save-button.is-saved .alira-save-heart { animation:alira-saved-heart 500ms ease-out; }
+.alira-save-burst { position:absolute; left:17px; top:50%; width:0; height:0; pointer-events:none; }
+.alira-save-burst i {
+  position:absolute; width:6px; height:6px; opacity:0; background:#f5d9a2;
+  clip-path:polygon(50% 0,62% 37%,100% 50%,62% 63%,50% 100%,38% 63%,0 50%,38% 37%);
+}
+.alira-save-burst i:nth-child(1) { --spark-x:-15px; --spark-y:-20px; }
+.alira-save-burst i:nth-child(2) { --spark-x:17px; --spark-y:-18px; }
+.alira-save-burst i:nth-child(3) { --spark-x:20px; --spark-y:11px; }
+.alira-save-burst i:nth-child(4) { --spark-x:-13px; --spark-y:15px; }
+.alira-save-button.is-saved .alira-save-burst i { animation:alira-save-spark 700ms ease-out both; }
+@keyframes alira-save-heartbeat {
+  0%,8%,19%,30%,100% { transform:scale(1); }
+  13% { transform:scale(1.2); }
+  24% { transform:scale(1.13); }
+}
+@keyframes alira-save-invitation {
+  0%,7%,38%,100% { opacity:0; transform:scale(1); }
+  14% { opacity:.6; transform:scale(1.02); }
+  32% { opacity:0; transform:scale(1.08); }
+}
+@keyframes alira-saved-heart { 0%,100% { transform:scale(1); } 40% { transform:scale(1.3); } 70% { transform:scale(.95); } }
+@keyframes alira-save-spark {
+  0% { opacity:0; transform:translate(-3px,-3px) scale(.3); }
+  30% { opacity:.95; }
+  100% { opacity:0; transform:translate(var(--spark-x),var(--spark-y)) scale(.7); }
+}
 @keyframes alira-breathe {
   0%,100% { transform:translateY(0) scale(1); }
   50% { transform:translateY(-2px) scale(1.065); }

@@ -227,12 +227,20 @@ export default function Alira() {
                   building a new path. That’s real, and it’s yours.
                 </p>
                 <button
-                  className={saved ? "is-saved" : ""}
+                  className={`alira-save-button ${saved ? "is-saved" : ""}`}
                   aria-pressed={saved}
                   onClick={() => setSaved(!saved)}
                 >
-                  <Heart size={14} fill={saved ? "currentColor" : "none"} />{" "}
+                  <span className="alira-save-heart" aria-hidden="true">
+                    <Heart size={14} fill={saved ? "currentColor" : "none"} />
+                  </span>
                   {saved ? "Saved" : "Save words"}
+                  <span className="alira-save-burst" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                  </span>
                 </button>
               </article>
               <div
