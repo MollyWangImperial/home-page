@@ -1,0 +1,86 @@
+.journey-page .reference-journal-editor h2 { margin-top:0; }
+.journey-page .reference-journal-editor { gap:22px; }
+.journey-page .mood-picker button { min-height:82px; gap:6px; place-items:center; }
+.journal-mood-face { display:block; width:36px; height:36px; flex-shrink:0; }
+.mood-picker .journal-mood-face { color:var(--mood); transition:transform .25s ease; }
+.mood-picker .is-selected .journal-mood-face { color:inherit; animation:journal-face-greet .45s ease-out; }
+.journey-page .mood-picker button:hover .journal-mood-face { transform:translateY(-2px) rotate(-5deg); }
+.journey-page .entry-mood { gap:5px; }
+.entry-mood .journal-mood-face { width:20px; height:20px; }
+.journey-page .mood-picker button:focus-visible,
+.journey-page .journal-tag-area button:focus-visible,
+.journey-page .journal-save:focus-visible { outline:2px solid #2f6b53; outline-offset:4px; }
+
+/* A single palette supplies each picker tag, entry badge and card background. */
+.journey-page .journal-tag-area button,
+.journey-page .entry-tags > span:not(.shared-tag) {
+  color:var(--tag-ink,#536159); background:var(--tag-background,#f0efe9);
+  border:1px solid var(--tag-border,#dfe2d9);
+}
+.journey-page .journal-tag-area button {
+  display:inline-flex; align-items:center; gap:5px; min-height:35px;
+  transition:transform .18s ease,box-shadow .18s ease;
+}
+.journal-tag-area button > svg { width:0; opacity:0; transition:width .18s ease,opacity .18s ease; }
+.journey-page .journal-tag-area button:not(.is-selected) { gap:0; }
+.journey-page .journal-tag-area button.is-selected {
+  color:var(--tag-ink); border-color:var(--tag-ink); background:var(--tag-background);
+  box-shadow:0 0 0 1px var(--tag-ink);
+}
+.journal-tag-area button.is-selected > svg { width:12px; opacity:1; }
+.journey-page .journal-tag-area button:hover { transform:translateY(-2px); }
+.journey-page .journal-entry-list article {
+  background:var(--entry-background,#fffefa); border:1px solid var(--entry-border,transparent);
+  transition:transform .22s ease,box-shadow .22s ease;
+}
+.journey-page .journal-entry-list article.is-new { animation:journal-entry-arrive .4s ease-out; }
+@media (hover:hover) {
+  .journey-page .journal-entry-list article:hover { transform:translateY(-2px); box-shadow:0 10px 24px #263b3010; }
+}
+
+.journey-page .journal-streak h3 { font-size:13px; line-height:1.4; }
+.journey-page .streak-dots { display:grid; grid-template-columns:repeat(14,minmax(0,1fr)); gap:0; margin:9px -7px 2px; }
+.journal-score-dot {
+  display:grid; place-items:center; min-width:0; width:100%; height:36px;
+  padding:0; border:0; border-radius:10px; background:transparent; cursor:pointer;
+}
+.journal-score-dot > span {
+  display:block; width:17px; height:17px; border-radius:50%; background:var(--dot);
+  transition:transform .2s ease,box-shadow .2s ease;
+}
+.journal-score-dot.is-empty > span { background:transparent; border:1.5px dashed var(--dot); }
+.journal-score-dot:hover > span,.journal-score-dot[data-state$="open"] > span {
+  transform:scale(1.2); box-shadow:0 0 0 4px color-mix(in srgb,var(--dot) 13%,transparent);
+}
+.journal-score-dot:focus-visible { outline:2px solid var(--dot); outline-offset:1px; }
+.journal-score-tooltip {
+  padding:11px 14px; border-radius:13px; color:#fffdf6; background:#294d40;
+  box-shadow:0 6px 20px #19352a22; text-align:center;
+}
+.journal-score-tooltip > span.journal-score-date { display:block; margin-bottom:4px; color:#d9e7df; font-size:10px; }
+.journal-score-tooltip > strong { display:block; font-size:12px; font-weight:500; }
+.journal-score-tooltip b { margin-left:3px; font-size:18px; font-weight:700; }
+.journal-score-tooltip b small { font-size:11px; }
+.journal-score-tooltip svg { fill:#294d40; background:#294d40; }
+.journal-save-area { display:grid; gap:7px; }
+.journey-page .journal-save { width:100%; transition:transform .18s ease,background .18s ease,opacity .18s ease; }
+.journey-page .journal-save:active:not(:disabled) { transform:scale(.98); }
+.journey-page .journal-save:disabled { opacity:.5; cursor:default; }
+.journal-save-status { display:flex; align-items:center; justify-content:center; gap:6px; min-height:18px; margin:0; color:#3e7457; font-size:11px; }
+.journal-save-status svg { animation:journal-face-greet .4s ease-out; }
+
+@keyframes journal-face-greet { 0% { transform:scale(.85); } 60% { transform:scale(1.12) rotate(-4deg); } 100% { transform:scale(1); } }
+@keyframes journal-entry-arrive { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+@media (max-width:620px) {
+  .journey-page .reference-journal-editor { gap:19px; }
+  .journey-page .mood-picker button { min-height:76px; }
+  .mood-picker .journal-mood-face { width:33px; height:33px; }
+  /* Two weeks become two rows so every dot has a comfortable touch target. */
+  .journey-page .streak-dots { grid-template-columns:repeat(7,minmax(0,1fr)); margin:9px -3px 2px; }
+  .journal-score-dot { height:40px; }
+  .journal-score-dot > span { width:19px; height:19px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .journal-score-tooltip,.journal-mood-face { animation:none!important; transition:none!important; }
+}

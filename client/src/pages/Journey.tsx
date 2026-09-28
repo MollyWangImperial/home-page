@@ -9,29 +9,44 @@ import {
 } from "lucide-react";
 import RecoveryShell from "@/components/RecoveryShell";
 import AliraAvatar from "@/components/AliraAvatar";
+import { MoodFace, MoodHistory, moodOptions, type MoodIndex } from "@/components/JournalMood";
 import { useLocation } from "wouter";
 import "./journey-refinements.css";
+import "./journal-refinements.css";
 
 type Tab = "Progress" | "Journal" | "Medals";
-type MoodIndex = -1 | 0 | 1 | 2 | 3 | 4;
-type JournalEntry = { date: string; mood: 0 | 1 | 2 | 3 | 4; text: string; voice?: number; tags: string[]; shared?: boolean };
+type JournalEntry = { id: string; date: string; mood: MoodIndex; text: string; voice?: number; tags: string[]; shared?: boolean };
 type Medal = { name: string; symbol: string; done?: boolean; date?: string; current?: number; total?: number; unit?: string; description: string };
 type MedalCategory = { name: string; tone: string; earned: string; medals: Medal[] };
 
-const moodOptions = [
-  { label: "Tough", color: "#b5502f", face: "☹" },
-  { label: "Low", color: "#b86a3f", face: "◔" },
-  { label: "Okay", color: "#8a7424", face: "•" },
-  { label: "Good", color: "#3e7457", face: "◡" },
-  { label: "Great", color: "#2f5e48", face: "⌣" },
-] as const;
-const journalTags = ["Win", "Pain", "Sleep", "Mood", "Question for my therapist"];
+const journalTagColors: Record<string, { background: string; border: string; ink: string }> = {
+  Win: { background: "#e7f2e4", border: "#bad3b3", ink: "#376340" },
+  Pain: { background: "#fae7e0", border: "#e7b6a2", ink: "#8c4f39" },
+  Sleep: { background: "#efeafb", border: "#cfc2e5", ink: "#685281" },
+  Mood: { background: "#f7eed4", border: "#dfcd90", ink: "#776128" },
+  "Question for my therapist": { background: "#e6eff7", border: "#bdcfdc", ink: "#3a617a" },
+};
+const journalTags = Object.keys(journalTagColors);
+
+function tagStyle(tag: string): React.CSSProperties {
+  const colors = journalTagColors[tag];
+  return colors ? { "--tag-background": colors.background, "--tag-border": colors.border, "--tag-ink": colors.ink } as React.CSSProperties : {};
+}
+
+function entryStyle(tags: string[]): React.CSSProperties {
+  const colors = tags.map((tag) => journalTagColors[tag]).filter(Boolean);
+  if (!colors.length) return {};
+  return {
+    "--entry-background": colors.length === 1 ? colors[0].background : `linear-gradient(125deg, ${colors.map((color) => color.background).join(", ")})`,
+    "--entry-border": colors[0].border,
+  } as React.CSSProperties;
+}
 const referenceEntries: JournalEntry[] = [
-  { date: "Tuesday 22 September", mood: 3, text: "Brushed my hair with my left hand this morning. Slow, but I did it.", tags: ["Win"] },
-  { date: "Sunday 20 September", mood: 1, text: "Felt tired all day, so I only did a short session.", voice: 48, tags: ["Sleep", "Mood"], shared: true },
-  { date: "Thursday 17 September", mood: 2, text: "Is it normal for my shoulder to ache after reaching exercises?", tags: ["Question for my therapist"], shared: true },
+  { id: "reference-win", date: "Tuesday 22 September", mood: 3, text: "Brushed my hair with my left hand this morning. Slow, but I did it.", tags: ["Win"] },
+  { id: "reference-rest", date: "Sunday 20 September", mood: 1, text: "Felt tired all day, so I only did a short session.", voice: 48, tags: ["Sleep", "Mood"], shared: true },
+  { id: "reference-question", date: "Thursday 17 September", mood: 2, text: "Is it normal for my shoulder to ache after reaching exercises?", tags: ["Question for my therapist"], shared: true },
 ];
-const streakMoods = [2, 3, 1, 2, 3, 3, -1, 2, 4, 1, 3, 3, 2];
+const referenceMoods: MoodIndex[] = [2, 3, 1, 2, 3, 3, 2, 2, 4, 1, 3, 3, 2, -1];
 const medalCategories: MedalCategory[] = [
   { name: "Consistency", tone: "consistency", earned: "2 of 4", medals: [
     { name: "First Step", symbol: "⇧", done: true, date: "8 Sep", description: "Complete your very first session." },
@@ -72,6 +87,8 @@ export default function Journey() {
   const [voiceSeconds, setVoiceSeconds] = useState(0);
   const [voiceNote, setVoiceNote] = useState(0);
   const [entries, setEntries] = useState<JournalEntry[]>(referenceEntries);
+  const [dailyMoods, setDailyMoods] = useState<MoodIndex[]>(referenceMoods);
+  const [entrySaved, setEntrySaved] = useState(false);
   const [selectedMedal, setSelectedMedal] = useState(1);
 
   useEffect(() => {
@@ -79,6 +96,12 @@ export default function Journey() {
     const timer = window.setInterval(() => setVoiceSeconds((current) => current + 1), 1000);
     return () => window.clearInterval(timer);
   }, [recording]);
+
+  useEffect(() => {
+    if (!entrySaved) return;
+    const timer = window.setTimeout(() => setEntrySaved(false), 4500);
+    return () => window.clearTimeout(timer);
+  }, [entrySaved]);
 
   const allMedals = useMemo(() => medalCategories.flatMap((category) => category.medals.map((medal) => ({ ...medal, category: category.name, tone: category.tone }))), []);
   const selectedMedalDetails = allMedals[selectedMedal] ?? allMedals[1];
@@ -97,7 +120,10 @@ export default function Journey() {
   };
   const saveEntry = () => {
     if (mood === -1 && !entryText.trim() && !voiceNote && !recording) return;
-    setEntries((current) => [{ date: "Today", mood: mood === -1 ? 2 : mood, text: entryText.trim() || "Voice note", voice: recording ? Math.max(1, voiceSeconds) : voiceNote, tags: selectedTags, shared: shareWithTherapist }, ...current]);
+    const entryId = crypto.randomUUID();
+    setEntries((current) => [{ id: entryId, date: "Today", mood, text: entryText.trim() || (voiceNote || recording ? "Voice note" : "Checked in with how I’m feeling today."), voice: recording ? Math.max(1, voiceSeconds) : voiceNote, tags: selectedTags, shared: shareWithTherapist }, ...current]);
+    if (mood !== -1) setDailyMoods((current) => current.map((value, index) => index === current.length - 1 ? mood : value));
+    setEntrySaved(true);
     setMood(-1); setEntryText(""); setSelectedTags([]); setShareWithTherapist(false); setVoiceNote(0); setVoiceSeconds(0); setRecording(false);
   };
 
@@ -179,18 +205,18 @@ export default function Journey() {
         </>}
         {tab === "Journal" && <section className="reference-journal" aria-labelledby="journal-title">
           <div className="reference-journal-editor">
-            <div><span className="reference-eyebrow">TODAY’S PROMPT</span><h2 id="journal-title">What felt a little easier this week?</h2></div>
-            <fieldset className="mood-picker"><legend>How are you feeling?</legend><div>{moodOptions.map((option, index) => <button type="button" key={option.label} aria-pressed={mood === index} className={mood === index ? "is-selected" : ""} style={{ "--mood": option.color } as React.CSSProperties} onClick={() => setMood(index as MoodIndex)}><i>{option.face}</i><span>{option.label}</span></button>)}</div></fieldset>
+            <div><h2 id="journal-title">How are you feeling today?</h2></div>
+            <fieldset className="mood-picker" aria-labelledby="journal-title"><div>{moodOptions.map((option, index) => <button type="button" key={option.label} aria-pressed={mood === index} className={mood === index ? "is-selected" : ""} style={{ "--mood": option.color } as React.CSSProperties} onClick={() => setMood(index as MoodIndex)}><MoodFace mood={index as Exclude<MoodIndex, -1>} /><span>{option.label}</span></button>)}</div></fieldset>
             <label className="journal-text-label" htmlFor="journal-entry">Write it down, or say it<textarea id="journal-entry" value={entryText} onChange={(event) => setEntryText(event.target.value)} placeholder="A few words is plenty." /></label>
             <button className={`voice-note-button ${recording ? "is-recording" : ""}`} onClick={toggleRecording}><Mic size={16} /> {recording ? `Stop recording · ${formatTime(voiceSeconds)}` : voiceNote ? `Record again · ${formatTime(voiceNote)}` : "Record a voice note"}</button>
-            <div className="journal-tag-area"><b>Add a tag</b><div>{journalTags.map((tag) => <button type="button" key={tag} className={selectedTags.includes(tag) ? "is-selected" : ""} onClick={() => toggleTag(tag)}>{tag}</button>)}</div></div>
+            <div className="journal-tag-area"><b>Add a tag</b><div>{journalTags.map((tag) => <button type="button" key={tag} className={selectedTags.includes(tag) ? "is-selected" : ""} style={tagStyle(tag)} aria-pressed={selectedTags.includes(tag)} onClick={() => toggleTag(tag)}><Check size={12} aria-hidden="true" />{tag}</button>)}</div></div>
             <button className={`therapist-share ${shareWithTherapist ? "is-on" : ""}`} onClick={() => setShareWithTherapist(!shareWithTherapist)}><span><b>Share with my therapist</b><small>They will see this entry before your next session.</small></span><i><em /></i></button>
-            <button className="journal-save" onClick={saveEntry}>Save entry</button>
+            <div className="journal-save-area"><button className="journal-save" onClick={saveEntry} disabled={mood === -1 && !entryText.trim() && !voiceNote && !recording}>Save entry</button><p className="journal-save-status" role="status">{entrySaved && <><Check size={14} /> Entry saved. A little moment, remembered.</>}</p></div>
           </div>
           <div className="reference-journal-feed">
-            <section className="journal-streak"><div><h3>Your last two weeks</h3><span>One dot per day</span></div><div className="streak-dots">{streakMoods.map((value, index) => <i key={index} className={value === -1 ? "is-empty" : ""} style={{ "--dot": value === -1 ? "transparent" : moodOptions[value].color } as React.CSSProperties} />)}</div><small><time>11 Sep</time><time>Today</time></small></section>
-            <h2>Your entries</h2>
-            <div className="journal-entry-list">{entries.map((entry, index) => <article key={`${entry.date}-${index}`} className={index === 0 && entry.date === "Today" ? "is-new" : ""}><div className="entry-meta"><time>{entry.date}</time><span className={`entry-mood mood-${entry.mood}`}>{moodOptions[entry.mood].face} {moodOptions[entry.mood].label}</span></div><p>{entry.text}</p>{entry.voice ? <div className="entry-audio"><button aria-label="Play recorded voice note">▶</button><span>{Array.from({ length: 14 }, (_, bar) => <i key={bar} style={{ height: `${7 + ((bar * 7) % 16)}px` }} />)}</span><b>{formatTime(entry.voice)}</b></div> : null}<div className="entry-tags">{entry.tags.map((tag) => <span key={tag}>{tag}</span>)}{entry.shared && <span className="shared-tag"><Check size={11} /> Shared with therapist</span>}</div></article>)}</div>
+            <MoodHistory moods={dailyMoods} />
+            <h2>Your entry histories</h2>
+            <div className="journal-entry-list">{entries.map((entry, index) => <article key={entry.id} style={entryStyle(entry.tags)} className={index === 0 && entry.date === "Today" ? "is-new" : ""}><div className="entry-meta"><time>{entry.date}</time>{entry.mood !== -1 && <span className={`entry-mood mood-${entry.mood}`}><MoodFace mood={entry.mood} /> {moodOptions[entry.mood].label}</span>}</div><p>{entry.text}</p>{entry.voice ? <div className="entry-audio"><button aria-label="Play recorded voice note">▶</button><span>{Array.from({ length: 14 }, (_, bar) => <i key={bar} style={{ height: `${7 + ((bar * 7) % 16)}px` }} />)}</span><b>{formatTime(entry.voice)}</b></div> : null}<div className="entry-tags">{entry.tags.map((tag) => <span key={tag} style={tagStyle(tag)}>{tag}</span>)}{entry.shared && <span className="shared-tag"><Check size={11} /> Shared with therapist</span>}</div></article>)}</div>
           </div>
         </section>}
 
