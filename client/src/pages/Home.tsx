@@ -20,8 +20,11 @@ import {
   X,
 } from "lucide-react";
 import { useLocation } from "wouter";
+import AliraAvatar from "@/components/AliraAvatar";
+import RecoverySeedling from "@/components/RecoverySeedling";
+import "./home-dashboard.css";
 
-type ModalName = "checkin" | "activity" | "help" | "warning" | "journey" | null;
+type ModalName = "checkin" | "help" | "warning" | "journey" | null;
 type NavItem = "Home" | "My journey" | "Alira" | "My time";
 
 const navItems: { name: NavItem; icon: typeof HomeIcon }[] = [
@@ -36,7 +39,6 @@ export default function Home() {
   const [modal, setModal] = useState<ModalName>(null);
   const [selectedFeeling, setSelectedFeeling] = useState("");
   const [checkinDone, setCheckinDone] = useState(false);
-  const [activityDone, setActivityDone] = useState(false);
   const [largeText, setLargeText] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
   const [activeNav, setActiveNav] = useState<NavItem>("Home");
@@ -92,8 +94,7 @@ export default function Home() {
         <div className="page-content">
           <section className="welcome-row">
             <div>
-              <div className="eyebrow"><span className="eyebrow-line" /> YOUR RECOVERY SPACE</div>
-              <h1>Good afternoon,<br className="mobile-break" /> Molly<span className="title-period">.</span></h1>
+              <h1>Good afternoon,<br className="mobile-break" /> Molly.</h1>
               <p className="welcome-copy">Your recovery, at a glance.</p>
             </div>
           </section>
@@ -109,15 +110,13 @@ export default function Home() {
                 <div className="today-card-layout">
                   <div className="today-card-copy">
                     <h2 id="today-title">A gentle start<br />for today.</h2>
-                    <p className="today-description">Tell us how you’re feeling, and we’ll find a comfortable next step.</p>
                     <button className={`button-primary ${checkinDone ? "button-complete" : ""}`} onClick={() => setModal("checkin")}>
                       {checkinDone ? <><Check size={19} /> Check-in complete</> : <>Begin check-in <ArrowRight size={19} /></>}
                     </button>
                     <div className="time-note"><Clock3 size={16} /> About 1 minute</div>
                   </div>
                   <div className="illustration-panel" aria-label="A seedling growing, representing steady progress" role="img">
-                    <img src="/manus-storage/recovery-tech-illustration_23810c9b.png" alt="" />
-
+                    <RecoverySeedling />
                   </div>
                 </div>
                 <div className="step-footer" aria-label="Step 1 of 3"><div className="step-track"><span className="step-filled" /></div><span className="step-number">STEP 1 OF 3</span></div>
@@ -126,31 +125,29 @@ export default function Home() {
               <section className="recovery-section" aria-labelledby="recovery-title">
                 <div className="section-heading-row"><h2 className="section-title" id="recovery-title">Your progress</h2><button className="text-link" onClick={() => setModal("journey")}>See details <ArrowRight size={17} /></button></div>
                 <div className="recovery-cards">
-                  <article className="recovery-card reach-card"><div className="recovery-card-head"><span className="recovery-icon"><TrendingUp size={20} /></span><span className="mini-status"><span /> Building</span></div><h3>Reaching</h3><div className="progress-track" role="progressbar" aria-label="Reaching practice" aria-valuemin={0} aria-valuemax={100} aria-valuenow={58}><span style={{ width: "58%" }} /></div></article>
-                  <article className="recovery-card hand-card"><div className="recovery-card-head"><span className="recovery-icon"><Hand size={21} /></span><span className="mini-status"><span /> Building</span></div><h3>Hand control</h3><div className="progress-track" role="progressbar" aria-label="Hand control practice" aria-valuemin={0} aria-valuemax={100} aria-valuenow={44}><span style={{ width: "44%" }} /></div></article>
-                  <article className="recovery-card walk-card"><div className="recovery-card-head"><span className="recovery-icon"><Activity size={21} /></span><span className="mini-status"><span /> Steady</span></div><h3>Moving about</h3><div className="progress-track" role="progressbar" aria-label="Moving about practice" aria-valuemin={0} aria-valuemax={100} aria-valuenow={72}><span style={{ width: "72%" }} /></div></article>
+                  <article className="recovery-card reach-card" data-progress="building"><div className="recovery-card-head"><span className="recovery-icon"><TrendingUp size={20} /></span><span className="mini-status"><span /> Building</span></div><h3>Reaching</h3><div className="progress-track" role="progressbar" aria-label="Reaching practice" aria-valuemin={0} aria-valuemax={100} aria-valuenow={58}><span style={{ width: "58%" }} /></div></article>
+                  <article className="recovery-card hand-card" data-progress="building"><div className="recovery-card-head"><span className="recovery-icon"><Hand size={21} /></span><span className="mini-status"><span /> Building</span></div><h3>Hand control</h3><div className="progress-track" role="progressbar" aria-label="Hand control practice" aria-valuemin={0} aria-valuemax={100} aria-valuenow={44}><span style={{ width: "44%" }} /></div></article>
+                  <article className="recovery-card walk-card" data-progress="steady"><div className="recovery-card-head"><span className="recovery-icon"><Activity size={21} /></span><span className="mini-status"><span /> Steady</span></div><h3>Moving about</h3><div className="progress-track" role="progressbar" aria-label="Moving about practice" aria-valuemin={0} aria-valuemax={100} aria-valuenow={72}><span style={{ width: "72%" }} /></div></article>
                 </div>
               </section>
             </div>
 
             <aside className="side-column" aria-label="Your support">
               <section className="support-card">
-                <div className="support-header"><div className="alira-avatar"><MessageCircle size={21} /></div><div><h2>Alira</h2><span className="availability"><i /> Available to help</span></div></div>
+                <div className="support-header"><div className="home-alira-avatar" aria-hidden="true"><AliraAvatar /></div><h2>Alira</h2></div>
                 <p>Questions about your plan? I can help.</p>
                 <button className="support-button" onClick={() => setModal("help")}>Talk with Alira <ArrowRight size={17} /></button>
-                <div className="support-trust"><ShieldCheck size={15} /> Your conversations stay private</div>
               </section>
 
               <section className="week-card">
                 <div className="card-heading"><h2>This week</h2></div>
-                <div className="week-days" aria-label="Practice completed Monday, Tuesday, and Wednesday. Today is Thursday."><div className="day-cell"><span>M</span><b className="day-done">✓</b></div><div className="day-cell"><span>T</span><b className="day-done">✓</b></div><div className="day-cell"><span>W</span><b className="day-done">✓</b></div><div className="day-cell today-day"><span>T</span><b>24</b></div><div className="day-cell"><span>F</span><b>25</b></div><div className="day-cell"><span>S</span><b>26</b></div><div className="day-cell"><span>S</span><b>27</b></div></div>
+                <div className="week-days" aria-label="Practice completed Monday, Tuesday, and Wednesday. Today is Thursday."><div className="day-cell"><span>M</span><b className="day-done">✓</b></div><div className="day-cell"><span>T</span><b className="day-done">✓</b></div><div className="day-cell"><span>W</span><b className="day-done">✓</b></div><div className="day-cell today-day" aria-current="date" aria-label="Thursday 24, today"><span>T</span><b>24</b></div><div className="day-cell"><span>F</span><b>25</b></div><div className="day-cell"><span>S</span><b>26</b></div><div className="day-cell"><span>S</span><b>27</b></div></div>
               </section>
 
               <section className="activity-card">
                 <div className="activity-top"><span className="eyebrow small-eyebrow">OPTIONAL ACTIVITY</span><span className="activity-duration"><Clock3 size={14} /> 5 MIN</span></div>
                 <div className="activity-visual"><span className="activity-icon"><Hand size={23} /></span></div>
                 <h2>Hand stretch</h2><p>Try a slow, comfortable hand stretch.</p>
-                <button className={`activity-button ${activityDone ? "activity-finished" : ""}`} onClick={() => setModal("activity")}>{activityDone ? <><CheckCircle2 size={17} /> Done for today</> : <>See the activity <ChevronRight size={18} /></>}</button>
               </section>
             </aside>
           </div>
@@ -172,11 +169,6 @@ export default function Home() {
             <div className="feeling-options" role="radiogroup" aria-label="How are you feeling?">{[{ value: "good", face: "☺", label: "Good" }, { value: "tired", face: "☻", label: "A little tired" }, { value: "unsure", face: "◡", label: "Not sure" }].map((item) => <button key={item.value} className={`feeling-option ${selectedFeeling === item.value ? "feeling-selected" : ""}`} role="radio" aria-checked={selectedFeeling === item.value} onClick={() => setSelectedFeeling(item.value)}><span>{item.face}</span><b>{item.label}</b>{selectedFeeling === item.value && <CheckCircle2 size={20} />}</button>)}</div>
             <button className="button-primary dialog-primary" disabled={!selectedFeeling} onClick={finishCheckin}>Continue <ArrowRight size={19} /></button>
             <button className="dialog-help-link" onClick={() => setModal("help")}>I’d like a little help</button>
-          </>}
-          {modal === "activity" && <>
-            <div className="dialog-icon mint-icon"><Hand size={25} /></div><div className="dialog-eyebrow">A GENTLE PRACTICE · ABOUT 5 MINUTES</div><h2 id="dialog-title">Let’s try a hand stretch.</h2><p className="dialog-subtitle">Find a comfortable position. Move only in a way that feels safe and comfortable for you. Your care team’s advice comes first.</p>
-            <div className="activity-instructions"><span>1</span><p>Rest your hand somewhere supported.</p><span>2</span><p>Slowly open and relax your fingers, if comfortable.</p><span>3</span><p>Pause whenever you need. There’s no need to rush.</p></div>
-            <button className="button-primary dialog-primary" onClick={() => { setActivityDone(true); setModal(null); setNotice("Lovely work, Molly. Thank you for taking a moment for yourself."); }}>Finish practice <Check size={19} /></button><button className="dialog-help-link" onClick={() => setModal(null)}>Maybe another time</button>
           </>}
           {modal === "help" && <>
             <div className="dialog-icon dark-icon"><MessageCircle size={24} /></div><div className="dialog-eyebrow">YOUR FRIENDLY GUIDE</div><h2 id="dialog-title">Hi Molly, I’m here.</h2><p className="dialog-subtitle">You can take a breath, ask for help, or choose what would feel useful right now.</p><div className="help-choices"><button onClick={() => { setModal(null); setNotice("Remember, Molly: small steps are still progress. You’re doing your best."); }}><Heart size={20} /><span><b>I could use encouragement</b><small>A kind reminder for today</small></span><ChevronRight size={18} /></button><button onClick={() => { setModal(null); setNotice("Your hand practice is about 5 minutes. You can start whenever it feels right."); }}><CircleHelp size={20} /><span><b>Help me with my plan</b><small>See what’s next, without any rush</small></span><ChevronRight size={18} /></button><button onClick={() => setModal("warning")}><ShieldCheck size={20} /><span><b>I need urgent help</b><small>Find important safety information</small></span><ChevronRight size={18} /></button></div><p className="help-disclaimer">Alira is a friendly guide, not a medical professional.</p>

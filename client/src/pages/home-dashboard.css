@@ -1,0 +1,67 @@
+/* Motion follows the current day and active practice, leaving the numbers stable. */
+.app-shell .welcome-row { min-height:112px; }
+.app-shell .welcome-row h1 { margin-top:0; }
+/* Decorative rings must not turn this card into a scroll container on focus. */
+.app-shell .today-card { overflow:clip; }
+.today-card-copy > .button-primary { margin-top:24px; }
+.recovery-seedling { display:block; width:100%; max-height:280px; overflow:visible; }
+.seedling-growth { transform-origin:122px 196px; animation:seedling-sway 5s ease-in-out infinite; }
+.seedling-light { transform-origin:152px 88px; animation:seedling-light 7s ease-in-out infinite; }
+.seedling-motes { animation:seedling-motes 5s ease-in-out infinite; }
+
+.app-shell .recovery-card[data-progress="building"] {
+  --progress-ink:#2b6d50; --progress-accent:#44906b; --progress-soft:#d5e9db;
+  border-color:#bed8c7; background:linear-gradient(135deg,#f2f8ee,#e4f0e6);
+}
+.app-shell .recovery-card[data-progress="steady"] {
+  --progress-ink:#365f85; --progress-accent:#5685ac; --progress-soft:#d9e6f1;
+  border-color:#c6d9e9; background:linear-gradient(135deg,#f0f6fa,#e1edf7);
+}
+.app-shell .recovery-card[data-progress] .recovery-icon { color:var(--progress-ink); background:var(--progress-soft); }
+.app-shell .recovery-card[data-progress] .mini-status { color:var(--progress-ink); font-weight:750; }
+.app-shell .recovery-card[data-progress] .mini-status > span { position:relative; width:6px; height:6px; background:var(--progress-accent); }
+.app-shell .recovery-card[data-progress] .progress-track { background:var(--progress-soft); }
+.app-shell .recovery-card[data-progress] .progress-track > span { background:var(--progress-accent); }
+.recovery-card[data-progress="building"] .mini-status > span::after {
+  content:""; position:absolute; inset:-3px; border:1px solid #44906b; border-radius:50%;
+  animation:home-progress-pulse 2.4s ease-out infinite; pointer-events:none;
+}
+.hand-card[data-progress="building"] .mini-status > span::after { animation-delay:-1.2s; }
+
+.home-alira-avatar { position:relative; flex:0 0 46px; width:46px; height:46px; }
+.home-alira-avatar .alira-avatar-image { display:block; width:100%; height:100%; animation:home-avatar-breathe 4.5s ease-in-out infinite; }
+.home-alira-avatar::before {
+  content:""; position:absolute; inset:-3px; border:1px solid #bbdbb9; border-radius:50%;
+  animation:home-progress-pulse 4.5s ease-out infinite; pointer-events:none;
+}
+.app-shell .day-cell.today-day b {
+  position:relative; border-color:#b68e62; color:#704e2c; font-weight:800; background:#f7ead4;
+  box-shadow:0 0 0 3px #c59a6220;
+}
+.day-cell.today-day b::after {
+  content:""; position:absolute; inset:-5px; border:2px solid transparent; border-top-color:#b68e62;
+  border-right-color:#b68e6240; border-radius:50%; animation:home-today-orbit 4s linear infinite; pointer-events:none;
+}
+.app-shell .welcome-row { animation:home-arrive 450ms ease-out both; }
+.app-shell .today-card,.app-shell .support-card { animation:home-arrive 550ms 70ms ease-out both; }
+.app-shell .recovery-section,.app-shell .week-card,.app-shell .activity-card { animation:home-arrive 550ms 150ms ease-out both; }
+.app-shell .button-primary > svg,.app-shell .support-button > svg { transition:transform 180ms ease; }
+.app-shell .button-primary:hover > svg,.app-shell .support-button:hover > svg { transform:translateX(3px); }
+.app-shell .button-complete:hover > svg { transform:none; }
+
+@keyframes seedling-sway { 0%,100% { transform:rotate(-2deg); } 50% { transform:rotate(2deg); } }
+@keyframes seedling-light { 0%,100% { opacity:.65; transform:scale(.9); } 50% { opacity:1; transform:scale(1.08); } }
+@keyframes seedling-motes { 0%,100% { opacity:.45; transform:translateY(0); } 50% { opacity:.85; transform:translateY(-5px); } }
+@keyframes home-progress-pulse { 0% { opacity:.7; transform:scale(.85); } 80%,100% { opacity:0; transform:scale(1.7); } }
+@keyframes home-avatar-breathe { 0%,100% { transform:scale(1); } 50% { transform:scale(1.06); } }
+@keyframes home-today-orbit { to { transform:rotate(360deg); } }
+@keyframes home-arrive { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+@media (max-width:620px) {
+  .app-shell .welcome-row { min-height:0; }
+  .app-shell .recovery-card { column-gap:16px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .app-shell *,.app-shell *::before,.app-shell *::after { animation:none !important; transition:none !important; }
+  .day-cell.today-day b::after { border-color:#b68e6250; }
+}
