@@ -1,0 +1,89 @@
+.mytime-page .mytime-heading { min-height:80px; align-items:center; margin-bottom:20px; }
+.mytime-page .mytime-heading h1 { margin:0; }
+.mytime-page .breathing-card h2,.mytime-page .pairs-intro h2,.mytime-page .sounds-card h2 { margin-top:0; }
+.mytime-page .breathing-card { min-height:360px; }
+.mytime-page .breathing-orbit { width:180px; height:180px; background:transparent; box-shadow:none; animation:none; }
+.mytime-page .breathing-core { position:relative; z-index:1; width:140px; background:transparent; animation:none; }
+.mytime-page .breathing-core b { font-size:24px; }
+.breathing-visual {
+  position:absolute; inset:0; border-radius:50%; background:#edc7b28a;
+  box-shadow:0 0 0 20px #f2ddcf7a,0 0 0 43px #f8f5e65c;
+  animation:mytime-breath 10s cubic-bezier(.4,0,.2,1) infinite;
+}
+.breathing-visual > i { position:absolute; inset:27px; border-radius:50%; background:radial-gradient(circle at 35% 25%,#f7d5bc,#eab999); }
+.breathing-visual > i:nth-child(2) { inset:-19px; background:none; border:1px solid #e8c6ac70; }
+.breathing-visual > i:nth-child(3) { inset:-42px; background:none; border:1px solid #fffbec85; }
+.breath-ready .breathing-visual { animation-name:mytime-breath-idle; }
+.breath-paused .breathing-visual,.breath-complete .breathing-visual { animation-play-state:paused; }
+.mytime-page .breathing-choices button { transition:background .2s ease,transform .2s ease; }
+.mytime-page .breathing-choices button:not(:disabled):hover { transform:translateY(-2px); }
+.mytime-page .breathing-choices button:disabled { cursor:default; }
+.mytime-page .breathing-start { transition:transform .2s ease,background .2s ease; }
+.mytime-page .breathing-start:active { transform:scale(.97); }
+.mytime-page .breathing-finished { grid-column:1/-1; max-width:none; margin-top:20px; color:#37644e; font-size:12px; }
+.mytime-page .circle-heading h2 { margin:0 65px 18px 0; }
+.circle-heading > div i { transition:transform .25s ease; }
+.circle-heading:hover > div i:nth-child(1) { transform:translateY(-3px) rotate(-8deg); }
+.circle-heading:hover > div i:nth-child(2) { transform:translateY(-5px); }
+.circle-heading:hover > div i:nth-child(3) { transform:translateY(-3px) rotate(8deg); }
+.mytime-page .circle-list button,.mytime-page .circle-share,.mytime-page .sounds-card button { transition:transform .2s ease,background .2s ease,box-shadow .2s ease; }
+.mytime-page .circle-list button:hover,.mytime-page .circle-share:hover,.mytime-page .sounds-card button:hover { transform:translateY(-2px); }
+.circle-list button.is-replied svg,.circle-share.is-shared > svg { animation:mytime-pop .4s ease-out; }
+.sounds-card button > span { transition:transform .25s ease; }
+.sounds-card button:hover > span { transform:scale(1.1); }
+
+.mytime-page .pairs-grid button { position:relative; display:block; padding:0; border:0; background:none; perspective:650px; overflow:visible; }
+.mytime-page .pairs-grid button:hover { border:0; }
+.mytime-page .pairs-grid button.is-open,.mytime-page .pairs-grid button.is-matched { background:none; }
+.pair-tile-inner { position:absolute; inset:0; display:block; transform-style:preserve-3d; transition:transform .5s cubic-bezier(.2,.7,.3,1); }
+.is-open .pair-tile-inner { transform:rotateY(180deg); }
+.pair-tile-cover,.pair-tile-face { position:absolute; inset:0; display:grid; place-items:center; border-radius:12px; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+.pair-tile-cover {
+  border:1px solid #3a7059; background:radial-gradient(circle at 20% 12%,#62816b,#315d4c 70%);
+  box-shadow:inset 0 0 0 2px #ffffff0d,0 4px 8px #284b3212;
+}
+.pair-cover-art { width:100%; height:100%; }
+.pair-tile-face { transform:rotateY(180deg); border:1px solid #dfd5bd; background:#fff9eb; }
+.pair-face-art { width:74%; height:74%; }
+.mytime-page .pairs-grid .is-matched .pair-tile-face { border-color:#7fa889; background:#edf5e7; box-shadow:0 0 0 2px #dbe9d3; }
+.pair-match-check { position:absolute; right:4px; bottom:4px; display:grid; place-items:center; width:17px; height:17px; border-radius:50%; color:white; background:#4a795c; animation:mytime-pop .4s ease-out; }
+.mytime-page .pairs-grid button.is-inviting { animation:pair-invite 1.1s ease-in-out; }
+.mytime-page .pairs-grid button.is-inviting .pair-tile-cover { box-shadow:0 5px 14px #355d4533,0 0 0 2px #dfc68d70; }
+.mytime-page .pairs-grid button[aria-disabled="true"] { cursor:default; }
+.mytime-page .pairs-grid button.is-matched { animation:pair-found .6s ease-out; }
+.pairs-stat b { animation:mytime-pop .3s ease-out; }
+.pairs-feedback { color:#426e50; font-size:11px; }
+.pairs-feedback > span { display:flex; align-items:center; gap:6px; margin-top:14px; animation:mytime-pop .3s ease-out; }
+.pairs-complete { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-top:18px; }
+.pairs-complete > span { display:flex; align-items:center; gap:7px; font-size:12px; }
+.pairs-complete button { display:flex; align-items:center; gap:6px; padding:9px 13px; border:1px solid #bdcdb7; border-radius:20px; color:#396349; background:#edf4e8; font-weight:700; }
+.mytime-page button:focus-visible { outline:2px solid #2f7258; outline-offset:4px; }
+.mytime-page .sounds-card button:focus-visible { outline-color:#e8eac9; }
+
+/* The 40% crest matches the four-second inhale in each ten-second cycle. */
+@keyframes mytime-breath { 0%,100% { transform:scale(.82); opacity:.82; } 40% { transform:scale(1.1); opacity:1; } }
+@keyframes mytime-breath-idle { 0%,100% { transform:scale(.87); opacity:.83; } 40% { transform:scale(1.04); opacity:1; } }
+@keyframes pair-invite { 0%,100% { transform:translateY(0) rotate(0); } 25% { transform:translateY(-4px) rotate(-3deg); } 55% { transform:translateY(-3px) rotate(3deg); } 80% { transform:translateY(-1px) rotate(-1deg); } }
+@keyframes pair-found { 0%,100% { transform:scale(1); } 50% { transform:scale(1.06); } }
+@keyframes mytime-pop { from { opacity:.4; transform:scale(.85); } to { opacity:1; transform:scale(1); } }
+
+@media (max-width:620px) {
+  .mytime-page .mytime-heading { min-height:0; }
+  .mytime-page .breathing-card { display:grid; grid-template-columns:1fr; gap:45px; padding:24px 20px 47px; }
+  .mytime-page .breathing-orbit { position:relative; right:auto; bottom:auto; width:155px; height:155px; margin:5px 0 8px; }
+  .mytime-page .breathing-core { height:125px; }
+  .mytime-page .breathing-card h2 { font-size:32px; }
+  .mytime-page .breathing-card p { max-width:none; }
+  .mytime-page .breathing-choices { margin-top:16px; }
+  .mytime-page .pairs-intro { grid-template-columns:1fr 1fr; gap:12px; }
+  .mytime-page .pairs-intro > div:first-child { grid-column:1/-1; }
+  .mytime-page .pairs-intro p { font-size:12px; }
+  .mytime-page .pairs-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+  .mytime-page .pairs-stat { min-height:54px; padding:9px 12px; }
+  .mytime-page .pairs-stat b { font-size:19px; }
+  .mytime-page .breathing-finished { margin-top:0; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .mytime-page *,.mytime-page *::before,.mytime-page *::after { animation:none!important; transition:none!important; }
+  .mytime-page .breathing-visual { transform:scale(.95); }
+}
