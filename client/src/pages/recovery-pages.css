@@ -90,16 +90,44 @@
 .alira-companion-caption { display:block; margin-top:2px; color:#486456; font-size:11px; font-weight:650; }
 .alira-heading-title { flex:0 0 auto; }
 .alira-check-in {
+  position:relative; isolation:isolate; overflow:hidden;
   flex:0 1 400px; min-width:0; padding:14px 18px;
   border:1px solid #cbded0; border-radius:18px 18px 18px 4px;
   background:#e4eee4;
+  box-shadow:inset 0 1px 0 #ffffffa6,inset 0 -1px 0 #64816a12,0 3px 12px #285b4906;
   animation:alira-check-in-colour 7s ease-in-out infinite;
 }
-/* Subtle colour changes give the card life while keeping its surface uncluttered. */
+/* Independently fading colour and light layers add depth without drawing lines. */
+.alira-check-in::before,.alira-check-in::after {
+  content:""; position:absolute; z-index:0; inset:-25%; pointer-events:none;
+}
+.alira-check-in::before {
+  background:
+    radial-gradient(ellipse at 82% 72%,#589e927a 0%,#90c1ad40 31%,transparent 60%),
+    radial-gradient(ellipse at 16% 28%,#b6cf8f8c 0%,transparent 55%);
+  opacity:.8;
+  animation:alira-colour-depth 8s ease-in-out infinite alternate;
+}
+.alira-check-in::after {
+  background:
+    radial-gradient(ellipse at 70% 18%,#faffedc2 0%,transparent 54%),
+    radial-gradient(ellipse at 20% 85%,#c4e6d6a3 0%,transparent 52%);
+  opacity:.7;
+  animation:alira-colour-light 10s -3s ease-in-out infinite alternate;
+}
+.alira-check-in > * { position:relative; z-index:1; }
 @keyframes alira-check-in-colour {
   0%,100% { background-color:#e4eee4; border-color:#cbded0; }
   33% { background-color:#d6e9e2; border-color:#b8d6c9; }
   66% { background-color:#e0ebd8; border-color:#c3d6b6; }
+}
+@keyframes alira-colour-depth {
+  from { opacity:.55; transform:translate(-4%,2%) scale(.96); }
+  to { opacity:1; transform:translate(4%,-3%) scale(1.05); }
+}
+@keyframes alira-colour-light {
+  from { opacity:.4; transform:translate(3%,-3%); }
+  to { opacity:.9; transform:translate(-4%,4%); }
 }
 .alira-heading .alira-check-in-question {
   display:grid; align-content:center; min-height:3.9em; margin:0; color:#163e2f;
