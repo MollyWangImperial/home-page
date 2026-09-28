@@ -5,14 +5,19 @@ import {
   Heart,
   HelpCircle,
   Mic,
-  Pause,
-  Play,
   Send,
   Sparkles,
 } from "lucide-react";
 import RecoveryShell from "@/components/RecoveryShell";
 
 type Message = { from: "Molly" | "Alira"; text: string; group?: string };
+
+const checkInQuestions = [
+  "How are you feeling today, Molly?",
+  "How is your energy feeling today?",
+  "What’s one small win you’re proud of?",
+  "Is there anything you’d like to talk through?",
+];
 
 const suggestions = [
   {
@@ -70,7 +75,6 @@ export default function Alira() {
   const [isReplying, setIsReplying] = useState(false);
   const [composerFocused, setComposerFocused] = useState(false);
   const [isGreeting, setIsGreeting] = useState(false);
-  const [motionPaused, setMotionPaused] = useState(false);
   const replyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const greetingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const threadEnd = useRef<HTMLDivElement>(null);
@@ -82,12 +86,6 @@ export default function Alira() {
       : composerFocused || draft.trim()
         ? "attentive"
         : "idle";
-  const presenceLabel = {
-    idle: "Here with you, Molly",
-    attentive: "Take your time. I’m here.",
-    replying: "Writing back to you…",
-    greeting: "Hello, Molly. Good to see you.",
-  }[presence];
 
   useEffect(
     () => () => {
@@ -104,7 +102,6 @@ export default function Alira() {
     ) {
       threadEnd.current?.scrollIntoView({
         behavior:
-          motionPaused ||
           window.matchMedia("(prefers-reduced-motion: reduce)").matches
             ? "instant"
             : "smooth",
@@ -112,7 +109,7 @@ export default function Alira() {
       });
     }
     previousMessages.current = messages;
-  }, [messages, isReplying, motionPaused]);
+  }, [messages, isReplying]);
 
   const greet = () => {
     if (isReplying) return;
@@ -152,7 +149,6 @@ export default function Alira() {
       <div
         className="recovery-page alira-page"
         data-presence={presence}
-        data-motion={motionPaused ? "paused" : "playing"}
       >
         <section className="alira-heading">
           <div className="alira-heading-title">
@@ -179,37 +175,9 @@ export default function Alira() {
               <span className="alira-companion-caption">
                 Your recovery companion
               </span>
-              <p
-                className="alira-presence-status"
-                role="status"
-                aria-live="polite"
-                aria-atomic="true"
-              >
-                <span className="alira-presence-wave" aria-hidden="true">
-                  <i />
-                  <i />
-                  <i />
-                  <i />
-                  <i />
-                </span>
-                {presenceLabel}
-              </p>
             </div>
           </div>
-          <button
-            type="button"
-            className="alira-motion-toggle"
-            onClick={() => setMotionPaused(current => !current)}
-            aria-pressed={motionPaused}
-            aria-label={
-              motionPaused
-                ? "Resume Alira animations"
-                : "Pause Alira animations"
-            }
-            title={motionPaused ? "Resume animation" : "Pause animation"}
-          >
-            {motionPaused ? <Play size={14} /> : <Pause size={14} />}
-          </button>
+          <AliraCheckIn />
         </section>
         <div className="alira-layout">
           <section
@@ -363,6 +331,25 @@ export default function Alira() {
         </div>
       </div>
     </RecoveryShell>
+  );
+}
+
+function AliraCheckIn() {
+  const [questionIndex, setQuestionIndex] = useState(0);
+
+  return (
+    <aside className="alira-check-in" aria-label="A question from Alira">
+      <span className="alira-check-in-label">Alira asks</span>
+      <p
+        key={questionIndex}
+        className="alira-check-in-question"
+        onAnimationEnd={() =>
+          setQuestionIndex(current => (current + 1) % checkInQuestions.length)
+        }
+      >
+        {checkInQuestions[questionIndex]}
+      </p>
+    </aside>
   );
 }
 
