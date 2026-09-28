@@ -12,6 +12,14 @@ import {
 } from "lucide-react";
 import RecoveryShell from "@/components/RecoveryShell";
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { aliraTopics, type AliraTopic } from "@/lib/alira-topics";
+import {
   checkInAnswers,
   checkInQuestions,
   loadRememberedCheckIn,
@@ -23,36 +31,12 @@ import { createAliraSpeech, silentSpeech } from "@/lib/alira-speech";
 
 type Message = { from: "Molly" | "Alira"; text: string; group?: string };
 
-const suggestions = [
-  {
-    title: "Ask a question",
-    detail: "About exercises, tiredness or recovery",
-    icon: HelpCircle,
-    response:
-      "Ask anything that is on your mind, Molly. We can take it one small step at a time.",
-  },
-  {
-    title: "Raise a concern",
-    detail: "Something doesn’t feel right",
-    icon: AlertTriangle,
-    response:
-      "Thank you for sharing that. I’ll note it for your care team, and you can also tell your therapist directly.",
-  },
-  {
-    title: "Lift me up",
-    detail: "Words to keep you going",
-    icon: Sparkles,
-    response:
-      "Five days in a row, Molly. Every repetition is your brain building a new path. That’s real, and it’s yours.",
-  },
-  {
-    title: "Talk it through",
-    detail: "Share how you’re feeling",
-    icon: Heart,
-    response:
-      "I’m here with you. There is no need to rush what you want to say.",
-  },
-];
+const topicIcons = {
+  question: HelpCircle,
+  concern: AlertTriangle,
+  encouragement: Sparkles,
+  feelings: Heart,
+};
 
 const initialMessages: Message[] = [
   {
@@ -81,6 +65,14 @@ export default function Alira() {
   const [isGreeting, setIsGreeting] = useState(false);
   const [memory, setMemory] = useState(loadRememberedCheckIn);
   const [speechState, setSpeechState] = useState(silentSpeech);
+  const [activeTopic, setActiveTopic] = useState<AliraTopic | null>(null);
+  const [topicDrafts, setTopicDrafts] = useState<
+    Partial<Record<AliraTopic["id"], string>>
+  >({});
+  const topicTrigger = useRef<HTMLButtonElement | null>(null);
+  const topicTitle = useRef<HTMLHeadingElement>(null);
+  const composerInput = useRef<HTMLInputElement>(null);
+  const returnToComposer = useRef(false);
   const speech = useRef<ReturnType<typeof createAliraSpeech> | null>(null);
   const replyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const greetingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -161,272 +153,436 @@ export default function Alira() {
     setDraft("");
   };
 
+  const openTopic = (topic: AliraTopic, trigger: HTMLButtonElement) => {
+    topicTrigger.current = trigger;
+    returnToComposer.current = false;
+    setIsGreeting(false);
+    setActiveTopic(topic);
+    void speech.current?.play(`topic-${topic.id}`, topic.prompt);
+  };
+  const closeTopic = () => {
+    speech.current?.stop();
+    setActiveTopic(null);
+  };
+  const sendTopic = (event: FormEvent) => {
+    event.preventDefault();
+    if (!activeTopic || replyTimer.current !== null) return;
+    const message = topicDrafts[activeTopic.id]?.trim();
+    if (!message) return;
+    setMessages(current => [
+      ...current,
+      { from: "Alira", text: activeTopic.prompt, group: activeTopic.title },
+    ]);
+    setTopicDrafts(current => ({ ...current, [activeTopic.id]: "" }));
+    returnToComposer.current = true;
+    closeTopic();
+    replyTo(message, activeTopic.response);
+  };
+
   return (
-    <RecoveryShell active="Alira" dateLabel="">
-      <div className="recovery-page alira-page" data-presence={presence}>
-        <section className="alira-heading">
-          <div className="alira-heading-title">
-            <button
-              type="button"
-              className="alira-presence-avatar"
-              aria-label="Say hello to Alira"
-              title="Say hello to Alira"
-              onClick={greet}
-              disabled={isReplying}
-            >
-              <span className="alira-presence-halo" aria-hidden="true" />
-              <span
-                className="alira-presence-halo alira-presence-halo-outer"
-                aria-hidden="true"
-              />
-              <span className="alira-presence-core">
-                <AliraAvatar />
-              </span>
-              <span className="alira-presence-spark" aria-hidden="true" />
-            </button>
-            <div>
-              <h1>Alira</h1>
-              <span className="alira-companion-caption">
-                Your recovery companion
-              </span>
+    <Dialog
+      open={Boolean(activeTopic)}
+      onOpenChange={open => {
+        if (!open) closeTopic();
+      }}
+    >
+      <RecoveryShell active="Alira" dateLabel="">
+        <div className="recovery-page alira-page" data-presence={presence}>
+          <section className="alira-heading">
+            <div className="alira-heading-title">
               <button
                 type="button"
-                className="alira-listen-greeting"
-                onClick={() =>
-                  speech.current?.play(
-                    "greeting",
-                    "Hello, Molly. It’s lovely to see you. How are you feeling today?"
-                  )
-                }
-                aria-label={
-                  speechState.activeId === "greeting"
-                    ? "Stop greeting"
-                    : "Hear Alira’s greeting"
-                }
+                className="alira-presence-avatar"
+                aria-label="Say hello to Alira"
+                title="Say hello to Alira"
+                onClick={greet}
+                disabled={isReplying}
               >
-                {speechState.activeId === "greeting" ? (
-                  <Square size={12} />
-                ) : (
-                  <Volume2 size={14} />
-                )}
-                {speechState.activeId === "greeting"
-                  ? "Stop audio"
-                  : "Hear Alira"}
-              </button>
-            </div>
-          </div>
-          <AliraCheckIn
-            memory={memory}
-            busy={isReplying}
-            onAnswer={answer => {
-              if (replyTimer.current !== null) return;
-              setMemory(rememberCheckIn(answer));
-              replyTo(answer.message, answer.response);
-            }}
-          />
-        </section>
-        {speechState.loading && (
-          <p className="alira-voice-notice" role="status">
-            Getting Alira’s voice ready…
-          </p>
-        )}
-        {speechState.error && (
-          <p className="alira-voice-notice" role="status">
-            {speechState.error}
-          </p>
-        )}
-        <div className="alira-layout">
-          <section
-            className="alira-chat-card"
-            aria-label="Conversation with Alira"
-          >
-            <div className="alira-thread">
-              <article
-                className="alira-encouragement"
-                aria-label="Your summary from Alira"
-              >
-                <span>FOR YOU, MOLLY</span>
-                <p>
-                  Five days in a row, Molly. Every repetition is your brain
-                  building a new path. That’s real, and it’s yours.
-                </p>
-                <button
-                  className={`alira-save-button ${saved ? "is-saved" : ""}`}
-                  aria-pressed={saved}
-                  onClick={() => setSaved(!saved)}
-                >
-                  <span className="alira-save-heart" aria-hidden="true">
-                    <Heart size={14} fill={saved ? "currentColor" : "none"} />
-                  </span>
-                  {saved ? "Saved" : "Save words"}
-                  <span className="alira-save-burst" aria-hidden="true">
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                  </span>
-                </button>
-              </article>
-              <div
-                className="alira-messages"
-                role="log"
-                aria-label="Messages with Alira"
-                aria-live="polite"
-                aria-relevant="additions"
-              >
-                {messages.map((message, index) => (
-                  <div
-                    key={`${message.text}-${index}`}
-                    className={`alira-message-row ${message.from === "Molly" ? "from-molly" : "from-alira"} ${index >= initialMessages.length ? "is-new" : ""} ${speechState.speaking && speechState.activeId === `message-${index}` ? "is-speaking" : ""}`}
-                  >
-                    {message.group && (
-                      <span className="alira-day-divider">{message.group}</span>
-                    )}
-                    {message.from === "Alira" && (
-                      <span className="alira-message-avatar">
-                        <AliraAvatar />
-                      </span>
-                    )}
-                    <p>{message.text}</p>
-                    {message.from === "Alira" && (
-                      <button
-                        type="button"
-                        className="alira-message-listen"
-                        aria-label={
-                          speechState.activeId === `message-${index}`
-                            ? "Stop audio"
-                            : "Listen to this message"
-                        }
-                        onClick={() =>
-                          speech.current?.play(`message-${index}`, message.text)
-                        }
-                      >
-                        {speechState.activeId === `message-${index}` ? (
-                          <Square size={12} />
-                        ) : (
-                          <Volume2 size={14} />
-                        )}
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-              {isReplying && (
-                <div className="alira-typing" role="status">
-                  <span className="alira-message-avatar">
-                    <AliraAvatar />
-                  </span>
-                  <span>
-                    Alira is replying
-                    <span className="alira-typing-dots" aria-hidden="true">
-                      <i />
-                      <i />
-                      <i />
-                    </span>
-                  </span>
-                </div>
-              )}
-              <div ref={threadEnd} />
-            </div>
-            <form className="alira-composer" onSubmit={send}>
-              <span className="alira-composer-avatar" aria-hidden="true">
+                <span className="alira-presence-halo" aria-hidden="true" />
+                <span
+                  className="alira-presence-halo alira-presence-halo-outer"
+                  aria-hidden="true"
+                />
                 <span className="alira-presence-core">
                   <AliraAvatar />
                 </span>
-              </span>
-              <input
-                aria-label="Message Alira"
-                value={draft}
-                onChange={event => setDraft(event.target.value)}
-                onFocus={() => {
-                  setComposerFocused(true);
-                  setIsGreeting(false);
-                }}
-                onBlur={() => setComposerFocused(false)}
-                placeholder="Type a message to Alira"
-              />
-              <button
-                type="button"
-                className="alira-mic"
-                aria-label={
-                  speechState.activeId ? "Stop audio" : "Listen to latest reply"
-                }
-                onClick={() => {
-                  if (speechState.activeId) {
-                    speech.current?.stop();
-                    return;
-                  }
-                  const index = messages.findLastIndex(
-                    message => message.from === "Alira"
-                  );
-                  if (index >= 0)
-                    speech.current?.play(
-                      `message-${index}`,
-                      messages[index].text
-                    );
-                }}
-              >
-                {speechState.activeId ? (
-                  <Square size={16} />
-                ) : (
-                  <Volume2 size={18} />
-                )}
+                <span className="alira-presence-spark" aria-hidden="true" />
               </button>
-              <button
-                type="submit"
-                className="alira-send"
-                aria-label="Send message"
-                disabled={!draft.trim() || isReplying}
-              >
-                <ArrowUp size={19} />
-              </button>
-            </form>
-          </section>
-          <aside className="alira-side-panel">
-            <section className="alira-start-card">
-              <span className="recovery-overline">MESSAGE ALIRA</span>
-              <h2>Start a conversation</h2>
               <div>
-                {suggestions.map(({ title, detail, icon: Icon, response }) => (
+                <h1>Alira</h1>
+                <span className="alira-companion-caption">
+                  Your recovery companion
+                </span>
+                <button
+                  type="button"
+                  className="alira-listen-greeting"
+                  onClick={() =>
+                    speech.current?.play(
+                      "greeting",
+                      "Hello, Molly. It’s lovely to see you. How are you feeling today?"
+                    )
+                  }
+                  aria-label={
+                    speechState.activeId === "greeting"
+                      ? "Stop greeting"
+                      : "Hear Alira’s greeting"
+                  }
+                >
+                  {speechState.activeId === "greeting" ? (
+                    <Square size={12} />
+                  ) : (
+                    <Volume2 size={14} />
+                  )}
+                  {speechState.activeId === "greeting"
+                    ? "Stop audio"
+                    : "Hear Alira"}
+                </button>
+              </div>
+            </div>
+            <AliraCheckIn
+              memory={memory}
+              busy={isReplying}
+              onAnswer={answer => {
+                if (replyTimer.current !== null) return;
+                setMemory(rememberCheckIn(answer));
+                replyTo(answer.message, answer.response);
+              }}
+            />
+          </section>
+          {!activeTopic && speechState.loading && (
+            <p className="alira-voice-notice" role="status">
+              Getting Alira’s voice ready…
+            </p>
+          )}
+          {!activeTopic && speechState.error && (
+            <p className="alira-voice-notice" role="status">
+              {speechState.error}
+            </p>
+          )}
+          <div className="alira-layout">
+            <section
+              className="alira-chat-card"
+              aria-label="Conversation with Alira"
+            >
+              <div className="alira-thread">
+                <article
+                  className="alira-encouragement"
+                  aria-label="Your summary from Alira"
+                >
+                  <span>FOR YOU, MOLLY</span>
+                  <p>
+                    Five days in a row, Molly. Every repetition is your brain
+                    building a new path. That’s real, and it’s yours.
+                  </p>
                   <button
-                    key={title}
-                    disabled={isReplying}
-                    onClick={() => replyTo(title, response)}
+                    className={`alira-save-button ${saved ? "is-saved" : ""}`}
+                    aria-pressed={saved}
+                    onClick={() => setSaved(!saved)}
                   >
-                    <span>
-                      <Icon size={18} />
+                    <span className="alira-save-heart" aria-hidden="true">
+                      <Heart size={14} fill={saved ? "currentColor" : "none"} />
                     </span>
-                    <b>
-                      {title}
-                      <small>{detail}</small>
-                    </b>
-                    <Send size={16} />
+                    {saved ? "Saved" : "Save words"}
+                    <span className="alira-save-burst" aria-hidden="true">
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                    </span>
                   </button>
-                ))}
+                </article>
+                <div
+                  className="alira-messages"
+                  role="log"
+                  aria-label="Messages with Alira"
+                  aria-live="polite"
+                  aria-relevant="additions"
+                >
+                  {messages.map((message, index) => (
+                    <div
+                      key={`${message.text}-${index}`}
+                      className={`alira-message-row ${message.from === "Molly" ? "from-molly" : "from-alira"} ${index >= initialMessages.length ? "is-new" : ""} ${speechState.speaking && speechState.activeId === `message-${index}` ? "is-speaking" : ""}`}
+                    >
+                      {message.group && (
+                        <span className="alira-day-divider">
+                          {message.group}
+                        </span>
+                      )}
+                      {message.from === "Alira" && (
+                        <span className="alira-message-avatar">
+                          <AliraAvatar />
+                        </span>
+                      )}
+                      <p>{message.text}</p>
+                      {message.from === "Alira" && (
+                        <button
+                          type="button"
+                          className="alira-message-listen"
+                          aria-label={
+                            speechState.activeId === `message-${index}`
+                              ? "Stop audio"
+                              : "Listen to this message"
+                          }
+                          onClick={() =>
+                            speech.current?.play(
+                              `message-${index}`,
+                              message.text
+                            )
+                          }
+                        >
+                          {speechState.activeId === `message-${index}` ? (
+                            <Square size={12} />
+                          ) : (
+                            <Volume2 size={14} />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {isReplying && (
+                  <div className="alira-typing" role="status">
+                    <span className="alira-message-avatar">
+                      <AliraAvatar />
+                    </span>
+                    <span>
+                      Alira is replying
+                      <span className="alira-typing-dots" aria-hidden="true">
+                        <i />
+                        <i />
+                        <i />
+                      </span>
+                    </span>
+                  </div>
+                )}
+                <div ref={threadEnd} />
               </div>
+              <form className="alira-composer" onSubmit={send}>
+                <span className="alira-composer-avatar" aria-hidden="true">
+                  <span className="alira-presence-core">
+                    <AliraAvatar />
+                  </span>
+                </span>
+                <input
+                  ref={composerInput}
+                  aria-label="Message Alira"
+                  value={draft}
+                  onChange={event => setDraft(event.target.value)}
+                  onFocus={() => {
+                    setComposerFocused(true);
+                    setIsGreeting(false);
+                  }}
+                  onBlur={() => setComposerFocused(false)}
+                  placeholder="Type a message to Alira"
+                />
+                <button
+                  type="button"
+                  className="alira-mic"
+                  aria-label={
+                    speechState.activeId
+                      ? "Stop audio"
+                      : "Listen to latest reply"
+                  }
+                  onClick={() => {
+                    if (speechState.activeId) {
+                      speech.current?.stop();
+                      return;
+                    }
+                    const index = messages.findLastIndex(
+                      message => message.from === "Alira"
+                    );
+                    if (index >= 0)
+                      speech.current?.play(
+                        `message-${index}`,
+                        messages[index].text
+                      );
+                  }}
+                >
+                  {speechState.activeId ? (
+                    <Square size={16} />
+                  ) : (
+                    <Volume2 size={18} />
+                  )}
+                </button>
+                <button
+                  type="submit"
+                  className="alira-send"
+                  aria-label="Send message"
+                  disabled={!draft.trim() || isReplying}
+                >
+                  <ArrowUp size={19} />
+                </button>
+              </form>
             </section>
-            <section className="alira-care-card">
-              <span className="recovery-overline">YOUR CARE TEAM</span>
-              <div className="alira-therapist">
-                <b>PT</b>
+            <aside className="alira-side-panel">
+              <section className="alira-start-card">
+                <span className="recovery-overline">MESSAGE ALIRA</span>
+                <h2>Start a conversation</h2>
+                <div>
+                  {aliraTopics.map(topic => {
+                    const { title, detail, id } = topic;
+                    const Icon = topicIcons[id];
+                    return (
+                      <button
+                        key={title}
+                        disabled={isReplying}
+                        aria-haspopup="dialog"
+                        aria-expanded={activeTopic?.id === id}
+                        onClick={event => openTopic(topic, event.currentTarget)}
+                      >
+                        <span>
+                          <Icon size={18} />
+                        </span>
+                        <b>
+                          {title}
+                          <small>{detail}</small>
+                        </b>
+                        <Send size={16} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+              <section className="alira-care-card">
+                <span className="recovery-overline">YOUR CARE TEAM</span>
+                <div className="alira-therapist">
+                  <b>PT</b>
+                  <p>
+                    <strong>Dr. Jack</strong>
+                    <small>Your physiotherapist</small>
+                  </p>
+                </div>
                 <p>
-                  <strong>Dr. Jack</strong>
-                  <small>Your physiotherapist</small>
+                  Anything you flag with Alira is shared here, so your therapist
+                  sees it before your next session.
                 </p>
-              </div>
-              <p>
-                Anything you flag with Alira is shared here, so your therapist
-                sees it before your next session.
-              </p>
-              <div className="alira-shared">
-                <span>Shared this week</span>
-                <b>1</b>
-              </div>
-            </section>
-          </aside>
+                <div className="alira-shared">
+                  <span>Shared this week</span>
+                  <b>1</b>
+                </div>
+              </section>
+            </aside>
+          </div>
         </div>
-      </div>
-    </RecoveryShell>
+      </RecoveryShell>
+      {activeTopic && (
+        <DialogContent
+          className="alira-topic-dialog"
+          data-speaking={
+            speechState.speaking &&
+            speechState.activeId === `topic-${activeTopic.id}`
+          }
+          data-loading={speechState.loading}
+          onOpenAutoFocus={event => {
+            event.preventDefault();
+            topicTitle.current?.focus();
+          }}
+          onCloseAutoFocus={event => {
+            event.preventDefault();
+            if (returnToComposer.current) composerInput.current?.focus();
+            else topicTrigger.current?.focus();
+          }}
+        >
+          <div className="alira-topic-intro">
+            <div
+              className="alira-presence-avatar alira-topic-avatar"
+              aria-hidden="true"
+            >
+              <span className="alira-presence-halo" />
+              <span className="alira-presence-halo alira-presence-halo-outer" />
+              <span className="alira-presence-core">
+                <AliraAvatar />
+              </span>
+              <span className="alira-presence-spark" />
+            </div>
+            <span className="alira-topic-name">Alira</span>
+            <span className="alira-companion-caption">
+              Your recovery companion
+            </span>
+          </div>
+          <div className="alira-topic-copy">
+            <DialogTitle
+              ref={topicTitle}
+              tabIndex={-1}
+              className="alira-topic-title"
+            >
+              {activeTopic.title}
+            </DialogTitle>
+            <DialogDescription className="alira-topic-question">
+              {activeTopic.prompt}
+            </DialogDescription>
+          </div>
+          <div className="alira-topic-voice">
+            <span role="status">
+              {speechState.loading
+                ? "Getting Alira’s voice ready…"
+                : speechState.speaking
+                  ? "Alira is speaking…"
+                  : "Take your time. There’s no rush."}
+            </span>
+            <button
+              type="button"
+              aria-label={
+                speechState.activeId
+                  ? "Stop Alira’s question"
+                  : "Replay Alira’s question"
+              }
+              onClick={() => {
+                void speech.current?.play(
+                  `topic-${activeTopic.id}`,
+                  activeTopic.prompt
+                );
+              }}
+            >
+              {speechState.activeId ? (
+                <Square size={13} />
+              ) : (
+                <Volume2 size={16} />
+              )}
+              {speechState.activeId ? "Stop audio" : "Hear again"}
+            </button>
+          </div>
+          {speechState.error && (
+            <p className="alira-topic-error" role="alert">
+              {speechState.error}
+            </p>
+          )}
+          <form className="alira-topic-form" onSubmit={sendTopic}>
+            <label htmlFor="alira-topic-reply">
+              Tell Alira what’s on your mind
+            </label>
+            <textarea
+              id="alira-topic-reply"
+              rows={3}
+              maxLength={2000}
+              placeholder={activeTopic.placeholder}
+              value={topicDrafts[activeTopic.id] ?? ""}
+              onChange={event => {
+                if (speechState.activeId) speech.current?.stop();
+                setTopicDrafts(current => ({
+                  ...current,
+                  [activeTopic.id]: event.target.value,
+                }));
+              }}
+            />
+            <div className="alira-topic-footer">
+              <DialogClose asChild>
+                <button type="button" className="alira-topic-later">
+                  Not now
+                </button>
+              </DialogClose>
+              <button
+                className="alira-topic-submit"
+                type="submit"
+                disabled={!topicDrafts[activeTopic.id]?.trim() || isReplying}
+              >
+                Send to Alira <ArrowUp size={17} />
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      )}
+    </Dialog>
   );
 }
 

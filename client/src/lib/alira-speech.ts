@@ -1,4 +1,4 @@
-import voiceClips from "./alira-voice-clips.json";
+import { aliraVoicePhrases } from "./alira-voice-phrases";
 
 export type SpeechState = {
   activeId: string | null;
@@ -19,11 +19,9 @@ export async function fetchAliraVoice(
   text: string,
   signal: AbortSignal
 ): Promise<Blob> {
-  const clip = (voiceClips as Record<string, string>)[text];
-  const phraseId = clip
-    ?.split("/")
-    .pop()
-    ?.replace(/\.wav$/, "");
+  const phraseId = Object.entries(aliraVoicePhrases).find(
+    ([, phrase]) => phrase === text
+  )?.[0];
   if (!phraseId)
     throw new PlaybackError("This message isn’t available to listen to yet.");
   const response = await fetch("/api/alira/voice", {

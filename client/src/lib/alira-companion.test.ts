@@ -1,3 +1,4 @@
+import { aliraTopics } from "./alira-topics";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   checkInAnswers,
@@ -231,3 +232,23 @@ describe("ElevenLabs voice playback", () => {
     );
   });
 });
+
+it.each(aliraTopics)(
+  "requests the registered voice for $title",
+  async topic => {
+    const request = vi.fn(
+      async () =>
+        new Response(new Blob(["audio"]), {
+          headers: { "Content-Type": "audio/mpeg" },
+        })
+    );
+    vi.stubGlobal("fetch", request);
+    await fetchAliraVoice(topic.prompt, new AbortController().signal);
+    expect(request).toHaveBeenCalledWith(
+      "/api/alira/voice",
+      expect.objectContaining({
+        body: JSON.stringify({ phraseId: `topic-${topic.id}` }),
+      })
+    );
+  }
+);

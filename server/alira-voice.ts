@@ -4,14 +4,9 @@ import { readFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseEnv } from "node:util";
-import voiceClips from "../client/src/lib/alira-voice-clips.json";
+import { aliraVoicePhrases } from "../client/src/lib/alira-voice-phrases";
 
-const phrases = new Map(
-  Object.entries(voiceClips).map(([text, url]) => [
-    path.basename(url, ".wav"),
-    text,
-  ])
-);
+const phrases = new Map(Object.entries(aliraVoicePhrases));
 const voiceSettings = {
   stability: 0.45,
   similarity_boost: 0.75,

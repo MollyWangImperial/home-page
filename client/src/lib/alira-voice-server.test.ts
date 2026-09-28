@@ -1,3 +1,4 @@
+import { aliraTopics } from "./alira-topics";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -140,4 +141,15 @@ describe("Alira voice server", () => {
     expect(response.status).toBe(502);
     expect((await response.json()).code).toBe("INVALID_AUDIO");
   });
+});
+
+// Topic prompts must be accepted by the same server allowlist used in the browser.
+it.each(aliraTopics)("generates the $title opening question", async topic => {
+  const { post, request } = await fixture();
+  const response = await post({ phraseId: `topic-${topic.id}` });
+  expect(response.status).toBe(200);
+  const [, options] = (
+    request.mock.calls as unknown as [string, RequestInit][]
+  )[0];
+  expect(JSON.parse(options.body as string).text).toBe(topic.prompt);
 });
