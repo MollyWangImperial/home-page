@@ -90,9 +90,44 @@
 .alira-companion-caption { display:block; margin-top:2px; color:#486456; font-size:11px; font-weight:650; }
 .alira-heading-title { flex:0 0 auto; }
 .alira-check-in {
+  position:relative; isolation:isolate; overflow:hidden;
   flex:0 1 400px; min-width:0; padding:14px 18px;
   border:1px solid #d3e2d5; border-radius:18px 18px 18px 4px;
   background:#e4eee4;
+}
+/* Slow currents of light suggest Alira's presence without competing with the question. */
+.alira-check-in::before,.alira-check-in::after {
+  content:""; position:absolute; z-index:0; pointer-events:none;
+}
+.alira-check-in::before {
+  inset:-45% -30%;
+  background:
+    radial-gradient(ellipse at 76% 30%,#77b99b66 0%,#95c7ad30 26%,transparent 52%),
+    radial-gradient(ellipse at 23% 78%,#a8cf9870 0%,transparent 46%),
+    radial-gradient(ellipse at 42% 35%,#f8ffedb3 0%,transparent 40%);
+  transform-origin:55% 45%;
+  animation:alira-thought-flow 16s ease-in-out infinite alternate;
+}
+.alira-check-in::after {
+  width:76%; height:180%; right:-29%; top:-60%; border-radius:50%;
+  border:1px solid #639a7d30;
+  box-shadow:0 0 0 22px #78a58b0d,0 0 0 23px #639a7d1a,0 0 0 47px #78a58b08,0 0 0 48px #639a7d12;
+  background:radial-gradient(ellipse at 28% 64%,#d8efc580 0%,transparent 55%);
+  animation:alira-thought-ripple 12s ease-in-out infinite alternate;
+}
+.alira-check-in > * { position:relative; z-index:1; }
+.alira-page[data-presence="replying"] .alira-check-in::before { animation-duration:6s; }
+@keyframes alira-thought-flow {
+  0% { transform:translate(-5%,3%) rotate(-8deg) scale(.96); opacity:.72; }
+  50% { opacity:1; }
+  100% { transform:translate(6%,-4%) rotate(9deg) scale(1.06); opacity:.8; }
+}
+@keyframes alira-thought-ripple {
+  from { transform:translate(4%,-3%) rotate(-14deg) scale(.93); opacity:.4; }
+  to { transform:translate(-8%,9%) rotate(8deg) scale(1.08); opacity:.85; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .alira-check-in::before,.alira-check-in::after { animation:none; }
 }
 .alira-heading .alira-check-in-question {
   display:grid; align-content:center; min-height:3.9em; margin:0; color:#163e2f;
