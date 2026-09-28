@@ -70,7 +70,7 @@ export default function Alira() {
     Partial<Record<AliraTopic["id"], string>>
   >({});
   const topicTrigger = useRef<HTMLButtonElement | null>(null);
-  const topicTitle = useRef<HTMLHeadingElement>(null);
+  const topicQuestion = useRef<HTMLParagraphElement>(null);
   const composerInput = useRef<HTMLInputElement>(null);
   const returnToComposer = useRef(false);
   const speech = useRef<ReturnType<typeof createAliraSpeech> | null>(null);
@@ -475,7 +475,7 @@ export default function Alira() {
           data-loading={speechState.loading}
           onOpenAutoFocus={event => {
             event.preventDefault();
-            topicTitle.current?.focus();
+            topicQuestion.current?.focus();
           }}
           onCloseAutoFocus={event => {
             event.preventDefault();
@@ -508,14 +508,12 @@ export default function Alira() {
             </button>
           </div>
           <div className="alira-topic-copy">
-            <DialogTitle
-              ref={topicTitle}
+            <DialogTitle className="sr-only">{activeTopic.title}</DialogTitle>
+            <DialogDescription
+              ref={topicQuestion}
               tabIndex={-1}
-              className="alira-topic-title"
+              className="alira-topic-question"
             >
-              {activeTopic.title}
-            </DialogTitle>
-            <DialogDescription className="alira-topic-question">
               {activeTopic.prompt}
             </DialogDescription>
           </div>
