@@ -42,7 +42,7 @@ export default function RecoveryShell({ active, children, dateLabel = "THURSDAY,
       <aside className="recovery-sidebar" aria-label="Main navigation">
         <button className="recovery-brand" onClick={() => go("/")} aria-label="Go to home">
           <span className="recovery-brand-mark"><Activity size={25} strokeWidth={2.35} /></span>
-          <span className="recovery-brand-name">steady<span>steps</span></span>
+          <span className="recovery-brand-name">Rehyn</span>
         </button>
         <div className="recovery-nav-caption">YOUR SPACE</div>
         <nav className="recovery-nav">
@@ -61,7 +61,7 @@ export default function RecoveryShell({ active, children, dateLabel = "THURSDAY,
 
       <main className="recovery-main">
         <header className="recovery-topbar">
-          <button className="recovery-mobile-brand" onClick={() => go("/")} aria-label="Go to home"><span><Activity size={19} /></span><b>steady<i>steps</i></b></button>
+          <button className="recovery-mobile-brand" onClick={() => go("/")} aria-label="Rehyn home"><span><Activity size={19} /></span><b>Rehyn</b></button>
           <div className="recovery-date">{dateLabel}</div>
           <div className="recovery-top-actions">
             <button className={`recovery-utility ${largeText ? "is-on" : ""}`} onClick={() => setLargeText(!largeText)} aria-label={largeText ? "Use standard text" : "Use larger text"} title="Larger text"><b>A</b><Plus size={11} /></button>

@@ -60,9 +60,9 @@ export default function Home() {
   return (
     <div className={`app-shell ${largeText ? "large-text" : ""} ${highContrast ? "high-contrast" : ""}`}>
       <aside className="sidebar" aria-label="Main navigation">
-        <a className="brand-mark" href="#home" aria-label="Steady home" onClick={() => chooseNav("Home")}>
+        <a className="brand-mark" href="#home" aria-label="Rehyn home" onClick={() => chooseNav("Home")}>
           <span className="brand-symbol"><Activity size={27} strokeWidth={2.4} /></span>
-          <span className="brand-name">steady<span>steps</span></span>
+          <span className="brand-name">Rehyn</span>
         </a>
         <div className="nav-caption">YOUR SPACE</div>
         <nav className="primary-nav">
@@ -80,7 +80,7 @@ export default function Home() {
 
       <main className="main-area" id="home">
         <header className="topbar">
-          <div className="mobile-brand"><span className="brand-symbol small"><Activity size={21} /></span><span>steady<span>steps</span></span></div>
+          <div className="mobile-brand"><span className="brand-symbol small"><Activity size={21} /></span><span>Rehyn</span></div>
           <div className="today-label">THURSDAY, 24 SEPTEMBER</div>
           <div className="top-actions">
             <button className={`utility-button ${largeText ? "toggled" : ""}`} aria-label={largeText ? "Use standard text size" : "Make text larger"} onClick={() => setLargeText(!largeText)} title="Text size"><span className="aa">A</span><Plus size={12} /></button>
