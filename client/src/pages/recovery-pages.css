@@ -290,21 +290,15 @@
   box-shadow:0 24px 80px #153e3433; font-family:"Manrope",sans-serif;
 }
 .alira-topic-intro {
-  display:flex; flex-direction:column; align-items:center; padding:20px 18px 16px;
+  display:flex; flex-direction:column; align-items:center; padding:24px 18px;
   border-radius:19px; background:radial-gradient(ellipse at 80% 0%,#e8f1d8 0%,transparent 62%),linear-gradient(135deg,#e4f0e3,#cbe5da);
 }
-.alira-topic-avatar { flex:0 0 76px; width:76px; height:76px; cursor:default; }
-.alira-topic-name { margin-top:12px; font:600 32px/1 "Newsreader",Georgia,serif; color:#173e30; }
-.alira-topic-intro .alira-companion-caption { margin-top:6px; font-size:12px; }
+.alira-topic-avatar { flex:0 0 76px; width:76px; height:76px; }
 .alira-topic-copy { margin-top:21px; }
 .alira-topic-title { margin:0 0 9px; color:#547463; font:750 11px/1.3 "Manrope",sans-serif; letter-spacing:1.3px; text-transform:uppercase; }
 .alira-topic-title:focus { outline:none !important; }
 .alira-topic-question { margin:0; color:#214535; font-size:17px; font-weight:600; line-height:1.55; }
-.alira-topic-voice { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; min-height:38px; margin-top:12px; }
-.alira-topic-voice > span { color:#597262; font-size:11px; }
-.alira-topic-voice button { display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:7px 11px; border:1px solid #c9ddcc; border-radius:18px; background:#edf5ec; color:#285b49; font-size:11px; font-weight:750; cursor:pointer; }
 .alira-topic-form { margin-top:18px; }
-.alira-topic-form label { display:block; margin-bottom:8px; color:#365b47; font-size:12px; font-weight:750; }
 .alira-topic-form textarea { display:block; width:100%; min-height:96px; max-height:200px; padding:12px 14px; resize:vertical; border:1px solid #bdcfbf; border-radius:14px; background:#fff; color:#214535; font:500 15px/1.5 "Manrope",sans-serif; }
 .alira-topic-form textarea::placeholder { color:#778d7c; font-weight:400; }
 .alira-topic-form textarea:focus { outline:2px solid #75a58c; outline-offset:2px; border-color:#4c8768; }
@@ -320,7 +314,7 @@
 .alira-topic-dialog[data-speaking="true"] .alira-pulse-line { animation:alira-speaking-pulse 650ms ease-in-out infinite; }
 @media (max-width:620px) {
   .alira-topic-dialog { width:calc(100vw - 24px); max-height:calc(100dvh - 24px); padding:20px; border-radius:22px; }
-  .alira-topic-intro { padding:16px 12px 13px; }
+  .alira-topic-intro { padding:20px 12px; }
   .alira-topic-question { font-size:16px; }
   .alira-topic-copy { margin-top:17px; }
 }

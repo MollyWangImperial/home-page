@@ -484,9 +484,20 @@ export default function Alira() {
           }}
         >
           <div className="alira-topic-intro">
-            <div
+            <button
+              type="button"
               className="alira-presence-avatar alira-topic-avatar"
-              aria-hidden="true"
+              aria-label={
+                speechState.activeId
+                  ? "Stop Alira’s question"
+                  : "Replay Alira’s question"
+              }
+              onClick={() => {
+                void speech.current?.play(
+                  `topic-${activeTopic.id}`,
+                  activeTopic.prompt
+                );
+              }}
             >
               <span className="alira-presence-halo" />
               <span className="alira-presence-halo alira-presence-halo-outer" />
@@ -494,11 +505,7 @@ export default function Alira() {
                 <AliraAvatar />
               </span>
               <span className="alira-presence-spark" />
-            </div>
-            <span className="alira-topic-name">Alira</span>
-            <span className="alira-companion-caption">
-              Your recovery companion
-            </span>
+            </button>
           </div>
           <div className="alira-topic-copy">
             <DialogTitle
@@ -512,47 +519,15 @@ export default function Alira() {
               {activeTopic.prompt}
             </DialogDescription>
           </div>
-          <div className="alira-topic-voice">
-            <span role="status">
-              {speechState.loading
-                ? "Getting Alira’s voice ready…"
-                : speechState.speaking
-                  ? "Alira is speaking…"
-                  : "Take your time. There’s no rush."}
-            </span>
-            <button
-              type="button"
-              aria-label={
-                speechState.activeId
-                  ? "Stop Alira’s question"
-                  : "Replay Alira’s question"
-              }
-              onClick={() => {
-                void speech.current?.play(
-                  `topic-${activeTopic.id}`,
-                  activeTopic.prompt
-                );
-              }}
-            >
-              {speechState.activeId ? (
-                <Square size={13} />
-              ) : (
-                <Volume2 size={16} />
-              )}
-              {speechState.activeId ? "Stop audio" : "Hear again"}
-            </button>
-          </div>
           {speechState.error && (
             <p className="alira-topic-error" role="alert">
               {speechState.error}
             </p>
           )}
           <form className="alira-topic-form" onSubmit={sendTopic}>
-            <label htmlFor="alira-topic-reply">
-              Tell Alira what’s on your mind
-            </label>
             <textarea
               id="alira-topic-reply"
+              aria-label="Tell Alira what’s on your mind"
               rows={3}
               maxLength={2000}
               placeholder={activeTopic.placeholder}

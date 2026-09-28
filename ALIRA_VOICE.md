@@ -7,7 +7,7 @@ The default is **Sarah — Mature, Reassuring, Confident**, using Eleven Multili
 
 Use Node.js 22 or newer. Copy `elevenlabs.env.example` to `.env.local` in the repository root and set `ELEVENLABS_API_KEY` to a key with Text to Speech access. The key must stay on the server; never use a `VITE_` prefix. `.env.local` is ignored by Git.
 
-Run `pnpm install` and `pnpm dev`, then open `/alira`. Press **Hear Alira** or a message’s Listen button. Selecting a Start a conversation topic opens a dialog and automatically plays its question. The dialog includes stop/replay controls and a text reply box. Closing it cancels playback; reopening preserves an unsent draft. Sending continues the exchange in the main chat. Other playback is opt-in and can also be stopped while loading. The avatar follows actual playback events.
+Run `pnpm install` and `pnpm dev`, then open `/alira`. Press **Hear Alira** or a message’s Listen button. Selecting a Start a conversation topic opens a dialog and automatically plays its question. The dialog shows Alira’s animated icon, the question, and a text reply box. Press the icon to stop or replay the question. Closing it cancels playback; reopening preserves an unsent draft. Sending continues the exchange in the main chat. Other playback is opt-in and can also be stopped while loading. The avatar follows actual playback events.
 
 `ELEVENLABS_VOICE_ID` and `ELEVENLABS_MODEL_ID` can be changed in the environment. Restart the server and refresh the page after changing the voice to clear the browser’s in-memory audio cache.
 
