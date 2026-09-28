@@ -460,7 +460,6 @@ function AliraCheckIn({
       data-answered={Boolean(answer)}
       aria-busy={busy}
     >
-      <AliraWaveform />
       <p
         key={`${questionIndex}-${answer?.id ?? "question"}`}
         className="alira-check-in-question"
@@ -518,23 +517,6 @@ function AliraCheckIn({
   );
 }
 
-// One decorative heartbeat trace, with a travelling light rather than a web of lines.
-function AliraWaveform() {
-  const wave =
-    "M-10 22H88Q96 22 101 18Q107 12 114 22H161L172 27L183 5L194 35L204 22H245Q253 10 261 22H410";
-  return (
-    <svg
-      className="alira-check-in-wave"
-      viewBox="0 0 400 40"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path className="alira-wave-track" d={wave} />
-      <path className="alira-wave-light" d={wave} pathLength="100" />
-    </svg>
-  );
-}
 function AliraAvatar() {
   return (
     <svg

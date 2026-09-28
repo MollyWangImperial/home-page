@@ -90,36 +90,16 @@
 .alira-companion-caption { display:block; margin-top:2px; color:#486456; font-size:11px; font-weight:650; }
 .alira-heading-title { flex:0 0 auto; }
 .alira-check-in {
-  position:relative; isolation:isolate; overflow:hidden;
   flex:0 1 400px; min-width:0; padding:14px 18px;
-  border:1px solid #d3e2d5; border-radius:18px 18px 18px 4px;
+  border:1px solid #cbded0; border-radius:18px 18px 18px 4px;
   background:#e4eee4;
+  animation:alira-check-in-colour 7s ease-in-out infinite;
 }
-/* A single quiet heartbeat trace sits below the question and behind its controls. */
-.alira-check-in {
-  background:radial-gradient(ellipse at 88% 12%,#cbe4d5 0%,transparent 62%),#e4eee4;
-  --wave-speed:2.4s;
-}
-.alira-check-in > * { position:relative; z-index:1; }
-.alira-check-in > .alira-check-in-wave {
-  position:absolute; z-index:0; left:0; bottom:45px; width:100%; height:28px; pointer-events:none;
-  mask-image:linear-gradient(to right,transparent,#000 12%,#000 88%,transparent);
-}
-.alira-wave-track,.alira-wave-light { fill:none; stroke-linecap:round; stroke-linejoin:round; }
-.alira-wave-track { stroke:#508b72; stroke-width:1.5; opacity:.2; }
-.alira-wave-light {
-  stroke:#397f61; stroke-width:2; stroke-dasharray:22 78;
-  filter:drop-shadow(0 0 2px #80bda166);
-  animation:alira-wave-travel var(--wave-speed) linear infinite;
-}
-.alira-page[data-presence="replying"] .alira-check-in { --wave-speed:1.6s; }
-@keyframes alira-wave-travel {
-  0% { stroke-dashoffset:100; opacity:0; }
-  18%,75% { opacity:.65; }
-  100% { stroke-dashoffset:0; opacity:0; }
-}
-@media (prefers-reduced-motion:reduce) {
-  .alira-wave-light { display:none; }
+/* Subtle colour changes give the card life while keeping its surface uncluttered. */
+@keyframes alira-check-in-colour {
+  0%,100% { background-color:#e4eee4; border-color:#cbded0; }
+  33% { background-color:#d6e9e2; border-color:#b8d6c9; }
+  66% { background-color:#e0ebd8; border-color:#c3d6b6; }
 }
 .alira-heading .alira-check-in-question {
   display:grid; align-content:center; min-height:3.9em; margin:0; color:#163e2f;
