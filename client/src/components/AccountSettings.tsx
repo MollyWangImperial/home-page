@@ -2,7 +2,7 @@ import { createContext, useContext, useRef, useState, type ReactNode } from "rea
 import * as Dialog from "@radix-ui/react-dialog";
 import { Activity, ChevronRight, FileText, Settings, ShieldCheck, SlidersHorizontal, UserRound, X } from "lucide-react";
 import { DATA_SECTIONS } from "@/content/data-permissions";
-import { LEGAL_EFFECTIVE_DATE, LEGAL_VERSION, PRIVACY_INTRO, PRIVACY_SECTIONS, TERMS_INTRO, TERMS_SECTIONS, type LegalSection } from "@/content/legal-content";
+import { PRIVACY_INTRO, PRIVACY_SECTIONS, TERMS_INTRO, TERMS_SECTIONS, type LegalSection } from "@/content/legal-content";
 import "./account-settings.css";
 
 type SettingsView = "profile" | "privacy" | "data" | "terms";
@@ -49,10 +49,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="account-settings-backdrop" />
-          <Dialog.Content className="account-settings-dialog" onCloseAutoFocus={event => { event.preventDefault(); opener.current?.focus(); }}>
+          <Dialog.Content className="account-settings-dialog" aria-describedby={undefined} onCloseAutoFocus={event => { event.preventDefault(); opener.current?.focus(); }}>
             <header className="account-settings-header">
               <span className="account-settings-mark"><Settings size={22} aria-hidden="true" /></span>
-              <div><Dialog.Title>Settings</Dialog.Title><Dialog.Description>Your profile, privacy and information.</Dialog.Description></div>
+              <Dialog.Title>Settings</Dialog.Title>
               <Dialog.Close className="account-settings-close" aria-label="Close settings"><X size={21} /></Dialog.Close>
             </header>
             <div className="account-settings-layout">
@@ -62,16 +62,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                     <Icon size={19} aria-hidden="true" /><span>{label}</span><ChevronRight size={15} aria-hidden="true" />
                   </button>
                 ))}
-                <p className="account-settings-nav-note">Your information.<br />In one place.</p>
               </nav>
               <section key={view} id="account-settings-panel" className="account-settings-panel" aria-labelledby="account-settings-panel-title" tabIndex={0}>
                 <h2 id="account-settings-panel-title">{title}</h2>
                 {view === "profile" ? <ProfileInformation /> : view === "privacy" ? (
-                  <SettingsDocument documentId="privacy" intro={PRIVACY_INTRO} sections={PRIVACY_SECTIONS} />
+                  <SettingsDocument intro={PRIVACY_INTRO} sections={PRIVACY_SECTIONS} />
                 ) : view === "terms" ? (
-                  <SettingsDocument documentId="terms" intro={TERMS_INTRO} sections={TERMS_SECTIONS} />
+                  <SettingsDocument intro={TERMS_INTRO} sections={TERMS_SECTIONS} />
                 ) : (
-                  <SettingsDocument documentId="data" intro="How your information is used and the permissions Rehyn asks for." sections={DATA_SECTIONS} />
+                  <SettingsDocument intro="How your information is used and the permissions Rehyn asks for." sections={DATA_SECTIONS} />
                 )}
               </section>
             </div>
@@ -98,19 +97,14 @@ function ProfileInformation() {
         <div className="settings-support-person"><span aria-hidden="true">PT</span><div><b>Dr. Jack</b><p>Your physiotherapist</p></div></div>
         <div className="settings-support-person"><span className="settings-alira-mark" aria-hidden="true"><Activity size={21} /></span><div><b>Alira</b><p>Your recovery companion</p></div></div>
       </section>
-      <p className="settings-profile-note">You’re viewing the demo profile used in this preview.</p>
     </div>
   );
 }
 
-function SettingsDocument({ documentId, intro, sections }: { documentId: "privacy" | "terms" | "data"; intro: string; sections: LegalSection[] }) {
+function SettingsDocument({ intro, sections }: { intro: string; sections: LegalSection[] }) {
   const headings = useRef<(HTMLHeadingElement | null)[]>([]);
   return (
     <article className="settings-document">
-      {documentId !== "data" ? <>
-        <p className="settings-document-meta">Version {LEGAL_VERSION} <span aria-hidden="true">·</span> Effective date: {LEGAL_EFFECTIVE_DATE}</p>
-        <p className="settings-document-note">Draft document. Some details are still to be confirmed.</p>
-      </> : <p className="settings-document-note">This is an information view. Account consent and device permissions cannot be changed in this preview.</p>}
       <p className="settings-document-intro">{intro}</p>
       <label className="settings-section-jump">Jump to a section
         <select defaultValue="" onChange={event => {
