@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: rehyn-recovery-companion
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    startCommand: node dist/index.js
+    healthCheckPath: /api/alira/voice/status
+    envVars:
+      - key: NODE_ENV
+        value: production
