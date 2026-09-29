@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
+import { isOnboardingLocation } from "@/lib/welcome";
 import { SettingsButton, useSettings } from "./AccountSettings";
 import {
   Activity,
@@ -9,6 +10,7 @@ import {
   Heart,
   Home as HomeIcon,
   MessageCircle,
+  LockKeyhole,
   Plus,
   Sun,
   X,
@@ -21,6 +23,7 @@ type RecoveryShellProps = {
   children: ReactNode;
   dateLabel?: string;
   className?: string;
+  onboarding?: boolean;
 };
 
 const navigation: { label: ViewName; href: string; icon: typeof HomeIcon }[] = [
@@ -30,14 +33,18 @@ const navigation: { label: ViewName; href: string; icon: typeof HomeIcon }[] = [
   { label: "My Time", href: "/my-time", icon: Heart },
 ];
 
-export default function RecoveryShell({ active, children, dateLabel = "THURSDAY, 24 SEPTEMBER", className = "" }: RecoveryShellProps) {
-  const [, setLocation] = useLocation();
+export default function RecoveryShell({ active, children, dateLabel = "THURSDAY, 24 SEPTEMBER", className = "", onboarding = false }: RecoveryShellProps) {
+  const [location, setLocation] = useLocation();
+  const search = useSearch();
+  const isNewUser = onboarding || isOnboardingLocation(location, search);
   const [largeText, setLargeText] = useState(false);
   const [strongContrast, setStrongContrast] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const openSettings = useSettings();
 
-  const go = (href: string) => setLocation(href);
+  const go = (href: string) => setLocation(isNewUser && href === "/" ? "/welcome" : isNewUser && href === "/alira" ? "/alira?onboarding=1" : href);
+  const isLocked = (label: ViewName) => isNewUser && (label === "Journey" || label === "My Time");
+  const navLabel = (label: ViewName) => isNewUser && label === "Journey" ? "My journey" : isNewUser && label === "My Time" ? "My time" : label;
 
   return (
     <div className={`recovery-shell ${largeText ? "recovery-large-text" : ""} ${strongContrast ? "recovery-strong-contrast" : ""} ${className}`}>
@@ -49,9 +56,10 @@ export default function RecoveryShell({ active, children, dateLabel = "THURSDAY,
         <div className="recovery-nav-caption">YOUR SPACE</div>
         <nav className="recovery-nav">
           {navigation.map(({ label, href, icon: Icon }) => (
-            <button key={label} className={`recovery-nav-link ${active === label ? "is-active" : ""}`} onClick={() => go(href)} aria-current={active === label ? "page" : undefined}>
+            <button key={label} className={`recovery-nav-link ${active === label ? "is-active" : ""}`} onClick={() => { if (!isLocked(label)) go(href); }} aria-current={active === label ? "page" : undefined} aria-disabled={isLocked(label) || undefined} title={isLocked(label) ? "Available after your first assessment" : undefined}>
               <Icon size={21} strokeWidth={2.1} />
-              <span>{label}</span>
+              <span>{navLabel(label)}</span>
+              {isLocked(label) && <LockKeyhole className="recovery-nav-lock" size={14} aria-label="Available after your first assessment" />}
               {label === "Alira" && <i className="recovery-online" aria-label="Alira is available" />}
             </button>
           ))}
@@ -68,7 +76,7 @@ export default function RecoveryShell({ active, children, dateLabel = "THURSDAY,
           <div className="recovery-top-actions">
             <button className={`recovery-utility ${largeText ? "is-on" : ""}`} onClick={() => setLargeText(!largeText)} aria-label={largeText ? "Use standard text" : "Use larger text"} title="Larger text"><b>A</b><Plus size={11} /></button>
             <button className={`recovery-utility ${strongContrast ? "is-on" : ""}`} onClick={() => setStrongContrast(!strongContrast)} aria-label="Toggle stronger contrast" title="Stronger contrast"><Sun size={18} /></button>
-            <button className="recovery-profile" aria-label="Molly's profile" aria-haspopup="dialog" onClick={event => openSettings(event.currentTarget)}>M</button>
+            <button className="recovery-profile" aria-label="Zak's profile" aria-haspopup="dialog" onClick={event => openSettings(event.currentTarget)}>Z</button>
           </div>
         </header>
         {children}
@@ -76,8 +84,8 @@ export default function RecoveryShell({ active, children, dateLabel = "THURSDAY,
 
       <nav className="recovery-mobile-nav" aria-label="Mobile navigation">
         {navigation.map(({ label, href, icon: Icon }) => (
-          <button key={label} className={active === label ? "is-active" : ""} onClick={() => go(href)} aria-current={active === label ? "page" : undefined}>
-            <Icon size={20} /><span>{label === "My Time" ? "My time" : label}</span>
+          <button key={label} className={active === label ? "is-active" : ""} onClick={() => { if (!isLocked(label)) go(href); }} aria-current={active === label ? "page" : undefined} aria-disabled={isLocked(label) || undefined} title={isLocked(label) ? "Available after your first assessment" : undefined}>
+            <span className="recovery-mobile-icon"><Icon size={20} />{isLocked(label) && <LockKeyhole className="recovery-nav-lock" size={10} aria-label="Available after your first assessment" />}</span><span>{label === "My Time" ? "My time" : label}</span>
           </button>
         ))}
         <button className="recovery-help-mobile" onClick={() => setShowWarning(true)}><CircleHelp size={20} /><span>Help</span></button>

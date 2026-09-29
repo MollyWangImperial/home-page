@@ -8,10 +8,9 @@ import {
   createAliraVoiceRouter,
   type VoiceConfig,
 } from "../../../server/alira-voice";
-import voiceClips from "./alira-voice-clips.json";
+import { aliraVoicePhrases } from "./alira-voice-phrases";
 
-const [text, clip] = Object.entries(voiceClips)[0];
-const phraseId = path.basename(clip, ".wav");
+const [phraseId, text] = Object.entries(aliraVoicePhrases)[0];
 const config: VoiceConfig = {
   apiKey: "test-secret-do-not-expose",
   voiceId: "test-voice",

@@ -1,0 +1,23 @@
+/* The movement check fills the window: the runner draws its own camera view, ring and cards. */
+html:has(.assessment-page), body:has(.assessment-page) { min-width: 0; margin: 0; background: #0c100e; }
+.assessment-page { position: fixed; inset: 0; background: #0c100e; color: #fdfdfd; font-family: "DM Sans", sans-serif; }
+.assessment-runner { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #0c100e; }
+.assessment-veil { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; text-align: center; background: rgba(12, 16, 14, .92); }
+.assessment-veil.is-solid { background: radial-gradient(circle at 50% 40%, #1a2620 0%, #0b0f0d 70%); }
+.assessment-veil h1 { max-width: 560px; margin: 0; font: 600 30px/1.2 "Newsreader", Georgia, serif; }
+.assessment-veil p { max-width: 520px; margin: 0; color: #d9e5dc; font-size: 16px; line-height: 1.5; }
+.assessment-veil p b { color: #fff; font-weight: 600; }
+.assessment-veil > span { color: #98a39b; font-size: 13px; }
+.assessment-spinner { color: #7fe5a3; animation: assessment-spin 1s linear infinite; }
+.assessment-tick { display: grid; place-items: center; width: 112px; height: 112px; margin-bottom: 10px; border-radius: 999px; background: #7fe5a3; color: #0c100e; box-shadow: 0 18px 50px rgba(0, 0, 0, .45); animation: assessment-pop .7s cubic-bezier(.2, .7, .2, 1) both; }
+.assessment-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 10px; }
+.assessment-primary, .assessment-secondary { display: inline-flex; align-items: center; gap: 8px; min-height: 50px; padding: 0 22px; border: 0; border-radius: 14px; font: 700 16px "DM Sans", sans-serif; cursor: pointer; }
+.assessment-primary { background: #4a7856; color: #fff; }
+.assessment-primary:hover { background: #5a8f68; }
+.assessment-secondary { background: rgba(255, 255, 255, .12); color: #fdfdfd; }
+.assessment-secondary:hover { background: rgba(255, 255, 255, .2); }
+.assessment-link { margin-top: 6px; color: #bcc2ba; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+.assessment-link:hover { color: #fff; }
+@keyframes assessment-spin { to { transform: rotate(360deg); } }
+@keyframes assessment-pop { 0% { opacity: 0; transform: scale(.6); } 60% { transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .assessment-spinner, .assessment-tick { animation: none; } }

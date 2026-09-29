@@ -12,7 +12,7 @@ export const checkInAnswers = {
     label: "Feeling good",
     message: "I’m feeling good today.",
     response:
-      "That’s lovely to hear, Molly. What has made today feel good? I’d love to hear about it.",
+      "That’s lovely to hear, Zak. What has made today feel good? I’d love to hear about it.",
     followUp: "You were feeling good at your last check-in. How are you today?",
   },
   tired: {
@@ -20,7 +20,7 @@ export const checkInAnswers = {
     label: "A little tired",
     message: "I’m feeling a little tired today.",
     response:
-      "Thank you for telling me, Molly. Would you like to talk about what has felt tiring, or just have a quiet moment?",
+      "Thank you for telling me, Zak. Would you like to talk about what has felt tiring, or just have a quiet moment?",
     followUp:
       "You mentioned feeling a little tired last time. How are you feeling now?",
   },
@@ -29,15 +29,15 @@ export const checkInAnswers = {
     label: "Let’s talk",
     message: "I’d like to talk about how I’m feeling.",
     response:
-      "Of course, Molly. What’s been on your mind? You can start wherever feels comfortable.",
-    followUp: "Would you like to pick up our conversation, Molly?",
+      "Of course, Zak. What’s been on your mind? You can start wherever feels comfortable.",
+    followUp: "Would you like to pick up our conversation, Zak?",
   },
   steady: {
     id: "steady",
     label: "Fairly steady",
     message: "My energy feels fairly steady today.",
     response:
-      "Thank you for checking in, Molly. What would you like to make space for today?",
+      "Thank you for checking in, Zak. What would you like to make space for today?",
     followUp:
       "Your energy felt steady at your last check-in. How does today feel?",
   },
@@ -46,16 +46,16 @@ export const checkInAnswers = {
     label: "Not sure yet",
     message: "I’m not sure how my energy feels yet.",
     response:
-      "That’s okay, Molly. You don’t have to find the right words straight away. Is there anything you’d like to talk about?",
+      "That’s okay, Zak. You don’t have to find the right words straight away. Is there anything you’d like to talk about?",
     followUp:
-      "How are you feeling today, Molly? There’s no need to have it all figured out.",
+      "How are you feeling today, Zak? There’s no need to have it all figured out.",
   },
   practiced: {
     id: "practiced",
     label: "I practised",
     message: "A small win for me: I practised today.",
     response:
-      "You made time to practise, Molly. That’s a moment worth recognising. What felt good about it?",
+      "You made time to practise, Zak. That’s a moment worth recognising. What felt good about it?",
     followUp:
       "You shared a win about practising last time. What are you proud of today?",
   },
@@ -64,7 +64,7 @@ export const checkInAnswers = {
     label: "I tried again",
     message: "My small win is that I tried again.",
     response:
-      "Trying again took something, Molly. I’m glad you shared that. What helped you give it another go?",
+      "Trying again took something, Zak. I’m glad you shared that. What helped you give it another go?",
     followUp:
       "Last time, your small win was trying again. What would you like to celebrate today?",
   },
@@ -73,15 +73,15 @@ export const checkInAnswers = {
     label: "Some company",
     message: "I’d like a little company.",
     response:
-      "We can have a gentle chat, Molly. What’s one thing you noticed today — something you saw, heard, or enjoyed?",
-    followUp: "Would a little company feel good today, Molly?",
+      "We can have a gentle chat, Zak. What’s one thing you noticed today — something you saw, heard, or enjoyed?",
+    followUp: "Would a little company feel good today, Zak?",
   },
 } satisfies Record<string, CheckInAnswer>;
 
 export const checkInQuestions = [
   {
     id: "feeling",
-    text: "How are you feeling today, Molly?",
+    text: "How are you feeling today, Zak?",
     answers: [checkInAnswers.good, checkInAnswers.tired, checkInAnswers.talk],
   },
   {

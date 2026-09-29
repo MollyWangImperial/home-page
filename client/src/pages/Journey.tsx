@@ -193,7 +193,7 @@ export default function Journey() {
               <section className="journey-letter-card">
                 <div className="journey-alira-avatar" aria-hidden="true"><AliraAvatar /></div>
                 <span className="recovery-overline">SUNDAY LETTER FROM ALIRA</span>
-                <p>Molly, last week you showed up six times and your reaching rose by six points. This week, let’s keep the grip slow and steady.</p>
+                <p>Zak, last week you showed up six times and your reaching rose by six points. This week, let’s keep the grip slow and steady.</p>
                 <button onClick={() => setLocation("/alira")}>Reply to Alira <ArrowRight size={16} /></button>
               </section>
               <section className="journey-next-medal">

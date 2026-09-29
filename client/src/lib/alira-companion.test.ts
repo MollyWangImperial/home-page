@@ -1,4 +1,5 @@
 import { aliraTopics } from "./alira-topics";
+import { guidedAliraPhrases } from "./alira-guided-start";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   checkInAnswers,
@@ -12,7 +13,7 @@ import {
   fetchAliraVoice,
   silentSpeech,
 } from "./alira-speech";
-import voiceClips from "./alira-voice-clips.json";
+import { aliraVoicePhrases } from "./alira-voice-phrases";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -95,11 +96,13 @@ function speechFixture(
 }
 
 describe("ElevenLabs voice playback", () => {
+  it("uses Zak in personalized speech without reusing recordings addressed to Molly", () => {
+    expect(Object.values(aliraVoicePhrases).some(text => text.includes("Zak"))).toBe(true);
+    expect(Object.values(aliraVoicePhrases).some(text => text.includes("Molly"))).toBe(false);
+  });
   it("has a registered phrase for every check-in reply", () => {
     for (const answer of Object.values(checkInAnswers))
-      expect(
-        (voiceClips as Record<string, string>)[answer.response]
-      ).toBeTruthy();
+      expect(Object.values(aliraVoicePhrases)).toContain(answer.response);
   });
   it("never autoplays and animates only while audio is actually playing", async () => {
     const { playback, changed, audios, requestAudio, revokeUrl } =
@@ -186,14 +189,14 @@ describe("ElevenLabs voice playback", () => {
         })
     );
     vi.stubGlobal("fetch", request);
-    const [text, clip] = Object.entries(voiceClips)[0];
+    const [phraseId, text] = Object.entries(aliraVoicePhrases)[0];
     const signal = new AbortController().signal;
     await fetchAliraVoice(text, signal);
     expect(request).toHaveBeenCalledWith(
       "/api/alira/voice",
       expect.objectContaining({
         body: JSON.stringify({
-          phraseId: clip.split("/").pop()!.replace(".wav", ""),
+          phraseId,
         }),
         signal,
       })
@@ -204,7 +207,7 @@ describe("ElevenLabs voice playback", () => {
     expect(request).toHaveBeenCalledTimes(1);
   });
   it("reports connection errors and rejects invalid audio", async () => {
-    const text = Object.keys(voiceClips)[0];
+    const text = Object.values(aliraVoicePhrases)[0];
     const signal = new AbortController().signal;
     vi.stubGlobal(
       "fetch",
@@ -232,6 +235,26 @@ describe("ElevenLabs voice playback", () => {
     );
   });
 });
+
+it.each(Object.entries(guidedAliraPhrases))(
+  "reads the guided %s message through the phrase allowlist",
+  async (_id, text) => {
+    const request = vi.fn(
+      async () =>
+        new Response(new Blob(["audio"]), {
+          headers: { "Content-Type": "audio/mpeg" },
+        })
+    );
+    vi.stubGlobal("fetch", request);
+    await fetchAliraVoice(text, new AbortController().signal);
+    expect(request).toHaveBeenCalledWith(
+      "/api/alira/voice",
+      expect.objectContaining({
+        body: expect.stringMatching(/^\{"phraseId":"[\w-]+"\}$/),
+      })
+    );
+  }
+);
 
 it.each(aliraTopics)(
   "requests the registered voice for $title",

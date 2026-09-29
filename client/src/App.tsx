@@ -5,8 +5,10 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import Welcome from "./pages/Welcome";
 import Journey from "./pages/Journey";
 import Alira from "./pages/Alira";
+import Assessment from "./pages/Assessment";
 import MyTime from "./pages/MyTime";
 import { SettingsProvider } from "./components/AccountSettings";
 import "./pages/recovery-pages.css";
@@ -16,8 +18,10 @@ function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/welcome"} component={Welcome} />
       <Route path={"/journey"} component={Journey} />
       <Route path={"/alira"} component={Alira} />
+      <Route path={"/assessment"} component={Assessment} />
       <Route path={"/my-time"} component={MyTime} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

@@ -85,12 +85,12 @@ function ProfileInformation() {
   return (
     <div className="settings-profile-content">
       <div className="settings-profile-identity">
-        <span className="settings-profile-avatar" aria-hidden="true">M</span>
-        <div><h3>Molly</h3><span className="settings-demo-label">Demo profile</span></div>
+        <span className="settings-profile-avatar" aria-hidden="true">Z</span>
+        <div><h3>Zak</h3><span className="settings-demo-label">Demo profile</span></div>
       </div>
       <section className="settings-profile-card" aria-labelledby="settings-details-title">
         <h3 id="settings-details-title">Personal information</h3>
-        <dl><div><dt>Name</dt><dd>Molly</dd></div><div><dt>Email address</dt><dd className="settings-empty-value">Not provided</dd></div></dl>
+        <dl><div><dt>Name</dt><dd>Zak</dd></div><div><dt>Email address</dt><dd className="settings-empty-value">Not provided</dd></div></dl>
       </section>
       <section className="settings-profile-card" aria-labelledby="settings-care-title">
         <h3 id="settings-care-title">Your support</h3>
