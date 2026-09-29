@@ -62,6 +62,8 @@ describe("Alira arrival", () => {
     const html = renderToStaticMarkup(createElement(Alira));
     expect(html).toContain("Your movement check");
     expect(html).toContain("Start now");
+    expect(html).not.toContain("Open in the Rehyn app instead");
+    expect(html).not.toContain("Answer the questions again");
     expect(html).not.toContain("ao-status-card");
   });
 });

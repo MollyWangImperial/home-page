@@ -23,7 +23,6 @@ import {
   FROM_HOME_KEY,
   answerLabel,
   applicableQuestions,
-  clearOnboardingAnswers,
   concernStarter,
   exclusiveAnswers,
   fillRandomAnswers,
@@ -39,7 +38,6 @@ import {
   type OnboardingQuestion,
   type Starter,
 } from "@/lib/alira-onboarding";
-import { appAssessmentUrl, getAssessmentBase } from "@/lib/assessment";
 import { loadAliraVisit, rememberAliraVisit } from "@/lib/alira-visit";
 import "./alira-onboarding.css";
 
@@ -182,7 +180,6 @@ export default function Alira() {
   const dialogTrigger = useRef<HTMLElement | null>(null);
   const fromHome = useRef(false);
   const nextId = useRef(s.msgs.length + 1);
-  const assessmentBase = getAssessmentBase(import.meta.env.VITE_ASSESSMENT_BASE, import.meta.env.DEV);
 
   const patch = (p: Partial<Conversation>) => setS(current => ({ ...current, ...p }));
   const later = (ms: number, fn: () => void) => {
@@ -345,13 +342,6 @@ export default function Alira() {
 
   function start() {
     reply("Let's start", copy.start, { started: true }, 1300, () => later(400, beginQuestions));
-  }
-
-  // Clears the saved answers so the twelve questions can be taken again from the top.
-  function answerAgain() {
-    clearOnboardingAnswers();
-    patch({ answers: {}, done: false, showDone: false, started: true });
-    later(200, () => ask(0));
   }
 
   function askStarter(st: Starter) {
@@ -744,8 +734,6 @@ export default function Alira() {
                     </div>
                     <div className="ao-done-actions">
                       <button type="button" className="ao-cta is-compact ao-pulse" onClick={startMovementCheck}>Start now <Arrow /></button>
-                      <a className="ao-link" href={appAssessmentUrl(assessmentBase)} target="_blank" rel="noopener noreferrer">Open in the Rehyn app instead</a>
-                      <button type="button" className="ao-link" onClick={answerAgain}>Answer the questions again</button>
                     </div>
                   </div>
                 </div>
