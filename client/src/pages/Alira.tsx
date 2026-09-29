@@ -724,7 +724,6 @@ export default function Alira() {
                           <rect x="20" y="30" width="40" height="28" rx="5" />
                           <circle cx="40" cy="44" r="7" />
                           <path d="M31 30l3-5h12l3 5" />
-                          <path className="ao-done-ping" d="M40 44m-13 0a13 13 0 1 0 26 0a13 13 0 1 0-26 0" stroke="#2f7a58" strokeWidth="1.5" />
                         </svg>
                       </span>
                       <div>

@@ -61,6 +61,8 @@ describe("Alira arrival", () => {
     localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(Object.fromEntries(onboardingQuestions.map(q => [q.k, q.o[0].v]))));
     const html = renderToStaticMarkup(createElement(Alira));
     expect(html).toContain("Your movement check");
+    expect(html).toContain('class="ao-done-art"');
+    expect(html).not.toContain("ao-done-ping");
     expect(html).toContain("Start now");
     expect(html).not.toContain("Open in the Rehyn app instead");
     expect(html).not.toContain("Answer the questions again");

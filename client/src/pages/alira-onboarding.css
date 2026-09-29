@@ -107,7 +107,6 @@ html:has(.ao-shell), body:has(.ao-shell) { min-width: 0; }
 .ao-done-top { display: flex; gap: 16px; align-items: center; }
 .ao-done-art { width: 80px; height: 80px; flex-shrink: 0; }
 .ao-done-art svg { display: block; }
-.ao-done-ping { transform-box: fill-box; transform-origin: center; animation: ao-ping 2.6s ease-out infinite; }
 .ao-done-top > div { display: flex; flex-direction: column; gap: 6px; }
 .ao-done-title { font: 500 22px/1.2 "Newsreader", Georgia, serif; color: var(--ao-ink); }
 .ao-done-top p { margin: 0; font-size: 14px; line-height: 1.5; color: #4a5651; }
@@ -180,7 +179,6 @@ html:has(.ao-shell), body:has(.ao-shell) { min-width: 0; }
 @keyframes ao-spin { to { transform: rotate(360deg); } }
 @keyframes ao-ecg { 0% { stroke-dashoffset: 32; opacity: 1; } 45% { stroke-dashoffset: 0; opacity: 1; } 85% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
 @keyframes ao-appear { to { opacity: 1; } }
-@keyframes ao-ping { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(1.5); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
   .ao-page *, .ao-page *::before, .ao-page *::after { animation: none !important; transition: none !important; }
   .ao-ch, .ao-reveal { opacity: 1 !important; }
