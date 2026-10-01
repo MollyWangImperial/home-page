@@ -30,6 +30,22 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Alira arrival and reduced-motion content", () => {
+  it.each([{}, { stroke_when: "1_3m" }])("does not let a stale completed chat skip unanswered survey questions: %j", answers => {
+    route.search = "onboarding=1&from=home";
+    localStorage.setItem(ALIRA_VISIT_KEY, JSON.stringify({ started: true }));
+    localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(answers));
+    aliraChatStore.save("survey", {
+      messages: [{ id: 1, from: "Alira", text: onboardingCopy.done }, { id: 2, from: "Alira", text: onboardingCopy.warmUpInvite }],
+      presentation: { chips: "none", started: true, done: true, qi: -1, showQ: false, showDone: true, showSteps: false,
+        paused: false, sel: [], otherOpen: false, otherText: "", draft: "" },
+      positions: { firstMessage: 1, cards: [{ id: "warm-up", afterMessage: 2 }] },
+      scrollTop: 0, warmUpDay: null, planFailed: false, planError: "",
+    });
+    const html = renderToStaticMarkup(createElement(Alira));
+    expect(html).toContain(onboardingQuestions[Object.keys(answers).length].t);
+    expect(html).not.toContain(onboardingCopy.warmUpCard.title);
+    expect(html).not.toContain("That&#x27;s everything for this part");
+  });
   it("restores a delivered plan conversation immediately, including later messages and the original card position", () => {
     route.search = "";
     const stored = rememberAssessmentPlan(rememberAssessment(SAMPLE_ASSESSMENT)!, SAMPLE_ASSESSMENT, true)!;

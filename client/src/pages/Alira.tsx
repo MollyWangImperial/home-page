@@ -215,6 +215,12 @@ export default function Alira() {
   const historyContext = aliraChatContext({ assessment, completion: exerciseCompletion, medalId: medalGuide?.medal.id, day: dayKey(journeyNow()) });
   const [restored] = useState(() => {
     const saved = aliraChatStore.read(historyContext);
+    // Another open tab can save its old completed conversation after a review
+    // account reset. Chat presentation must never complete an unanswered survey.
+    if (historyContext === "survey" && saved?.presentation.done) {
+      const answers = loadOnboardingAnswers();
+      if (applicableQuestions(answers).some(i => answers[onboardingQuestions[i].k] === undefined)) return null;
+    }
     // Returning from the warm-up is a new step the first time, then an ordinary return visit.
     return fromWarmUp && saved?.warmUpDay !== learningToday() ? null : saved;
   });
