@@ -5,7 +5,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
-import { createAliraVoiceRouter } from "./server/alira-voice";
+import { createAliraAgentRouter } from "./server/alira-agent";
+import { createAliraSpeaker, createAliraVoiceRouter } from "./server/alira-voice";
+import { createExerciseDebugRouter } from "./server/exercise-debug";
+import { createAliraSpeakRouter, createExerciseVoiceRouter, createFastCheckVoiceRouter } from "./server/exercise-voice";
+import { createMollyProgressRouter } from "./server/molly-progress";
+import { createAliraChannelRouter } from "./server/alira-channel";
+import { createAliraLearningRouter } from "./server/alira-learning";
+import { createAdminAlertsRouter } from "./server/admin-alerts";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -213,7 +220,70 @@ const aliraVoicePlugin: Plugin = {
     server.middlewares.use("/api/alira/voice", createAliraVoiceRouter({ root: PROJECT_ROOT }));
   },
 };
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy(), aliraVoicePlugin];
+const aliraAgentPlugin: Plugin = {
+  name: "alira-agent",
+  configureServer(server) {
+    server.middlewares.use("/api/alira/agent", createAliraAgentRouter({ root: PROJECT_ROOT }));
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use("/api/alira/agent", createAliraAgentRouter({ root: PROJECT_ROOT }));
+  },
+};
+// The exercises and the FAST check speak in Alira's one voice, like the Alira page.
+const exerciseDebugPlugin: Plugin = {
+  name: "local-exercise-debug-videos",
+  configureServer(server) {
+    const speakAlira = createAliraSpeaker({ root: PROJECT_ROOT });
+    server.middlewares.use("/api/exercise-debug", createExerciseDebugRouter({ root: PROJECT_ROOT }));
+    server.middlewares.use("/api/exercise-voice", createExerciseVoiceRouter(undefined, speakAlira));
+    server.middlewares.use("/api/tts/generate", createFastCheckVoiceRouter(speakAlira));
+    server.middlewares.use("/api/alira/speak", createAliraSpeakRouter(speakAlira));
+  },
+  configurePreviewServer(server) {
+    const speakAlira = createAliraSpeaker({ root: PROJECT_ROOT });
+    server.middlewares.use("/api/exercise-debug", createExerciseDebugRouter({ root: PROJECT_ROOT }));
+    server.middlewares.use("/api/exercise-voice", createExerciseVoiceRouter(undefined, speakAlira));
+    server.middlewares.use("/api/tts/generate", createFastCheckVoiceRouter(speakAlira));
+    server.middlewares.use("/api/alira/speak", createAliraSpeakRouter(speakAlira));
+  },
+};
+const aliraChannelPlugin: Plugin = {
+  name: "alira-channel",
+  configureServer(server) {
+    server.middlewares.use("/api/alira/channel", createAliraChannelRouter({ root: PROJECT_ROOT }));
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use("/api/alira/channel", createAliraChannelRouter({ root: PROJECT_ROOT }));
+  },
+};
+const mollyProgressPlugin: Plugin = {
+  name: "molly-progress",
+  configureServer(server) {
+    server.middlewares.use("/api/molly-progress", createMollyProgressRouter({ root: PROJECT_ROOT }));
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use("/api/molly-progress", createMollyProgressRouter({ root: PROJECT_ROOT }));
+  },
+};
+const aliraLearningPlugin: Plugin = {
+  name: "alira-learning",
+  configureServer(server) {
+    server.middlewares.use("/api/alira/learning", createAliraLearningRouter({ root: PROJECT_ROOT }));
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use("/api/alira/learning", createAliraLearningRouter({ root: PROJECT_ROOT }));
+  },
+};
+const adminAlertsPlugin: Plugin = {
+  name: "admin-alerts",
+  configureServer(server) {
+    server.middlewares.use("/api/admin-alerts", createAdminAlertsRouter({ root: PROJECT_ROOT }));
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use("/api/admin-alerts", createAdminAlertsRouter({ root: PROJECT_ROOT }));
+  },
+};
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy(), aliraVoicePlugin, aliraAgentPlugin, exerciseDebugPlugin, mollyProgressPlugin, aliraChannelPlugin, aliraLearningPlugin, adminAlertsPlugin];
 
 export default defineConfig({
   plugins,

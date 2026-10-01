@@ -15,19 +15,24 @@ export const silentSpeech: SpeechState = {
 
 class PlaybackError extends Error {}
 
+/** The registered ID of one of Alira's fixed lines; anything else has none. */
+export function aliraPhraseId(text: string): string | undefined {
+  return Object.entries(aliraVoicePhrases).find(
+    ([, phrase]) => phrase === text
+  )?.[0];
+}
+
 export async function fetchAliraVoice(
   text: string,
   signal: AbortSignal
 ): Promise<Blob> {
-  const phraseId = Object.entries(aliraVoicePhrases).find(
-    ([, phrase]) => phrase === text
-  )?.[0];
-  if (!phraseId)
-    throw new PlaybackError("This message isn’t available to listen to yet.");
-  const response = await fetch("/api/alira/voice", {
+  // A fixed line is requested by its ID (it may already be recorded); anything else Alira wrote,
+  // such as a reply or her assessment congratulations, is read in her voice by /api/alira/speak.
+  const phraseId = aliraPhraseId(text);
+  const response = await fetch(phraseId ? "/api/alira/voice" : "/api/alira/speak", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phraseId }),
+    body: JSON.stringify(phraseId ? { phraseId } : { text }),
     signal,
   });
   if (!response.ok) {
@@ -38,6 +43,8 @@ export async function fetchAliraVoice(
       VOICE_ACCESS_DENIED:
         "Alira’s voice connection needs attention. Please try again later.",
       VOICE_BUSY: "Alira’s voice is busy. Please try again in a moment.",
+      VOICE_UNAVAILABLE:
+        "Alira’s voice can’t read this message right now. You can still read it here.",
     };
     throw new PlaybackError(
       messages[data.code] ??
@@ -96,7 +103,11 @@ export function createAliraSpeech(
 
   return {
     stop,
-    async play(id: string, text: string) {
+    /**
+     * Plays a line in Alira's voice. When her voice can't (no recording, no credits, offline),
+     * `fallback` runs instead of showing an error, so the caller can use the device voice.
+     */
+    async play(id: string, text: string, fallback?: () => void) {
       if (activeId === id) {
         stop();
         return;
@@ -111,6 +122,10 @@ export function createAliraSpeech(
       ) => {
         if (attempt !== generation) return;
         stop(false);
+        if (fallback) {
+          fallback();
+          return;
+        }
         onChange({ ...silentSpeech, error: message });
       };
       const waiting = () => {

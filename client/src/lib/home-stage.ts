@@ -24,11 +24,11 @@ export const homeStages: Record<HomeStage, StageCopy> = {
   exercises: {
     note: "About ten minutes. You can pause at any point.",
     openers: [
-      { text: "Welcome back, {n}. Today's gentle session is ready: three short movements, about ten minutes. Your re-assessment is in {d}.", cta: "Start today's exercises", href: "/journey" },
-      { text: "Hello again, {n}. {D} until we check your progress. Shall we do today's movements while your energy is good?", cta: "Yes, let's go", href: "/journey" },
-      { text: "Good to see you, {n}. One small session a day is what builds it up. Ready for today's?", cta: "Start today's session", href: "/journey" },
-      { text: "Hi {n}. I've set today's movements from how you did last time, a little lighter on the reach. Shall we?", cta: "Start today's session", href: "/journey" },
-      { text: "Hi {n}, nice to see you again. Tell me how today has been, or we can go straight to your movements.", cta: "Go to my movements", href: "/journey" },
+      { text: "Welcome back, {n}. Today's gentle session is ready. Your re-assessment is in {d}. Shall we begin?", cta: "Start today's exercises", href: "/journey?tab=progress&section=exercises" },
+      { text: "Hello again, {n}. {D} until we check your progress. Shall we do today's movements while your energy is good?", cta: "Yes, let's go", href: "/journey?tab=progress&section=exercises" },
+      { text: "Good to see you, {n}. One small session a day is what builds it up. Ready for today's?", cta: "Start today's session", href: "/journey?tab=progress&section=exercises" },
+      { text: "Hi {n}. Your movements are ready in your exercise plan. Shall we continue together?", cta: "Start today's session", href: "/journey?tab=progress&section=exercises" },
+      { text: "Hi {n}, nice to see you again. We can go straight to your next movement whenever you’re ready.", cta: "Go to my movements", href: "/journey?tab=progress&section=exercises" },
     ],
   },
   done_today: {

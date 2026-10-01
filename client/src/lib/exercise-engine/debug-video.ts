@@ -1,0 +1,120 @@
+import type { Compensation } from "./config";
+import type { Frame } from "./metrics";
+import type { RepResult, Snapshot } from "./session";
+
+const API = "/api/exercise-debug";
+export type DebugVideoSession = { id: string; directory: string; simulated: boolean; exerciseId: string };
+export type DebugClip = { name: string; label: string; url: string; bytes: number; complete: boolean };
+type Sample = { ms: number; values: Frame["values"]; compensations: Frame["comps"]; visible: boolean; targetContact?: boolean; targetArmed: boolean; holdProgress: number };
+
+async function request(url: string, init?: RequestInit) {
+  const response = await fetch(url, init);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error ?? "Local debug recording failed.");
+  return data;
+}
+export async function beginDebugVideos(exerciseId: string, simulated: boolean): Promise<DebugVideoSession> {
+  return { ...await request(`${API}/begin`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ exerciseId, simulated }) }), exerciseId };
+}
+
+/** Composite the local camera/ghost and target overlay. No microphone or audio track is recorded. */
+export class DebugVideoRecorder {
+  private canvas = document.createElement("canvas");
+  private segment: { key: string; stop: (result?: RepResult, complete?: boolean) => void; sample: (snapshot: Snapshot, frame: Frame) => void } | null = null;
+  private pending: Promise<void>[] = [];
+  private practice = 0;
+  private unsupported = false;
+
+  constructor(private session: DebugVideoSession, private rules: Compensation[], private baseline: () => Frame["geo"] | null, private onClip: (clip: DebugClip) => void, private onError: (message: string) => void) {}
+
+  capture(source: HTMLVideoElement | HTMLCanvasElement | null, overlay: HTMLCanvasElement | null, snapshot: Snapshot, frame: Frame) {
+    const key = (snapshot.phase === "warm" || snapshot.phase === "reps") && !snapshot.review ? `${snapshot.phase}:${snapshot.repIndex}` : null;
+    if (this.segment?.key !== key) {
+      const oldIndex = this.segment ? Number(this.segment.key.split(":")[1]) : undefined;
+      const result = snapshot.reps.find(rep => rep.index === oldIndex);
+      this.segment?.stop(result, Boolean(result) || (this.segment.key.startsWith("warm:") && snapshot.phase === "reps"));
+      this.segment = null;
+      if (key && source && !this.unsupported) this.start(key, source, snapshot, frame.t);
+    }
+    if (!this.segment || !source) return;
+    const ctx = this.canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.save();
+    if (source instanceof HTMLVideoElement) { ctx.translate(this.canvas.width, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(source, 0, 0, this.canvas.width, this.canvas.height);
+    ctx.restore();
+    if (overlay) ctx.drawImage(overlay, 0, 0, this.canvas.width, this.canvas.height);
+    ctx.fillStyle = "rgba(0,0,0,.72)";
+    ctx.fillRect(0, this.canvas.height - 86, this.canvas.width, 86);
+    ctx.fillStyle = "#fff";
+    ctx.font = "15px sans-serif";
+    const measured = (value: number | undefined, unit: string) => value === undefined ? "unknown" : `${value.toFixed(1)}${unit}`;
+    ctx.fillText(`${this.session.simulated ? "SIMULATED · " : ""}${snapshot.phase === "warm" ? "Practice" : `Repetition ${snapshot.repIndex}`} · ${snapshot.caption} · hold ${Math.round(snapshot.holdProgress * 100)}%`, 14, this.canvas.height - 63);
+    const mouth = this.session.exerciseId === "ex_h2m";
+    ctx.fillText(`Shoulder ${measured(frame.values.shoulder_flexion, "°")} · ${mouth ? "Elbow bend" : "Elbow"} ${measured(mouth ? frame.values.elbow_flexion : frame.values.elbow_extension, "°")} · Face ${measured(frame.comps.face_approach_pct, "%")} · Shoulder width ${measured(frame.comps.shoulder_approach_pct, "%")}`, 14, this.canvas.height - 39);
+    ctx.fillText(`Shoulder tilt ${measured(frame.comps.shoulder_hike_delta, "°")} · ${mouth ? `Head drop ${measured(frame.comps.head_drop_deg, "°")}` : `Shoulder-to-ear reduction ${measured(frame.comps.shoulder_elevation_pct, "%")}`} · Hand ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
+    this.segment.sample(snapshot, frame);
+  }
+
+  private start(key: string, source: HTMLVideoElement | HTMLCanvasElement, snapshot: Snapshot, startedAt: number) {
+    try {
+      if (typeof MediaRecorder === "undefined" || typeof this.canvas.captureStream !== "function") throw new Error("This browser cannot record debug video.");
+      const mimeType = ["video/webm;codecs=vp8", "video/webm", "video/mp4"].find(type => MediaRecorder.isTypeSupported(type));
+      if (!mimeType) throw new Error("No supported video recording format is available.");
+      this.canvas.width = source instanceof HTMLVideoElement ? source.videoWidth : source.width;
+      this.canvas.height = source instanceof HTMLVideoElement ? source.videoHeight : source.height;
+      const stream = this.canvas.captureStream(20);
+      const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 1_500_000 });
+      const chunks: Blob[] = [];
+      const samples: Sample[] = [];
+      let lastSample = -Infinity;
+      let result: RepResult | undefined;
+      let complete = false;
+      let durationMs = 0;
+      const practice = snapshot.phase === "warm";
+      const number = practice ? ++this.practice : snapshot.repIndex;
+      const name = `${practice ? "practice" : "rep"}-${number}.${mimeType.startsWith("video/mp4") ? "mp4" : "webm"}`;
+      const label = practice ? `Practice ${number}` : `Repetition ${number}`;
+      const baseline = this.baseline();
+      recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
+      const saved = new Promise<void>(resolve => {
+        const report = (message: string) => { this.onError(message); resolve(); };
+        recorder.onerror = () => { report(`Could not record ${label.toLowerCase()}.`); };
+        recorder.onstop = () => {
+          stream.getTracks().forEach(track => track.stop());
+          const blob = new Blob(chunks, { type: mimeType });
+          if (!blob.size) { report(`No video frames were recorded for ${label.toLowerCase()}.`); return; }
+          const url = `${API}/${this.session.id}/clips/${name}`;
+          void (async () => {
+            const uploaded = await request(url, { method: "POST", headers: { "Content-Type": mimeType }, body: blob });
+            await request(`${url}/metadata`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label, simulated: this.session.simulated, rung: snapshot.rung, durationMs, complete, result, baseline, thresholds: this.rules, samples }) });
+            this.onClip({ name, label, url, bytes: uploaded.bytes, complete });
+            resolve();
+          })().catch(error => report(error instanceof Error ? error.message : "Could not save debug video."));
+        };
+      });
+      this.pending.push(saved);
+      recorder.start(250);
+      this.segment = {
+        key,
+        stop: (completed, finished = false) => { result = completed; complete = finished; if (recorder.state !== "inactive") recorder.stop(); },
+        sample: (next, frame) => {
+          durationMs = Math.max(0, frame.t - startedAt);
+          if (frame.t - lastSample >= 100) {
+            lastSample = frame.t;
+            samples.push({ ms: durationMs, values: { ...frame.values }, compensations: { ...frame.comps }, visible: frame.visible, targetContact: frame.targetContact, targetArmed: next.targetArmed, holdProgress: next.holdProgress });
+          }
+        },
+      };
+    } catch (error) {
+      this.unsupported = true;
+      this.onError(error instanceof Error ? error.message : "Debug video recording failed.");
+    }
+  }
+
+  async finish() {
+    this.segment?.stop();
+    this.segment = null;
+    await Promise.all(this.pending);
+  }
+}

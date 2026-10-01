@@ -181,7 +181,20 @@ describe("ElevenLabs voice playback", () => {
     });
     expect(changed.mock.lastCall?.[0].error).not.toContain("private");
   });
-  it("sends only a known phrase ID to the same-origin server", async () => {
+  it("hands the line to the device voice instead of showing an error when her voice can't play", async () => {
+    const { playback, changed } = speechFixture(
+      vi.fn(async () => {
+        throw new Error("no credits");
+      })
+    );
+    const fallback = vi.fn();
+    await playback.play("message-1", "Well done, Zak.", fallback);
+    expect(fallback).toHaveBeenCalledTimes(1);
+    expect(changed).not.toHaveBeenCalledWith(
+      expect.objectContaining({ error: expect.stringMatching(/./) })
+    );
+  });
+  it("asks for fixed lines by ID and reads Alira's other messages in her voice", async () => {
     const request = vi.fn(
       async () =>
         new Response(new Blob(["audio"]), {
@@ -201,10 +214,15 @@ describe("ElevenLabs voice playback", () => {
         signal,
       })
     );
-    await expect(
-      fetchAliraVoice("unregistered private message", signal)
-    ).rejects.toThrow("isn’t available");
-    expect(request).toHaveBeenCalledTimes(1);
+    await fetchAliraVoice("Well done, Zak. Your upper limb score is 62 today.", signal);
+    expect(request).toHaveBeenLastCalledWith(
+      "/api/alira/speak",
+      expect.objectContaining({
+        body: JSON.stringify({ text: "Well done, Zak. Your upper limb score is 62 today." }),
+        signal,
+      })
+    );
+    expect(request).toHaveBeenCalledTimes(2);
   });
   it("reports connection errors and rejects invalid audio", async () => {
     const text = Object.values(aliraVoicePhrases)[0];

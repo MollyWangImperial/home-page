@@ -1,0 +1,29 @@
+/* The lower-right reminder when Alira's daily plan review changes the plan. */
+.pcr { position:fixed; right:24px; bottom:24px; z-index:45; display:flex; flex-direction:column; align-items:flex-end; gap:12px; pointer-events:none; font-family:"DM Sans",sans-serif; }
+.pcr > * { pointer-events:auto; }
+.pcr-bubble { position:relative; display:grid; place-items:center; width:56px; height:56px; padding:0; border:0; border-radius:50%; background:#1e4a3d; color:#fbfaf7; box-shadow:0 10px 24px #1e4a3d40; cursor:pointer; animation:pcr-pop .5s cubic-bezier(.2,1.4,.4,1) both; transition:transform .15s ease; }
+.pcr-bubble:hover { transform:translateY(-2px); }
+.pcr-bubble:focus-visible { outline:3px solid #ad5a37; outline-offset:3px; }
+.pcr-badge { position:absolute; top:-3px; right:-3px; display:grid; place-items:center; min-width:22px; height:22px; padding:0 6px; border:2px solid #f4f3ee; border-radius:11px; background:#ad5a37; color:#fff; font-size:12px; font-weight:800; line-height:1; box-sizing:border-box; }
+.pcr-panel { width:min(340px, calc(100vw - 32px)); padding:16px 18px 18px; border:1px solid #e4e2da; border-radius:18px; background:#fbfaf7; color:#1c2a24; box-shadow:0 24px 60px #153e3433; animation:pcr-rise .3s ease-out both; }
+.pcr-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.pcr-head h2 { margin:0; font-size:16px; font-weight:700; }
+.pcr-close { display:grid; place-items:center; width:32px; height:32px; padding:0; border:0; border-radius:50%; background:transparent; color:#596661; cursor:pointer; }
+.pcr-close:hover { background:#eef1ec; }
+.pcr-close:focus-visible, .pcr-primary:focus-visible, .pcr-link:focus-visible { outline:3px solid #ad5a37; outline-offset:2px; }
+.pcr-list { display:flex; flex-direction:column; gap:10px; max-height:min(320px, 50vh); margin:0 0 14px; padding:0; overflow-y:auto; list-style:none; font-size:14px; line-height:1.45; }
+.pcr-list li { padding:2px 0 2px 12px; border-left:3px solid #dcebe0; }
+.pcr-actions { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.pcr-primary { height:40px; padding:0 18px; border:0; border-radius:10px; background:#1e4a3d; color:#fbfaf7; font-size:14px; font-weight:700; cursor:pointer; }
+.pcr-primary:hover { filter:brightness(1.08); }
+.pcr-link { display:inline-flex; align-items:center; gap:6px; padding:0; border:0; background:transparent; color:#1e4a3d; font-size:14px; font-weight:700; cursor:pointer; }
+.pcr-link:hover { text-decoration:underline; }
+.recovery-large-text .pcr-list { font-size:17px; }
+.recovery-large-text .pcr-head h2 { font-size:19px; }
+.recovery-strong-contrast .pcr-panel { border-color:#1c2a24; }
+.recovery-strong-contrast .pcr-list li { border-left-color:#1e4a3d; }
+@keyframes pcr-pop { from { transform:scale(.4); opacity:0; } to { transform:scale(1); opacity:1; } }
+@keyframes pcr-rise { from { transform:translateY(8px); opacity:0; } to { transform:none; opacity:1; } }
+/* Phones: above the bottom navigation. */
+@media (max-width:620px) { .pcr { right:16px; bottom:calc(65px + env(safe-area-inset-bottom) + 16px); } }
+@media (prefers-reduced-motion: reduce) { .pcr-bubble, .pcr-panel { animation:none; } }

@@ -1,0 +1,11 @@
+.account-reset-controls { display:flex; align-items:center; gap:8px; }
+.account-reset-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:42px; padding:0 12px; border:1px solid #e1e6dd; border-radius:14px; color:#496354; background:#fffefa; font:700 12px "Manrope",sans-serif; white-space:nowrap; }
+.account-reset-button:hover { border-color:#8fc5b0; background:#eff8f3; }
+.account-reset-button:focus-visible { outline:2px solid #285b49; outline-offset:3px; }
+@media (max-width:620px) {
+  .recovery-topbar:has(.account-reset-controls) { height:auto; min-height:67px; flex-wrap:wrap; gap:8px; padding-top:12px; padding-bottom:12px; }
+  .recovery-topbar:has(.account-reset-controls) .recovery-mobile-brand b { display:none; }
+  .account-reset-controls { gap:7px; }
+  .account-reset-button { width:37px; height:37px; min-height:37px; padding:0; border-radius:12px; }
+  .account-reset-button span { display:none; }
+}

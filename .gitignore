@@ -7,6 +7,9 @@ dist/
 build/
 *.dist
 
+# Molly's local progress archive (raw edits stay on this machine)
+.molly-progress/
+
 # Environment variables
 .env
 .env.local
@@ -40,6 +43,9 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Runtime data
+server/data/
+work/
+.claude/
 pids
 *.pid
 *.seed
@@ -111,3 +117,11 @@ temp/
 # Manus version file (auto-generated, not part of source)
 client/public/__manus__/version.json
 .project-config.json
+
+# Local state belongs to this assessment copy, not source control.
+assessment-service/**/__pycache__/
+assessment-service/.pytest_cache/
+assessment-service/backend/.env
+assessment-service/backend/.local_state/
+assessment-service/backend/.task_videos/
+assessment-service/backend/voice_samples/

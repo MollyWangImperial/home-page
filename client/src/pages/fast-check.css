@@ -1,0 +1,12 @@
+html:has(.fast-check-page), body:has(.fast-check-page) { min-width: 0; margin: 0; background: #f7f8f6; }
+.fast-check-page { position: fixed; inset: 0; overflow-y: auto; background: #f7f8f6; color: #183e2e; font-family: "DM Sans", sans-serif; }
+.fast-check-status { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; text-align: center; background: #f7f8f6; overflow-y: auto; }
+.fast-check-status h1 { margin: 0; font: 600 30px/1.2 "Newsreader", Georgia, serif; }
+.fast-check-status p { max-width: 620px; margin: 0; font-size: 17px; line-height: 1.5; }
+.fast-check-urgent { padding: 18px; border: 1px solid #e8b7b2; border-radius: 12px; color: #8f1d14; background: #fff1ef; }
+.fast-check-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.fast-check-actions button { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 12px 20px; border: 1px solid #719080; border-radius: 12px; background: #fff; color: #183e2e; font-weight: 650; cursor: pointer; }
+.fast-check-actions button:hover { background: #e8f0e9; }
+.fast-check-spinner { animation: fast-check-spin 1s linear infinite; }
+@keyframes fast-check-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .fast-check-spinner { animation: none; } }

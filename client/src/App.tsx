@@ -9,9 +9,20 @@ import Welcome from "./pages/Welcome";
 import Journey from "./pages/Journey";
 import Alira from "./pages/Alira";
 import Assessment from "./pages/Assessment";
+import FastCheck from "./pages/FastCheck";
+import ExerciseRunner from "./pages/ExerciseRunner";
 import MyTime from "./pages/MyTime";
+import WarmUp from "./pages/WarmUp";
 import { SettingsProvider } from "./components/AccountSettings";
+import { WarmRepGate } from "./components/WarmRepGate";
+import { usePlanReview } from "./hooks/usePlanReview";
 import "./pages/recovery-pages.css";
+
+/** Alira's daily plan review runs in the background on every page. */
+function PlanReviewRunner() {
+  usePlanReview();
+  return null;
+}
 
 
 function Router() {
@@ -21,8 +32,11 @@ function Router() {
       <Route path={"/welcome"} component={Welcome} />
       <Route path={"/journey"} component={Journey} />
       <Route path={"/alira"} component={Alira} />
-      <Route path={"/assessment"} component={Assessment} />
+      <Route path={"/warm-up"} component={WarmUp} />
+      <Route path={"/assessment"}>{() => <WarmRepGate gate="pre_assessment"><Assessment /></WarmRepGate>}</Route>
+      <Route path={"/fast-check"} component={FastCheck} />
       <Route path={"/my-time"} component={MyTime} />
+      <Route path={"/exercise/:id"}>{() => <WarmRepGate gate="pre_exercise"><ExerciseRunner /></WarmRepGate>}</Route>
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
@@ -44,7 +58,7 @@ function App() {
       >
         <TooltipProvider>
           <Toaster />
-          <SettingsProvider><Router /></SettingsProvider>
+          <SettingsProvider><PlanReviewRunner /><Router /></SettingsProvider>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

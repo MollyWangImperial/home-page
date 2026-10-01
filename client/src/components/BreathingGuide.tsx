@@ -3,8 +3,8 @@ import { ChevronRight, Pause, Play } from "lucide-react";
 
 type BreathState = "ready" | "running" | "paused" | "complete";
 
-export default function BreathingGuide() {
-  const [minutes, setMinutes] = useState(3);
+export default function BreathingGuide({ initialMinutes = 3 }: { initialMinutes?: number }) {
+  const [minutes, setMinutes] = useState(initialMinutes);
   const [state, setState] = useState<BreathState>("ready");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [session, setSession] = useState(0);

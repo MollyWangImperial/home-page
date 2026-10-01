@@ -1,0 +1,81 @@
+/* My Time, one thing at a time: the heading, the picker, the stage and the pager.
+   The activities themselves are styled in components/mytime/my-time-activities.css. */
+.mytime-page { --mytime-stage-height:452px; }
+.mytime-page .mytime-heading { min-height:0; align-items:end; margin-bottom:14px; }
+.mytime-page .mytime-suggestion { margin:10px 0 0; color:#4c6157; font-size:15px; }
+.mytime-surprise { display:flex; align-items:center; gap:8px; flex-shrink:0; min-height:44px; padding:0 17px; border:1px solid #e1c7b7; border-radius:22px; color:#83533d; background:#fffaf5; font:800 13px "Manrope",sans-serif; white-space:nowrap; transition:transform .2s ease,background .2s ease; }
+.mytime-surprise:hover { background:#fff3ea; transform:translateY(-2px); }
+.mytime-surprise:hover svg { animation:mytime-shuffle .5s ease; }
+
+.mytime-rail { display:flex; gap:6px; margin:0 -4px 12px; padding:8px 4px 10px; overflow-x:auto; scrollbar-width:none; scroll-snap-type:x proximity; }
+.mytime-rail::-webkit-scrollbar { display:none; }
+.mytime-rail button { flex:1 0 78px; max-width:124px; display:grid; justify-items:center; gap:8px; padding:4px 2px; border:0; border-radius:16px; color:#56675e; background:none; scroll-snap-align:center; }
+.mytime-rail button > span { width:58px; height:58px; display:grid; place-items:center; border:1px solid #e4e8df; border-radius:19px; background:#fffefa; box-shadow:0 4px 10px #2a3f300a; transition:transform .25s cubic-bezier(.2,.7,.3,1),box-shadow .25s ease,border-color .25s ease,background .25s ease; }
+.mytime-icon { width:34px; height:34px; }
+.mytime-rail button b { font:700 12px "Manrope",sans-serif; white-space:nowrap; }
+.mytime-rail button:hover > span { transform:translateY(-3px); border-color:#b9cdbd; }
+.mytime-rail button.is-active { color:#20392f; }
+.mytime-rail button.is-active > span { border-color:#2f6851; background:#edf4e8; box-shadow:0 0 0 2px #2f6851,0 9px 16px #2a3f301c; transform:translateY(-3px) scale(1.05); }
+.mytime-page .mytime-rail button:active { transform:none; }
+
+.mytime-panel.from-right { animation:mytime-arrive-right .45s cubic-bezier(.2,.7,.3,1); }
+.mytime-panel.from-left { animation:mytime-arrive-left .45s cubic-bezier(.2,.7,.3,1); }
+
+.mytime-pager { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:14px; }
+.mytime-pager button { display:flex; align-items:center; gap:11px; min-height:50px; padding:0 16px; border:1px solid #e4e8df; border-radius:16px; color:#2c4a3c; background:#fffefa; font:700 14px "Manrope",sans-serif; transition:transform .2s ease,border-color .2s ease; }
+.mytime-pager button:hover { border-color:#b9cdbd; transform:translateY(-2px); }
+.mytime-pager button span { display:grid; gap:2px; text-align:left; }
+.mytime-pager button:last-child span { text-align:right; }
+.mytime-pager > div { display:flex; align-items:center; gap:6px; }
+.mytime-pager i { width:7px; height:7px; border-radius:4px; background:#d5ddd3; transition:width .3s ease,background .3s ease; }
+.mytime-pager i.is-active { width:22px; background:#2f6851; }
+
+/* The three activities that were here before, laid out for a full-width stage. */
+.mytime-stage .breathing-card,.mytime-stage .pairs-card,.mytime-stage .sounds-card { min-height:var(--mytime-stage-height); }
+.mytime-stage .sounds-card { display:grid; grid-template-columns:minmax(220px,340px) minmax(0,1fr); align-items:center; gap:36px; padding:36px; }
+.mytime-stage .sounds-card h2 { margin:0; font-size:clamp(28px,3vw,38px); letter-spacing:-.6px; }
+.mytime-stage .sounds-card > div { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.mytime-stage .sounds-card button { min-height:76px; gap:14px; padding:14px 16px; border-radius:16px; }
+.mytime-stage .sounds-card button > span { width:40px; height:40px; }
+.mytime-stage .sounds-card b { font-size:14px; }
+.mytime-stage .sounds-card small { margin-top:4px; font-size:12px; }
+@media (min-width:901px) {
+  .mytime-stage .pairs-card { display:grid; grid-template-columns:minmax(230px,320px) minmax(0,1fr); grid-template-rows:1fr auto; align-items:center; column-gap:36px; padding:30px 32px; }
+  .mytime-stage .pairs-intro { grid-template-columns:1fr 1fr; gap:10px; align-items:stretch; }
+  .mytime-stage .pairs-intro > div:first-child { grid-column:1/-1; margin-bottom:12px; }
+  .mytime-stage .pairs-intro h2 { font-size:clamp(28px,3vw,38px); letter-spacing:-.6px; }
+  .mytime-stage .pairs-intro p { max-width:none; font-size:14px; line-height:1.5; }
+  .mytime-stage .pairs-grid { grid-column:2; grid-row:1 / span 2; justify-self:center; width:100%; max-width:500px; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:0; }
+  .mytime-stage .pairs-feedback { grid-column:1; }
+}
+
+@keyframes mytime-arrive-right { from { opacity:0; transform:translateX(30px); } to { opacity:1; transform:none; } }
+@keyframes mytime-arrive-left { from { opacity:0; transform:translateX(-30px); } to { opacity:1; transform:none; } }
+@keyframes mytime-shuffle { 0%,100% { transform:rotate(0); } 40% { transform:rotate(-14deg); } 70% { transform:rotate(10deg); } }
+
+@media (max-width:900px) {
+  .mytime-page { --mytime-stage-height:0px; }
+  .mytime-stage .sounds-card { grid-template-columns:1fr; gap:20px; padding:26px 22px; }
+  /* A soft fade at both ends says the picker scrolls sideways. */
+  .mytime-rail { margin:0 -17px 10px; padding:8px 17px 10px; -webkit-mask-image:linear-gradient(90deg,transparent,#000 18px,#000 calc(100% - 18px),transparent); mask-image:linear-gradient(90deg,transparent,#000 18px,#000 calc(100% - 18px),transparent); }
+  .mytime-rail button { flex:0 0 78px; }
+}
+@media (max-width:620px) {
+  .mytime-page .mytime-heading { align-items:center; margin-bottom:10px; }
+  .mytime-page .mytime-suggestion { max-width:none; margin-top:6px; font-size:14px; }
+  .mytime-surprise { padding:0 13px; font-size:12px; }
+  .mytime-stage .sounds-card > div { grid-template-columns:1fr; }
+  .mytime-stage .sounds-card button { min-height:60px; }
+  .mytime-pager button { padding:0 12px; font-size:13px; }
+  .mytime-pager > div { gap:4px; }
+  .mytime-pager i { width:5px; height:5px; }
+  .mytime-pager i.is-active { width:14px; }
+}
+@media (max-width:420px) {
+  /* Too narrow for the dots as well: the two neighbours share the row. */
+  .mytime-pager > div { display:none; }
+  .mytime-pager button { flex:1 1 0; min-width:0; justify-content:space-between; }
+}
+@media (max-width:360px) {
+  .mytime-rail { margin:0 -12px 10px; padding:8px 12px 10px; }
+}

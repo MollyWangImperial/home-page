@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "wouter";
 import AliraAvatar from "@/components/AliraAvatar";
+import HeartRateMark from "@/components/HeartRateMark";
 import RecoverySeedling from "@/components/RecoverySeedling";
 import { SettingsButton, useSettings } from "@/components/AccountSettings";
 import "./home-dashboard.css";
@@ -66,7 +67,7 @@ export default function HomeDashboard() {
     <div className={`app-shell ${largeText ? "large-text" : ""} ${highContrast ? "high-contrast" : ""}`}>
       <aside className="sidebar" aria-label="Main navigation">
         <a className="brand-mark" href="#home" aria-label="Rehyn home" onClick={() => chooseNav("Home")}>
-          <span className="brand-symbol"><Activity size={27} strokeWidth={2.4} /></span>
+          <span className="brand-symbol"><HeartRateMark size={27} /></span>
           <span className="brand-name">Rehyn</span>
         </a>
         <div className="nav-caption">YOUR SPACE</div>
@@ -86,7 +87,7 @@ export default function HomeDashboard() {
 
       <main className="main-area" id="home">
         <header className="topbar">
-          <div className="settings-mobile-brand-group"><SettingsButton mobile /><div className="mobile-brand"><span className="brand-symbol small"><Activity size={21} /></span><span>Rehyn</span></div></div>
+          <div className="settings-mobile-brand-group"><SettingsButton mobile /><div className="mobile-brand"><span className="brand-symbol small"><HeartRateMark size={21} /></span><span>Rehyn</span></div></div>
           <div className="today-label">THURSDAY, 24 SEPTEMBER</div>
           <div className="top-actions">
             <button className={`utility-button ${largeText ? "toggled" : ""}`} aria-label={largeText ? "Use standard text size" : "Make text larger"} onClick={() => setLargeText(!largeText)} title="Text size"><span className="aa">A</span><Plus size={12} /></button>

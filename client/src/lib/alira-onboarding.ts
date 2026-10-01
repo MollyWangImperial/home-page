@@ -63,10 +63,23 @@ export const onboardingCopy = {
   how: "Three short parts: a few questions about you, some gentle movements in front of your camera, and what you'd like to get back to. About 15 minutes all together, and you can pause any time.",
   notNow: "Of course. I'll be right here whenever you're ready. The card at the top will take you straight in.",
   done: "That's everything for this part, Zak. Thank you, that took real effort. Next, let's see how you move.",
+  // Once a day, after `done`: an invitation to the warm-up (two comfortable reaches, never scored).
+  warmUpInvite:
+    "One small thing first, if you're up for it: a one-minute warm-up with me, a gentle hello to your arm. Two comfortable reaches, no score and nothing to get right. It shows me today's starting line, so your movement check begins in the right place for you.",
+  warmUpSkip: "No problem at all. We can do the warm-up just before your movement check instead.",
+  afterWarmUp: "Let's build a plan around you. A short movement check helps me choose exercises that fit how you move today and the everyday things you want to get back to. I'll guide you one movement at a time. Shall we begin?",
+  /** The invitation card's on-screen words. Not an Alira line, so not a voice phrase. */
+  warmUpCard: {
+    eyebrow: "One-minute warm-up",
+    title: "Say hello to your arm",
+    body: "Two comfortable reaches forward, at your own pace, with your camera on. No score, no rush. It simply shows Alira today's starting line, so your movement check can begin right where you are.",
+    start: "Let's warm up together",
+    later: "Maybe later",
+  },
   noted: "Thank you, I've noted that. Let's keep going.",
   keepInMind:
     "Thank you for telling me. I'll keep that in mind as we go. Shall we start with a few questions about you?",
-  adminPrefix: "Test mode: I have answered all",
+  adminDone: "Test mode",
   welcomeHome:
     "Hi Zak, I'm Alira. Shall we start with a few simple questions about you? There are no wrong answers, and we can pause whenever you like.",
   placeholders: [
@@ -120,12 +133,19 @@ export function answerLabel(q: OnboardingQuestion, value: OnboardingAnswerValue,
     .join(", ");
 }
 
-/** Test control: answer every unanswered question at random. Existing answers are kept. */
+/** Answers that would take camera tasks away: no arm/hand tasks, or no walking video. */
+const TASK_BLOCKING_ANSWERS: Record<string, string[]> = { arm_hand_movement: ["none"], get_around: ["wheelchair"] };
+
+/**
+ * Test control: answer every unanswered question at random, always in a way that keeps all
+ * five movement-check tasks. Existing answers are kept unless they would remove a task.
+ */
 export function fillRandomAnswers(answers: OnboardingAnswers = {}, random = Math.random): OnboardingAnswers {
   const next: OnboardingAnswers = { ...answers };
   for (const q of onboardingQuestions) {
-    if (next[q.k] !== undefined && next[q.k] !== null) continue;
-    const options = q.o.filter(o => !(q.other && o.v === q.other));
+    const blocked = TASK_BLOCKING_ANSWERS[q.k] || [];
+    if (next[q.k] !== undefined && next[q.k] !== null && !blocked.includes(String(next[q.k]))) continue;
+    const options = q.o.filter(o => !(q.other && o.v === q.other) && !blocked.includes(o.v));
     if (q.type === "multi") {
       const plain = options.filter(o => !exclusiveAnswers.includes(o.v));
       const count = Math.max(1, Math.floor(random() * Math.min(3, plain.length)) + 1);

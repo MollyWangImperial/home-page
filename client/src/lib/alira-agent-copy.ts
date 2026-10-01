@@ -1,0 +1,40 @@
+// Alira's fixed lines for things she does when asked in the chat. They are registered for read-aloud
+// in alira-voice-phrases.ts, so this file must stay free of imports the server cannot resolve.
+
+export const aliraAgentCopy = {
+  restartSurvey: "Of course. Let's start the questions again from the beginning. Your earlier answers have been cleared.",
+  resumeSurvey: "Let's carry on where we left off.",
+  surveyAlreadyDone: "You've already answered all twelve questions. Next is your movement check.",
+  pauseSurvey: "Of course. Your answers so far are saved. Just tell me when you'd like to carry on.",
+  goBack: "Of course. Here's the previous question again.",
+  firstQuestion: "This is the first question, so there's nothing before it.",
+  showQuestion: "Of course. Here's that question again.",
+  cantSkip: "This one helps me keep your plan safe, so I do need an answer. Pick the closest one. You can change it later.",
+  notAnswered: "Thank you for telling me. When you're ready, tap the answer that fits best, or type it in your own words.",
+  noQuestion: "There's no question on screen just now. Say \"carry on\" and I'll show you the next one.",
+  movementCheck: "Let's go. I'll open your movement check now.",
+  movementCheckEarly: "Of course. I'll open your movement check now. We can finish the questions afterwards.",
+  warningSigns: "Here are the warning signs of a stroke. If you notice any of them, call your local emergency number straight away.",
+  emergency: "If this is happening now, please call your local emergency number straight away. Don't wait to see if it passes.",
+  crisis: "I'm really sorry you're feeling like this. Please call your local emergency number or a crisis line now, or tell someone near you. You don't have to go through this alone.",
+  readAloud: "Of course. I'll read my last message to you.",
+  nothingToRead: "Sorry, I can't read that message aloud yet. Every message stays here for you to read.",
+  stopReading: "I've stopped reading.",
+  largerText: "I've made the text larger.",
+  standardText: "I've set the text back to its usual size.",
+  strongerContrast: "I've turned on stronger contrast.",
+  standardContrast: "I've turned stronger contrast off.",
+  openHome: "Taking you to your home page.",
+  openProgress: "Opening your progress.",
+  openJournal: "Opening your journal.",
+  openMedals: "Opening your medals.",
+  openMyTime: "Opening My Time.",
+  openBreathing: "Opening the breathing guide in My Time.",
+  openSettings: "Opening your settings.",
+  lockedUntilCheck: "That opens after your first movement check. Let's get you there first.",
+  lockedUntilPlan: "Your journey opens as soon as your exercise plan is ready. Let's finish that first.",
+  help: "I can start, pause or restart our questions, change an answer, start your movement check, open your journal, medals or My Time, make the text larger, read messages aloud, and show the stroke warning signs. Just tell me what you'd like.",
+  trouble: "Sorry, I couldn't think that through just now. Please try again in a moment, or tap one of the options.",
+} as const;
+
+export type AliraAgentCopyKey = keyof typeof aliraAgentCopy;

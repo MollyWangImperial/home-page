@@ -1,0 +1,72 @@
+/* Scoped styles from the original FAST runner. See scripts/sync-fast-check.mjs. */
+
+  .fast-check-runtime *{box-sizing:border-box}
+  .fast-check-runtime{margin:0;width:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#F7F8F6;color:#17211B;min-height:100%}
+  .fast-check-runtime button,.fast-check-runtime input{font:inherit}
+  .fast-check-runtime button{cursor:pointer}
+  .fast-check-runtime .shell{min-height:100%;display:flex;flex-direction:column}
+  .fast-check-runtime .emergencyBar{background:#B42318;color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:center;gap:12px;font-weight:850;text-align:center}
+  .fast-check-runtime .emergencyBar button{border:2px solid #fff;background:#fff;color:#8F1D14;border-radius:6px;padding:9px 15px;font-weight:900;white-space:nowrap}
+  .fast-check-runtime .top{height:58px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #D9DEDA;background:#fff}
+  .fast-check-runtime .top strong{font-size:18px;color:#183E2E}
+  .fast-check-runtime .exit{border:0;background:transparent;color:#34443B;font-weight:800;padding:10px}
+  .fast-check-runtime .workspace{flex:1;position:relative;min-height:520px;display:grid;grid-template-columns:minmax(280px,1.05fr) minmax(330px,.95fr)}
+  .fast-check-runtime .camera{position:relative;overflow:hidden;background:#101713;min-height:460px}
+  .fast-check-runtime video,.fast-check-runtime canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+  .fast-check-runtime canvas{pointer-events:none}
+  .fast-check-runtime .cameraLabel{position:absolute;left:16px;bottom:16px;right:16px;padding:10px 12px;border-radius:6px;background:rgba(14,23,18,.78);color:#fff;font-size:14px;line-height:1.35;backdrop-filter:blur(8px)}
+  .fast-check-runtime .panel{padding:28px;display:flex;flex-direction:column;justify-content:center;background:#fff;border-left:1px solid #D9DEDA}
+  .fast-check-runtime .letter{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:#FCE6E3;color:#B42318;font-size:28px;font-weight:950;margin-bottom:16px}
+  .fast-check-runtime .eyebrow{font-size:13px;text-transform:uppercase;font-weight:900;color:#B42318;margin-bottom:8px}
+  .fast-check-runtime h1{font-size:30px;line-height:1.12;margin:0 0 12px;color:#183E2E}
+  .fast-check-runtime p{font-size:17px;line-height:1.48;margin:0 0 16px;color:#35443C}
+  .fast-check-runtime .important{border-left:5px solid #B42318;background:#FFF1EF;padding:13px 14px;margin:8px 0 18px;font-weight:750;color:#6E1A14;line-height:1.4}
+  .fast-check-runtime .assist{display:flex;align-items:flex-start;gap:10px;background:#EEF4F0;border:1px solid #D8E3DB;padding:12px;border-radius:6px;margin:0 0 18px;color:#294638;font-size:14px;line-height:1.4}
+  .fast-check-runtime .assistDot{width:10px;height:10px;border-radius:50%;background:#78847D;margin-top:5px;flex:0 0 auto}
+  .fast-check-runtime .assist.good .assistDot{background:#2F7A4D}.fast-check-runtime .assist.warn .assistDot{background:#B42318}
+  .fast-check-runtime .autoCard{border:1px solid #C9D4CD;background:#F7FAF8;border-radius:6px;padding:15px;margin:0 0 14px}
+  .fast-check-runtime .autoTop{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px;color:#244536;font-size:14px;font-weight:850}
+  .fast-check-runtime .autoBadge{padding:5px 9px;border-radius:4px;background:#E2EEE6;color:#175A39;font-size:12px;text-transform:uppercase;white-space:nowrap}
+  .fast-check-runtime .scanTrack{height:8px;border-radius:4px;overflow:hidden;background:#DDE5E0}
+  .fast-check-runtime .scanFill{height:100%;width:0;background:#2D7A4B;transition:width .18s linear}
+  .fast-check-runtime .autoResult{display:flex;align-items:center;gap:10px;min-height:48px;margin-top:11px;color:#425249;font-size:14px;line-height:1.35}
+  .fast-check-runtime .autoResult strong{color:#153F2D}.fast-check-runtime .autoResult.warn strong{color:#8F1D14}.fast-check-runtime .autoResult.clear strong{color:#1F7047}
+  .fast-check-runtime .pulseDot{width:11px;height:11px;border-radius:50%;background:#2D7A4B;box-shadow:0 0 0 0 rgba(45,122,75,.35);animation:fastScanPulse 1.25s ease-out infinite;flex:0 0 auto}
+  @keyframes fastScanPulse{75%{box-shadow:0 0 0 9px rgba(45,122,75,0)}}
+  .fast-check-runtime .privacyNote{font-size:13px;color:#5D6962;margin-top:8px;line-height:1.4}
+  .fast-check-runtime .actions{display:grid;gap:10px}
+  .fast-check-runtime .primary,.fast-check-runtime .answer,.fast-check-runtime .secondary{min-height:54px;border-radius:6px;font-weight:850;padding:13px 16px}
+  .fast-check-runtime .primary{border:0;background:#155B3C;color:#fff}
+  .fast-check-runtime .answer{border:1px solid #B9C2BC;background:#fff;color:#183E2E;text-align:left;display:flex;align-items:center;justify-content:space-between}
+  .fast-check-runtime .answer.danger{border-color:#D78B85;color:#8F1D14;background:#FFF8F7}
+  .fast-check-runtime .answer.unsure{border-color:#D9A441;color:#6B4A0B;background:#FFFBF0}
+  .fast-check-runtime .secondary{border:1px solid #8DA095;background:#fff;color:#183E2E}
+  .fast-check-runtime .hidden{display:none!important}
+  .fast-check-runtime .progress{display:flex;gap:7px;margin-bottom:22px}.fast-check-runtime .progress span{height:6px;flex:1;border-radius:3px;background:#DEE3DF}.fast-check-runtime .progress span.done{background:#1F7047}.fast-check-runtime .progress span.active{background:#B42318}
+  .fast-check-runtime .phrase{font-size:23px;font-weight:850;color:#183E2E;padding:16px;border:1px solid #CBD5CE;background:#F7F9F7;border-radius:6px;margin:2px 0 16px;text-align:center}
+  .fast-check-runtime .transcript{min-height:48px;padding:12px;border-radius:6px;background:#F0F2EF;color:#34443B;margin-bottom:12px;font-size:14px}
+  .fast-check-runtime .result{grid-column:1/-1;padding:30px;display:flex;align-items:center;justify-content:center;background:#F7F8F6}
+  .fast-check-runtime .resultInner{width:min(740px,100%);background:#fff;border:2px solid #B42318;border-radius:8px;padding:28px;text-align:center}
+  .fast-check-runtime .resultInner.clear{border-color:#2F7A4D}
+  .fast-check-runtime .resultIcon{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;margin:0 auto 16px;background:#FCE6E3;color:#B42318;font-size:42px;font-weight:950}
+  .fast-check-runtime .clear .resultIcon{background:#E2F1E7;color:#2F7A4D}
+  .fast-check-runtime .result h1{font-size:36px;color:#8F1D14}.fast-check-runtime .result .clear h1{color:#1F7047}
+  .fast-check-runtime .callButton{display:block;width:100%;border:0;border-radius:6px;background:#B42318;color:#fff;padding:17px;font-size:20px;font-weight:950;margin:18px 0 12px}
+  .fast-check-runtime .onset{margin:16px 0;text-align:left}.fast-check-runtime .onset label{display:block;font-weight:850;margin-bottom:7px}.fast-check-runtime .onset input{width:100%;padding:13px;border:1px solid #AAB5AE;border-radius:6px;background:#fff}
+  .fast-check-runtime .small{font-size:14px;color:#59655E}.fast-check-runtime .source{font-size:12px;color:#667269;margin-top:16px}
+  .fast-check-runtime .callOverlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(18,24,20,.78);backdrop-filter:blur(5px)}
+  .fast-check-runtime .callCard{width:min(430px,100%);padding:28px;border-radius:8px;background:#fff;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+  .fast-check-runtime .demoBadge{display:inline-block;padding:6px 10px;border-radius:4px;background:#FFF0CE;color:#6B4500;font-size:12px;font-weight:950;text-transform:uppercase}
+  .fast-check-runtime .callPulse{width:104px;height:104px;border-radius:50%;display:grid;place-items:center;margin:22px auto 18px;background:#B42318;color:#fff;font-size:34px;font-weight:950;animation:fastCallPulse 1.15s ease-in-out infinite}
+  .fast-check-runtime .callCard h2{margin:0 0 10px;color:#8F1D14;font-size:28px}.fast-check-runtime .callCard p{font-size:16px}
+  .fast-check-runtime .demoWarning{margin:16px 0;padding:13px;border:2px solid #B42318;border-radius:6px;background:#FFF1EF;color:#751D16;font-weight:900;line-height:1.4}
+  @keyframes fastCallPulse{50%{transform:scale(1.07);box-shadow:0 0 0 16px rgba(180,35,24,.13)}}
+  .fast-check-runtime.intro-mode .workspace{display:flex;align-items:center;justify-content:center;padding:24px}
+  .fast-check-runtime.intro-mode .camera{display:none}
+  .fast-check-runtime.intro-mode .panel{width:min(720px,100%);min-height:0;border:1px solid #D9DEDA;border-radius:8px}
+  @media(max-width:760px){
+    .fast-check-runtime .emergencyBar{align-items:stretch;flex-direction:column;gap:7px;padding:10px 14px}.fast-check-runtime .emergencyBar button{width:100%}
+    .fast-check-runtime .workspace{display:block}.fast-check-runtime .camera{height:38vh;min-height:270px}.fast-check-runtime .panel{border-left:0;border-top:1px solid #D9DEDA;padding:22px 18px;min-height:430px;justify-content:flex-start}
+    .fast-check-runtime h1{font-size:26px}.fast-check-runtime .result{padding:18px}.fast-check-runtime .resultInner{padding:22px 16px}.fast-check-runtime .result h1{font-size:31px}
+  }
+  .fast-check-runtime h1,.fast-check-runtime h2{font-weight:700}

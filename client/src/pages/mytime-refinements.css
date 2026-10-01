@@ -1,5 +1,6 @@
 .mytime-page .mytime-heading { min-height:80px; align-items:center; margin-bottom:20px; }
 .mytime-page .mytime-heading h1 { margin:0; }
+.mytime-page .mytime-top-grid { grid-template-columns:minmax(0,1fr); }
 .mytime-page .breathing-card h2,.mytime-page .pairs-intro h2,.mytime-page .sounds-card h2 { margin-top:0; }
 .mytime-page .breathing-card { min-height:360px; }
 .mytime-page .breathing-orbit { width:180px; height:180px; background:transparent; box-shadow:none; animation:none; }

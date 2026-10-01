@@ -1,3 +1,5 @@
+import { HEART_RATE_PATH, HeartRateGlyph } from "./HeartRateMark";
+
 export default function AliraAvatar() {
   return (
     <svg
@@ -8,25 +10,19 @@ export default function AliraAvatar() {
     >
       <circle cx="40" cy="40" r="39" fill="#dfe7df" />
       <circle cx="40" cy="40" r="34" fill="#285b49" />
-      <path
-        className="alira-pulse-line"
-        d="M24 40h9l6-10 9 20 6-10h5"
-        fill="none"
-        stroke="#f5faf3"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        className="alira-pulse-trace"
-        d="M24 40h9l6-10 9 20 6-10h5"
-        pathLength="100"
-        fill="none"
-        stroke="#fff"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <g transform="translate(16.8 18) scale(1.9)" color="#f5faf3">
+        <HeartRateGlyph className="alira-pulse-line" />
+        <path
+          className="alira-pulse-trace"
+          d={HEART_RATE_PATH}
+          pathLength="100"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="2.1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
     </svg>
   );
 }

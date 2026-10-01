@@ -12,9 +12,14 @@
     "start": "node dist/index.js",
     "preview": "vite preview --host",
     "check": "tsc --noEmit",
-    "format": "prettier --write ."
+    "molly:progress": "node scripts/molly-progress.mjs",
+    "voice:bake": "tsx scripts/bake-alira-voice.ts",
+    "format": "prettier --write .",
+    "assessment:dev": "node scripts/start-assessment-service.mjs",
+    "dev:assessment": "node scripts/dev-assessment.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.130.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -53,6 +58,7 @@
     "lucide-react": "^0.453.0",
     "nanoid": "^5.1.5",
     "next-themes": "^0.4.6",
+    "nodemailer": "^10.0.13",
     "react": "^19.2.1",
     "react-day-picker": "^9.11.1",
     "react-dom": "^19.2.1",
@@ -74,6 +80,7 @@
     "@types/express": "4.17.21",
     "@types/google.maps": "^3.58.1",
     "@types/node": "^24.7.0",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.2.1",
     "@types/react-dom": "^19.2.1",
     "@vitejs/plugin-react": "^5.0.4",

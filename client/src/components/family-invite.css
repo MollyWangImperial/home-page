@@ -1,0 +1,22 @@
+/* Alira's invitation to share progress with family (Journey, Progress tab). */
+.fi { display:flex; gap:14px; align-items:flex-start; margin-bottom:16px; padding:18px 20px; border:1px solid #d7e2cf; border-radius:20px; background:linear-gradient(135deg,#f2f7ec,#fffefa); animation:fi-in .35s ease-out both; }
+.fi-avatar { display:block; flex-shrink:0; width:44px; height:44px; }
+.fi-avatar svg { width:100%; height:100%; }
+.fi-body { min-width:0; flex:1; }
+.fi h2 { margin:4px 0 6px; color:#2c4c36; font:600 23px/1.2 "Newsreader",Georgia,serif; }
+.fi p { margin:0 0 12px; color:#3b5442; font-size:15px; line-height:1.6; }
+.fi-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.fi-primary,.fi-secondary { min-height:46px; padding:0 20px; border-radius:13px; font:700 14px "Manrope",sans-serif; cursor:pointer; }
+.fi-primary { border:1px solid #285b49; color:#fffefa; background:#285b49; }
+.fi-primary:hover { background:#224d3d; }
+.fi-secondary { border:1px solid #cfdcc8; color:#34553f; background:#fff; }
+.fi-secondary:hover { background:#eaf0e3; }
+.fi-never { margin-top:10px; min-height:32px; padding:0; border:0; color:#617661; background:none; font:600 12px "Manrope",sans-serif; text-decoration:underline; cursor:pointer; }
+.fi-ack { display:flex; align-items:center; gap:8px; margin:0 0 16px; padding:11px 15px; border-radius:13px; color:#35553f; background:#eef3e8; font-size:14px; }
+.fi-ack-shell { display:grid; grid-template-rows:1fr; animation:fi-ack-out 1.2s ease-in-out 5s both; }
+.fi-ack-clip { min-height:0; overflow:hidden; }
+.fi button:focus-visible { outline:2px solid #32765a; outline-offset:3px; }
+@keyframes fi-in { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+@keyframes fi-ack-out { 0% { opacity:1; grid-template-rows:1fr; } 60% { opacity:0; grid-template-rows:1fr; } 100% { opacity:0; grid-template-rows:0fr; } }
+@media (prefers-reduced-motion:reduce) { .fi, .fi-ack-shell { animation:none; } }
+@media (max-width:620px) { .fi { padding:15px; gap:10px; } .fi-avatar { width:34px; height:34px; } .fi h2 { font-size:20px; } .fi-actions button { flex:1; } }

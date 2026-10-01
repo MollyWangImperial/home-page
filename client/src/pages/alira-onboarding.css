@@ -41,8 +41,8 @@ html:has(.ao-shell), body:has(.ao-shell) { min-width: 0; }
 .ao-cta.is-compact:hover:not(:disabled) { background: #2a5c4c; }
 .ao-done-actions .ao-cta.is-compact { background: var(--ao-terracotta); }
 .ao-done-actions .ao-cta.is-compact:hover { background: #9c4f2f; }
-.ao-cta svg, .ao-chip svg, .ao-textlink svg { transition: transform .18s ease; }
-.ao-cta:hover:not(:disabled) svg, .ao-chip:hover svg, .ao-textlink:hover svg { transform: translateX(3px); }
+.ao-cta svg, .ao-chip svg { transition: transform .18s ease; }
+.ao-cta:hover:not(:disabled) svg, .ao-chip:hover svg { transform: translateX(3px); }
 .ao-pulse { animation: ao-rise .5s cubic-bezier(.2, .7, .2, 1) both, ao-ring 2.4s .7s ease-out infinite; }
 
 /* layout */
@@ -139,12 +139,6 @@ html:has(.ao-shell), body:has(.ao-shell) { min-width: 0; }
 .ao-starter:nth-child(2) { animation-delay: .1s; }
 .ao-starter:nth-child(3) { animation-delay: .2s; }
 .ao-starter:nth-child(4) { animation-delay: .3s; }
-.ao-safety { padding: 20px 22px; }
-.ao-safety-head { display: flex; align-items: center; gap: 10px; }
-.ao-safety-icon { width: 34px; height: 34px; border-radius: 999px; background: #e6edf3; color: #2d5a82; display: flex; align-items: center; justify-content: center; }
-.ao-safety p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ao-ink); }
-.ao-textlink { display: inline-flex; align-items: center; gap: 6px; width: fit-content; padding: 0; border: 0; background: none; color: #256848; font-size: 14px; font-weight: 600; }
-.ao-textlink:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 .ao-dialog { color: var(--ao-ink); background: #fbfaf7; border-radius: 20px; font-family: "DM Sans", sans-serif; }
 .ao-dialog h2 { padding-right: 16px; font: 500 29px/1.2 "Newsreader", Georgia, serif; }
@@ -213,3 +207,17 @@ html:has(.ao-shell), body:has(.ao-shell) { min-width: 0; }
   .ao-composer { padding: 12px; gap: 8px; }
   .ao-composer > .ao-mark { display: none; }
 }
+
+.ao-test-assessment { border: 1px dashed #a8b6ad; border-radius: 9px; padding: 10px 13px; color: #496053; background: transparent; font-size: 12px; cursor: pointer; }
+.ao-test-assessment:disabled { opacity: .55; cursor: wait; }
+.ao-plan-art { display: grid; place-items: center; background: #e4eee2; color: #1e4a3d; border-radius: 50%; flex-shrink: 0; }
+.ao-plan-art.is-planning svg { animation: ao-plan-spin 3s linear infinite; }
+@keyframes ao-plan-spin { to { transform: rotate(360deg); } }
+@media(prefers-reduced-motion: reduce) { .ao-plan-art.is-planning svg { animation: none; } }
+
+/* Survey-end warm-up invitation: the movement check card's layout, with the home seedling in the same
+   pale disc as the camera art, and a quiet "Maybe later" that is still easy to tap. */
+.ao-warm-art { position: relative; box-sizing: border-box; border: 3px solid transparent; border-radius: 50%; background: #e4eee2 padding-box; overflow: hidden; }
+.ao-warm-art .recovery-seedling { position: absolute; left: 50%; top: 50%; width: 72px; height: 84px; max-height: none; transform: translate(-51%, -56%); }
+.ao-warm-later { min-height: 44px; padding: 0 6px; font-size: 14px; }
+.ao-warm-later:disabled { opacity: .5; text-decoration: none; }

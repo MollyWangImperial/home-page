@@ -1,21 +1,39 @@
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import HomeSurprise from "@/components/HomeSurprise";
 import QuietFocus from "@/components/QuietFocus";
 import RecoveryShell from "@/components/RecoveryShell";
-import { loadRememberedAssessment } from "@/lib/assessment";
-import { fillCopy, homeStage, homeStages, loadLastExerciseDay } from "@/lib/home-stage";
+import { fillCopy } from "@/lib/home-stage";
+import { loadHomeActionSnapshot, nextHomeAction } from "@/lib/home-next-action";
 import { useHomeGreeting } from "@/hooks/useHomeGreeting";
+import { useDisplayPrefs } from "@/lib/display-prefs";
+import { journeyUnlocked } from "@/lib/journey";
 import { rememberYesFromHome, todayLabel } from "./Welcome";
 
-// Home for a patient who is past their first sign-in. What Alira says, and where the button
-// goes, follow the next step: daily exercises counting down to the re-assessment, a rest note
-// once today's session is done, and the re-assessment itself when its date arrives. A patient
-// with no assessment on this device is greeted as on the first visit.
+// One invitation, chosen from saved progress. Randomness only varies optional follow-ups.
 export default function Home() {
   const [, navigate] = useLocation();
-  const { stage, days } = homeStage(loadRememberedAssessment(), loadLastExerciseDay());
-  const copy = homeStages[stage];
+  const [snapshot, setSnapshot] = useState(loadHomeActionSnapshot);
+  const [roll] = useState(Math.random);
+  const { stage, days } = nextHomeAction(snapshot, roll);
   const { greeting, replay } = useHomeGreeting(stage);
-  const opener = copy.openers[greeting.opener % copy.openers.length];
+  const action = nextHomeAction(snapshot, roll, greeting.opener);
+  const { largeText } = useDisplayPrefs();
+
+  useEffect(() => {
+    const refresh = () => setSnapshot(loadHomeActionSnapshot());
+    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    window.addEventListener("storage", refresh);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", onVisible);
+    const timer = window.setInterval(refresh, 60000);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(timer);
+    };
+  }, []);
 
   return (
     <RecoveryShell active="Home" dateLabel={todayLabel()} className="welcome-shell" onboarding={stage === "assessment"}>
@@ -23,14 +41,21 @@ export default function Home() {
         key={greeting.run}
         animateGreeting={greeting.animate}
         headline={fillCopy(greeting.headline, days)}
-        message={fillCopy(opener.text, days)}
-        cta={opener.cta}
-        note={fillCopy(copy.note, days)}
+        message={fillCopy(action.text, days)}
+        cta={action.cta}
+        note={fillCopy(action.note, days)}
         onReplay={replay}
         onStart={() => {
-          if (stage === "assessment") rememberYesFromHome();
-          navigate(opener.href);
+          // Re-check on click as well: a different tab or midnight can change what is due.
+          const latest = nextHomeAction(loadHomeActionSnapshot(), roll, greeting.opener);
+          if (latest.kind === "onboarding") rememberYesFromHome();
+          navigate(latest.href);
         }}
+      />
+      {/* Today's surprise sits under the invitation and only points at pages open to this person. */}
+      <HomeSurprise
+        access={{ journey: journeyUnlocked(snapshot.assessment), myTime: stage !== "assessment", largeText }}
+        delayMs={greeting.animate ? 4600 : 400}
       />
     </RecoveryShell>
   );

@@ -69,3 +69,23 @@
   .journey-week.is-current::after { border-color:#b8755455; }
   .journey-alira-avatar::before { opacity:.3; }
 }
+
+/* Locked until the first movement check has scores and Alira has designed the plan. */
+.journey-locked { position:relative; overflow:hidden; display:flex; flex-direction:column; align-items:flex-start; gap:12px; max-width:640px; padding:30px 32px; border:1px solid #e0e7df; border-radius:21px; background:linear-gradient(105deg,#e3efe8 0%,#dfece6 60%,#dae7e0 100%); animation:page-rise .22s cubic-bezier(.23,1,.32,1); }
+
+/* Returning to a Journey view shows its sections immediately. Interaction feedback
+   (recording, a new saved page, calendar selection and live progress) still has motion. */
+.journey-page[data-entrance="seen"] :is(.journey-locked,.dp-page,.dp-lines,.dp-share,.dp-month,.dp-recent,.dp-recent-row,.dp-lookback),
+.journey-page[data-entrance="seen"] .dp-cell:not(.is-pop) { animation:none; }
+.journey-page[data-entrance="seen"] .dp-cell.is-today:not(.is-kept):not(.is-pop) { animation:dp-today 3.2s ease-in-out infinite; }
+.jp[data-entrance="seen"] :is(.jp-line-a,.jp-line-b,.jp-fade-a,.jp-fade-b,.jp-rise-a,.jp-rise-b,.jp-flash-a,.jp-flash-b,.jp-check-a,.jp-check-b) { animation:none; }
+.jp[data-entrance="seen"] :is(.jp-latest-a,.jp-latest-b) { animation:jp-breathe 2.2s ease-in-out infinite; }
+.journey-locked::after { content:""; position:absolute; top:-140px; right:-100px; width:310px; height:310px; border:1px solid #7da69733; border-radius:50%; box-shadow:0 0 0 30px #7da69712; pointer-events:none; }
+.journey-locked > * { position:relative; z-index:1; }
+.journey-locked-icon { display:grid; place-items:center; width:46px; height:46px; border-radius:14px; color:#2f5a45; background:#fffefa; box-shadow:0 4px 12px #2a3f3014; }
+.journey-locked .recovery-overline { color:#577367; font-size:10px; }
+.journey-locked h2 { margin:0; color:#233c31; font:600 30px/1.1 "Newsreader",Georgia,serif; letter-spacing:-.5px; }
+.journey-locked p { margin:0; color:#4f6359; font-size:15px; line-height:1.6; }
+.journey-locked .recovery-primary-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; width:auto; min-width:220px; margin-top:8px; padding:0 22px; background:#285b49; font-size:14px; }
+.journey-locked-demo { margin-top:4px; padding:0; border:0; background:transparent; color:#8a5a00; font-size:12px; font-weight:700; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+@media (max-width:620px) { .journey-locked { padding:22px 18px; } .journey-locked h2 { font-size:26px; } }

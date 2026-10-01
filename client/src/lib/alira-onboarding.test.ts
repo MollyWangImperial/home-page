@@ -12,6 +12,7 @@ import {
 import {
   appAssessmentUrl,
   buildRunnerUrl,
+  companionTaskPlan,
   getAssessmentBase,
   parseRunnerMessage,
 } from "./assessment";
@@ -36,6 +37,10 @@ describe("Alira's twelve onboarding questions", () => {
     expect(answerLabel(goal, undefined)).toBe("");
   });
   it("fills every remaining question at random for the administrative control, keeping real answers", () => {
+    for (const r of [0, 0.3, 0.6, 0.99]) {
+      const plan = companionTaskPlan(fillRandomAnswers({ arm_hand_movement: "none", get_around: "wheelchair" }, () => r));
+      expect(plan.taskIds).toEqual(["T1", "T3", "H4", "H3", "L6"]);
+    }
     const filled = fillRandomAnswers({ side_affected: "left" }, () => 0.42);
     expect(filled.side_affected).toBe("left");
     for (const q of onboardingQuestions) {
@@ -81,9 +86,10 @@ describe("movement check connection", () => {
   });
   it("opens the initial package in the app's pose runner with the patient's side", () => {
     expect(buildRunnerUrl("http://localhost:8001", { affectedSide: "left" })).toBe(
-      "http://localhost:8001/api/pose/runner?package=initial&affected_side=left&voice_guidance=1"
+      "http://localhost:8001/api/pose/runner?package=initial&ladder=1&task_ids=T1%2CT3%2CH4%2CH3%2CL6&start_rung=%7B%22T1%22%3A%22r160%22%2C%22T3%22%3A%22mouth%22%7D&helper=ask&affected_side=left&voice_guidance=1&local_preview=1"
     );
     expect(buildRunnerUrl("https://rehyn.onrender.com", { affectedSide: "right", voiceGuidance: false })).toContain("affected_side=right&voice_guidance=0");
+    expect(buildRunnerUrl("https://rehyn.onrender.com", { affectedSide: "right" })).not.toContain("local_preview");
     expect(appAssessmentUrl("https://rehyn.onrender.com")).toBe("https://rehyn.onrender.com/task-intro?mode=initial");
   });
   it("reads only well-formed runner messages", () => {
