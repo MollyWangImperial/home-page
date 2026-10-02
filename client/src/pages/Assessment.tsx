@@ -13,6 +13,7 @@ import {
 import { affectedSideFrom, loadOnboardingAnswers } from "@/lib/alira-onboarding";
 import { startLearning } from "@/lib/alira-learning-client";
 import { adaptedStartRungs } from "@/lib/alira-learning-store";
+import { renderReviewControlsEnabled } from "@/lib/administrative-controls";
 import "./assessment.css";
 
 const LOAD_TIMEOUT_MS = 25000;
@@ -40,7 +41,7 @@ export default function Assessment() {
   const [caregiverAcknowledged, setCaregiverAcknowledged] = useState(false);
   // Alira's learned start points are read once, as the check opens (after any warm-up and learning run).
   const runnerUrl = useMemo(
-    () => buildRunnerUrl(base, { affectedSide: affectedSideFrom(answers), answers, startRungs: learnedStartRungs(plan.startRung) }),
+    () => buildRunnerUrl(base, { affectedSide: affectedSideFrom(answers), answers, startRungs: learnedStartRungs(plan.startRung), guestReview: renderReviewControlsEnabled() }),
     [base, answers, plan]
   );
   const runnerOrigin = useMemo(() => new URL(runnerUrl).origin, [runnerUrl]);

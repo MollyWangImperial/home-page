@@ -28,6 +28,8 @@ export type RunnerOptions = {
   answers?: OnboardingAnswers;
   /** Start points that replace the plan's for the tasks they name (Alira's learned settings). */
   startRungs?: StartRungs;
+  /** The named public review site uses a stateless guest runner without patient sign-in. */
+  guestReview?: boolean;
 };
 
 /** Companion core tasks, with hand opening before pinch. The app keeps its own assignment. */
@@ -67,7 +69,7 @@ function startRungJson(learned: Record<string, unknown> | undefined, planned: Re
 }
 
 /** The companion opts into the shared deterministic function ladder. */
-export function buildRunnerUrl(base: string, { affectedSide, voiceGuidance = true, answers = {}, plan: suppliedPlan, startRungs }: RunnerOptions): string {
+export function buildRunnerUrl(base: string, { affectedSide, voiceGuidance = true, answers = {}, plan: suppliedPlan, startRungs, guestReview = false }: RunnerOptions): string {
   const plan = suppliedPlan ? { taskIds: suppliedPlan.taskIds, startRung: suppliedPlan.startRungs,
     helper: suppliedPlan.helper === "none" ? "0" : "ask", walkingHelper: suppliedPlan.walkHelper,
     goal: suppliedPlan.mainGoal } : assessmentPlanFrom(answers);
@@ -81,8 +83,8 @@ export function buildRunnerUrl(base: string, { affectedSide, voiceGuidance = tru
   if (plan.goal) query.set("main_goal", plan.goal);
   query.set("affected_side", affectedSide === "left" ? "left" : "right");
   query.set("voice_guidance", voiceGuidance ? "1" : "0");
-  if (["localhost", "127.0.0.1", "[::1]"].includes(new URL(base).hostname)) query.set("local_preview", "1");
-  return `${base}/api/pose/runner?${query.toString()}`;
+  if (!guestReview && ["localhost", "127.0.0.1", "[::1]"].includes(new URL(base).hostname)) query.set("local_preview", "1");
+  return `${base}/api/pose/${guestReview ? "review-runner" : "runner"}?${query.toString()}`;
 }
 
 /** The same assessment inside the Rehyn app (readiness intro, camera setup, then the runner). */

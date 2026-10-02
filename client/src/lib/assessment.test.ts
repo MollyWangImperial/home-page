@@ -2,6 +2,18 @@ import { describe, expect, it } from "vitest";
 import { buildRunnerUrl, assessmentPlanFrom, companionTaskPlan, type StartRungs } from "./assessment";
 
 describe("companion movement-check URL", () => {
+  it("opens the stateless guest route for the Render review while retaining task order, side and rungs", () => {
+    const url = new URL(buildRunnerUrl("https://rehyn.onrender.com", { affectedSide: "left", guestReview: true,
+      answers: { arm_hand_movement: "tires", get_around: "wheelchair" } }));
+    expect(url.pathname).toBe("/api/pose/review-runner");
+    expect(url.searchParams.get("task_ids")).toBe("T1,T3,H4,H3");
+    expect(url.searchParams.get("affected_side")).toBe("left");
+    expect(JSON.parse(url.searchParams.get("start_rung")!)).toEqual({T1:"r120",T3:"mouth"});
+    expect(url.searchParams.get("ladder")).toBe("1");
+    expect(url.searchParams.has("local_preview")).toBe(false);
+    expect(url.searchParams.has("uid")).toBe(false);
+  });
+
   it("requests four camera tasks, with opening before pinch, then walking", () => {
     const url = new URL(buildRunnerUrl("http://localhost:8001", { affectedSide: "right" }));
     expect(url.pathname).toBe("/api/pose/runner");
