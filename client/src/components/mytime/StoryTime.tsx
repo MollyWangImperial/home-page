@@ -13,6 +13,22 @@ function settle(place: StoryPlace): StoryPlace {
   return { chapter, sentence: Math.min(place.sentence, story.chapters[chapter].sentences.length - 1) };
 }
 
+// One sentence in Alira's voice, kept for this visit so replaying or pausing doesn't ask again.
+const aliraSentences = new Map<string, Promise<Blob>>();
+function fetchAliraSentence(text: string): Promise<Blob> {
+  let request = aliraSentences.get(text);
+  if (!request) {
+    request = fetch("/api/alira/speak", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) })
+      .then(response => {
+        if (!response.ok || !response.headers.get("content-type")?.startsWith("audio/")) throw new Error("Alira's voice is unavailable.");
+        return response.blob();
+      });
+    aliraSentences.set(text, request);
+    request.catch(() => aliraSentences.delete(text));
+  }
+  return request;
+}
+
 function minutes(sentences: string[]) {
   const words = sentences.join(" ").split(/\s+/).length;
   const count = Math.max(1, Math.round(words / 110));
@@ -53,14 +69,15 @@ export default function StoryTime({ active }: { active: boolean }) {
   // Leaving for another activity stops the reading; it never carries on unseen.
   useEffect(() => { if (!active) setPlaying(false); }, [active]);
 
+  // Alira reads the story in her own voice; the device voice reads a sentence only when hers can't.
   useEffect(() => {
-    if (!playing || !active || !canSpeak) return;
+    if (!playing || !active) return;
     const sentences = story.chapters[place.chapter].sentences;
-    const line = new SpeechSynthesisUtterance(sentences[place.sentence]);
-    line.lang = "en-GB";
-    line.rate = slow ? 0.72 : 0.9;
+    const text = sentences[place.sentence];
     let left = false;
-    line.onend = () => {
+    let audio: HTMLAudioElement | null = null;
+    let url: string | null = null;
+    const finished = () => {
       if (left) return;
       if (place.sentence < sentences.length - 1) { setPlace({ chapter: place.chapter, sentence: place.sentence + 1 }); return; }
       setPlaying(false);
@@ -69,14 +86,39 @@ export default function StoryTime({ active }: { active: boolean }) {
         setNote("That is the end of the chapter. The next one is ready when you are.");
       } else setNote("The end. You can start it again whenever you like.");
     };
-    line.onerror = () => {
+    const withDevice = () => {
       if (left) return;
-      setPlaying(false);
-      setNote("Reading aloud did not start on this device. The story is here to read.");
+      if (!canSpeak) { setPlaying(false); setNote("Reading aloud did not start on this device. The story is here to read."); return; }
+      const line = new SpeechSynthesisUtterance(text);
+      line.lang = "en-GB";
+      line.rate = slow ? 0.72 : 0.9;
+      line.onend = finished;
+      line.onerror = () => {
+        if (left) return;
+        setPlaying(false);
+        setNote("Reading aloud did not start on this device. The story is here to read.");
+      };
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(line);
     };
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(line);
-    return () => { left = true; window.speechSynthesis.cancel(); };
+    void fetchAliraSentence(text).then(blob => {
+      if (left) return;
+      url = URL.createObjectURL(blob);
+      audio = new Audio(url);
+      audio.playbackRate = slow ? 0.8 : 1;
+      audio.onended = finished;
+      audio.onerror = withDevice;
+      return audio.play();
+    }).catch(withDevice);
+    // The next sentence is fetched while this one plays, so there is no pause between them.
+    const next = sentences[place.sentence + 1];
+    if (next) void fetchAliraSentence(next).catch(() => {});
+    return () => {
+      left = true;
+      if (audio) { audio.onended = audio.onerror = null; audio.pause(); }
+      if (url) URL.revokeObjectURL(url);
+      if (canSpeak) window.speechSynthesis.cancel();
+    };
   }, [playing, active, canSpeak, place.chapter, place.sentence, slow]);
 
   useEffect(() => { myTimeStore.saveStoryPlace(place); }, [place]);

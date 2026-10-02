@@ -1,0 +1,212 @@
+import asyncio
+import copy
+import os
+import sys
+import types
+import wave
+from pathlib import Path
+
+import pytest
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
+from starlette.requests import Request
+
+
+os.environ.setdefault("MONGO_URL", "mongodb://127.0.0.1:27017")
+os.environ.setdefault("DB_NAME", "axonai_hundred_point_test")
+
+if "emergentintegrations.llm.chat" not in sys.modules:
+    emergent = types.ModuleType("emergentintegrations")
+    llm = types.ModuleType("emergentintegrations.llm")
+    chat = types.ModuleType("emergentintegrations.llm.chat")
+
+    class _UnavailableChatDependency:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    chat.LlmChat = _UnavailableChatDependency
+    chat.UserMessage = _UnavailableChatDependency
+    sys.modules.setdefault("emergentintegrations", emergent)
+    sys.modules.setdefault("emergentintegrations.llm", llm)
+    sys.modules.setdefault("emergentintegrations.llm.chat", chat)
+
+from backend import server
+from backend.encouragement import compute_rewards
+
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def _request() -> Request:
+    return Request({"type": "http", "method": "POST", "path": "/api/users/rewards", "headers": []})
+
+
+def _hundred_point_activities():
+    return [
+        {
+            "exercise_id": f"exercise-{index}",
+            "completed_at": f"2026-09-0{index + 1}T12:00:00+00:00",
+            "completed_reps": 5,
+            "quality_reps": 5,
+        }
+        for index in range(4)
+    ]
+
+
+def test_reward_ladder_earns_the_first_medal_at_100_points():
+    rewards = compute_rewards([], [], {}, assessments=_five_assessments())
+
+    assert rewards["points"] == 100
+    assert rewards["medals"][0] == {
+        "id": "hundred_point_medal",
+        "name": "Rehyn Consistency Champion",
+        "threshold": 100,
+        "earned": True,
+        "progress": 1.0,
+    }
+
+
+def test_acknowledging_earned_milestone_persists_to_the_account(monkeypatch):
+    saved = {}
+
+    async def signed_in_user(_headers):
+        return {"id": "patient-100", "reward_milestones_acknowledged": []}
+
+    async def activities(_user_id):
+        return _hundred_point_activities()
+
+    async def no_check_ins(_user_id):
+        return []
+
+    async def assessments(_user_id):
+        return _five_assessments()
+
+    async def save_fields(user, fields, **_kwargs):
+        saved.update(fields)
+        return {**user, **fields}
+
+    monkeypatch.setattr(server, "_user_from_header", signed_in_user)
+    monkeypatch.setattr(server, "_care_activities_for_user", activities)
+    monkeypatch.setattr(server, "_care_check_ins_for_user", no_check_ins)
+    monkeypatch.setattr(server, "_reward_assessments_for_user", assessments)
+    monkeypatch.setattr(server, "_save_user_fields", save_fields)
+
+    response = asyncio.run(server.acknowledge_reward_milestone("hundred_point_medal", _request()))
+
+    assert response == {"ok": True, "milestone_id": "hundred_point_medal", "celebrated": True}
+    assert saved["reward_milestones_acknowledged"] == ["hundred_point_medal"]
+
+
+def test_collecting_earned_milestone_saves_it_on_that_calendar_day(monkeypatch):
+    user = {"id": "patient-collect", "daily_checkins": {}}
+
+    async def signed_in_user(_headers):
+        return user
+
+    async def empty(_user_id):
+        return []
+
+    async def assessments(_user_id):
+        return _five_assessments()
+
+    async def save_days(account, checkins):
+        account["daily_checkins"] = copy.deepcopy(checkins)
+
+    monkeypatch.setattr(server, "_user_from_header", signed_in_user)
+    monkeypatch.setattr(server, "_care_activities_for_user", empty)
+    monkeypatch.setattr(server, "_care_check_ins_for_user", empty)
+    monkeypatch.setattr(server, "_reward_assessments_for_user", assessments)
+    monkeypatch.setattr(server, "_save_daily_checkins", save_days)
+
+    with TestClient(server.app) as client:
+        first_response = client.post(
+            "/api/users/rewards/milestones/hundred_point_medal/collect",
+            json={"date": "2026-09-08", "testing_revision": None},
+        )
+        assert first_response.status_code == 200
+        first = first_response.json()
+        again = client.post(
+            "/api/users/rewards/milestones/hundred_point_medal/collect",
+            json={"date": "2026-09-08", "testing_revision": None},
+        ).json()
+    medal = first["collected_medal"]
+    assert medal["name"] == "Rehyn Consistency Champion"
+    assert medal["points"] == 100
+    assert first["date"] == "2026-09-08" and first["status"] == "not_checked_in"
+    assert first["days"] == [{
+        "date": "2026-09-08",
+        "status": "in_progress",
+        "medal": True,
+        "daily_medal": False,
+        "milestone_medals": [medal],
+    }]
+
+    collected_at = medal["collected_at"]
+    assert again["collected_medal"]["collected_at"] == collected_at
+    rewards = asyncio.run(server._rewards_for_user(user, "2026-09-08"))
+    assert rewards["medals"][0]["celebrated"] is True
+
+
+def test_collecting_milestone_rejects_stale_testing_award(monkeypatch):
+    user = {
+        "id": "patient-stale-award",
+        "daily_checkins": {},
+        "reward_points_testing": {"adjustment": 100, "revision": "current-revision", "acknowledged": []},
+    }
+
+    async def signed_in_user(_headers):
+        return user
+
+    async def empty(_user_id):
+        return []
+
+    monkeypatch.setattr(server, "_user_from_header", signed_in_user)
+    monkeypatch.setattr(server, "_care_activities_for_user", empty)
+    monkeypatch.setattr(server, "_care_check_ins_for_user", empty)
+    monkeypatch.setattr(server, "_reward_assessments_for_user", empty)
+
+    with pytest.raises(HTTPException) as error:
+        asyncio.run(server.collect_reward_milestone(
+            "hundred_point_medal",
+            server.RewardMilestoneCollect(date="2026-09-08", testing_revision="old-revision"),
+            _request(),
+        ))
+    assert error.value.status_code == 409
+    assert user["daily_checkins"] == {}
+
+
+def _five_assessments():
+    return [{"id": f"assessment-{i}", "created_at": "2026-09-06T12:00:00Z",
+             "task_results": [{"task_id": "T1", "total_steps": 1, "steps": [{"completed": True}]}]} for i in range(5)]
+
+
+def test_home_celebration_is_animated_audible_and_has_no_music_panel():
+    component = (ROOT / "frontend" / "src" / "components" / "HundredPointCelebration.tsx").read_text(encoding="utf-8")
+    home = (ROOT / "frontend" / "app" / "(tabs)" / "index.tsx").read_text(encoding="utf-8")
+    server_source = (ROOT / "backend" / "server.py").read_text(encoding="utf-8")
+
+    assert 'testID="hundred-point-celebration"' in component
+    assert "useAudioPlayer" in component and "celebrationFanfare" in component
+    assert "Animated.spring(medalScale" in component
+    assert "Music playing" not in component
+    assert "shouldShowHundredPointCelebration" in home
+    assert "rememberHundredPointCollection" in home
+    assert "reward_milestone_seen_v1" in home
+    assert "/api/users/rewards/milestones/${award.milestoneId}/collect" in home
+    assert 'testID="hundred-point-collect"' in component
+    assert 'collecting ? "Collecting..." : "Collect"' in component
+    assert "setCalendarHighlight(todayIso)" in home and "setShowCalendar(true)" in home
+    assert 'visible={Boolean(hundredPointAward)}' in home
+    assert 'visible={!hundredPointAward && showMedal && medalAvailable}' in home
+    assert 'event={hundredPointAward ? null : celebration}' in home
+    assert '"reward_milestones_acknowledged"' in server_source
+
+
+def test_celebration_assets_are_bundled_and_audio_is_brief():
+    medal = ROOT / "frontend" / "assets" / "images" / "rewards" / "100-point-medal.png"
+    fanfare = ROOT / "frontend" / "assets" / "audio" / "rewards" / "100-point-fanfare.wav"
+
+    assert medal.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+    with wave.open(str(fanfare), "rb") as audio:
+        duration = audio.getnframes() / audio.getframerate()
+    assert 2.5 <= duration <= 4.0

@@ -4,7 +4,7 @@ import { useLocation, useRoute, useSearch } from "wouter";
 import { ArrowLeft, Camera, Check, Eye, Hand, LoaderCircle, Mic, MicOff, Play, RotateCcw, SkipForward, Sparkles } from "lucide-react";
 import { useSettings } from "@/components/AccountSettings";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { buildRung, EXERCISES, DOMAIN_LABEL, LEVEL_BY_RUNG, resolveExercise, usesSeatedTargets, type Rung, type Side } from "@/lib/exercise-engine/config";
+import { buildRung, EVERYDAY_EXERCISE_ID, EXERCISES, DOMAIN_LABEL, LEVEL_BY_RUNG, resolveExercise, usesSeatedTargets, type Rung, type Side } from "@/lib/exercise-engine/config";
 import { reachAngleProgress } from "@/lib/exercise-engine/calibration";
 import { EXERCISE_PREVIEW_SCREENS, exercisePreviewScreen, exerciseScreenPreview, type ExercisePreviewScreen } from "@/lib/exercise-engine/screen-preview";
 import { TARGET_HOLD_MS } from "@/lib/exercise-engine/target-timing";
@@ -345,7 +345,8 @@ export default function ExerciseRunner() {
     bodyProgress.current = {};
     bodyLastT.current = 0;
     setBodyChecks(cameraBodyChecks({ cfg }, { pose: null, hands: [] } as unknown as Detection, opts.side).map(check => ({ ...check, progress: 0 })));
-    const voice = createVoice();
+    // The everyday exercise speaks in Alira's voice; the others keep the device voice while in development.
+    const voice = createVoice({ alira: base.id === EVERYDAY_EXERCISE_ID });
     voice.stop();
     voice.setMuted(muted);
     voice.onSay = setSaid;
@@ -356,7 +357,7 @@ export default function ExerciseRunner() {
     simRef.current = { ...simRef.current, level: 0, manual: false, sliderLevel: 0, lastT: 0 };
     setSimLevel(0);
     // Alira's exercise settings are read once here, so nothing changes mid-session.
-    const session = new ExerciseSession({ exerciseId: base.id, rung: opts.rung, side: opts.side, chairBack: opts.chairBack, repsOverride: opts.quick ? 3 : undefined, assisted: opts.assisted, reviewBetweenReps: true, tuning: loadExerciseTuning() }, voice);
+    const session = new ExerciseSession({ exerciseId: base.id, rung: opts.rung, side: opts.side, chairBack: opts.chairBack, repsOverride: opts.quick ? 3 : undefined, assisted: opts.assisted, reviewBetweenReps: true, tuning: loadExerciseTuning(base.id) }, voice);
     sessionRef.current = session;
     sessionSim.current = opts.sim;
     debugRecorderRef.current = debugSessionRef.current ? new DebugVideoRecorder(debugSessionRef.current, session.cfg.compensations, () => session.reference, clip => setDebugClips(clips => [...clips.filter(item => item.name !== clip.name), clip]), setDebugError) : null;
@@ -663,7 +664,7 @@ const adjustsExercise = (tuning: ExerciseTuning, exerciseId: string) => Object.k
 function Intro(props: { base: (typeof EXERCISES)[string]; cfg: ReturnType<typeof resolveExercise>; opts: LabOptions & { rung: Rung }; setOpts: (o: LabOptions & { rung: Rung }) => void; muted: boolean; setMuted: (m: boolean) => void; onStart: () => void; onPreview?: () => void }) {
   const { base, cfg, opts, setOpts, muted, setMuted, onStart, onPreview } = props;
   // Alira's settings as they stand now, so the numbers shown match the session (which reads them again when it starts).
-  const tuning = loadExerciseTuning();
+  const tuning = loadExerciseTuning(base.id);
   const spec = buildRung(base.id, opts.rung);
   const reps = opts.quick ? 3 : tunedReps(spec.reps, tuning);
   const set = (patch: Partial<LabOptions & { rung: Rung }>) => setOpts({ ...opts, ...patch });

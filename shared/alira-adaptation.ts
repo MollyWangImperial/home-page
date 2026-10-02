@@ -48,25 +48,26 @@ export const ADAPTATION_PARAMS = {
     domain: "exercise", kind: "demand", label: "Hold at the target", unit: "seconds",
     meaning: "How long the hand has to stay in the target before a repetition counts as held. Every step's hold time is scaled by the same factor.",
     default: 1.5, min: 0.8, max: 2.5, step: 0.1, easier: "lower", maxHarderStepsPerDay: 3,
-    appliesTo: "All exercises", appliedIn: "client/src/lib/exercise-engine/session.ts (session tuning: hold time)",
+    appliesTo: "All exercises except Graded Forward Reach", appliedIn: "client/src/lib/exercise-engine/session.ts (session tuning: hold time)",
   },
   "exercise.reach_height_scale": {
     domain: "exercise", kind: "demand", label: "Reach target height", unit: "times",
     meaning: "Scales how high the forward-reach target circle sits and how far it rises after each repetition. 1.0 is the standard placement.",
     default: 1, min: 0.7, max: 1.2, step: 0.05, easier: "lower", maxHarderStepsPerDay: 2,
-    appliesTo: "Graded Forward Reach", appliedIn: "client/src/pages/ExerciseRunner.tsx (reach target geometry)",
+    // Graded Forward Reach is the everyday exercise and always keeps the standard settings.
+    appliesTo: "Nothing at present (Graded Forward Reach always keeps the standard placement)", appliedIn: "client/src/pages/ExerciseRunner.tsx (reach target geometry)",
   },
   "exercise.target_size_scale": {
     domain: "exercise", kind: "demand", label: "Target size", unit: "times",
     meaning: "Scales the size of the on-screen target circles. A bigger circle is easier to reach and to stay inside.",
     default: 1, min: 0.85, max: 1.3, step: 0.05, easier: "higher", maxHarderStepsPerDay: 2,
-    appliesTo: "Graded Forward Reach and Hand-to-Mouth", appliedIn: "client/src/pages/ExerciseRunner.tsx (target circle radius)",
+    appliesTo: "Hand-to-Mouth (Graded Forward Reach keeps the standard size)", appliedIn: "client/src/pages/ExerciseRunner.tsx (target circle radius)",
   },
   "exercise.reps_scale": {
     domain: "exercise", kind: "demand", label: "Repetitions per session", unit: "times",
     meaning: "Scales how many repetitions a session plans (never fewer than 3). Quick tests from the test bench are not affected.",
     default: 1, min: 0.5, max: 1.25, step: 0.25, easier: "lower", maxHarderStepsPerDay: 1,
-    appliesTo: "All exercises", appliedIn: "client/src/lib/exercise-engine/session.ts (planned repetitions)",
+    appliesTo: "All exercises except Graded Forward Reach", appliedIn: "client/src/lib/exercise-engine/session.ts (planned repetitions)",
   },
   "exercise.target_zone": {
     domain: "exercise", kind: "demand", label: "Counts as reaching", unit: "share",
@@ -78,13 +79,13 @@ export const ADAPTATION_PARAMS = {
     domain: "exercise", kind: "grading", label: "Good repetition", unit: "share",
     meaning: "How much of the target a repetition needs, with a full hold and no compensation, to count as a good repetition.",
     default: 0.9, min: 0.75, max: 0.95, step: 0.05, easier: "lower", maxHarderStepsPerDay: 1,
-    appliesTo: "All exercises (the good-repetition count)", appliedIn: "client/src/lib/exercise-engine/scoring.ts (isGoodRep)",
+    appliesTo: "All exercises except Graded Forward Reach (the good-repetition count)", appliedIn: "client/src/lib/exercise-engine/scoring.ts (isGoodRep)",
   },
   "exercise.one_compensation_points": {
     domain: "exercise", kind: "grading", label: "Score with one compensation", unit: "points",
     meaning: "The fixed score a repetition gets when one compensation, such as a trunk lean, is confirmed. Two or more compensations stay at 15.",
     default: 30, min: 15, max: 60, step: 5, easier: "higher", maxHarderStepsPerDay: 2,
-    appliesTo: "All exercises", appliedIn: "client/src/lib/exercise-engine/scoring.ts (repScore)",
+    appliesTo: "All exercises except Graded Forward Reach", appliedIn: "client/src/lib/exercise-engine/scoring.ts (repScore)",
   },
   "assessment.reach_start_rung": {
     domain: "assessment", kind: "demand", label: "Movement check: forward reach starts at", unit: "start",

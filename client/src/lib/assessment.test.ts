@@ -1,5 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { buildRunnerUrl, assessmentPlanFrom, companionTaskPlan, type StartRungs } from "./assessment";
+import { buildRunnerUrl, assessmentPlanFrom, companionTaskPlan, withEverydayExercise, type PlanExercise, type StartRungs } from "./assessment";
+
+describe("the everyday exercise", () => {
+  const handOpen: PlanExercise = { id: "ex_handopen", name: "Active Hand Opening", description: "Open.", sets: 2, reps: 8, frequency: "Daily", difficulty: "medium" };
+
+  it("puts Graded Forward Reach first, daily, at level 1, even when the plan left it out", () => {
+    const plan = withEverydayExercise([handOpen]);
+    expect(plan.map(exercise => exercise.id)).toEqual(["ex_reach", "ex_handopen"]);
+    expect(plan[0]).toMatchObject({ name: "Graded Forward Reach", frequency: "Daily", difficulty: "easy", target_rung: null });
+  });
+
+  it("keeps a single reach at level 1 when the plan asked for a harder one", () => {
+    const plan = withEverydayExercise([handOpen, { ...handOpen, id: "ex_reach", name: "Graded Forward Reach", difficulty: "hard", target_rung: "R3", frequency: "3x weekly" }]);
+    expect(plan.filter(exercise => exercise.id === "ex_reach")).toEqual([expect.objectContaining({ difficulty: "easy", frequency: "Daily", target_rung: null })]);
+    expect(plan[0].id).toBe("ex_reach");
+  });
+
+  it("leaves an empty plan and a plan held for clinical review alone", () => {
+    expect(withEverydayExercise([])).toEqual([]);
+    expect(withEverydayExercise([handOpen], { rehab_access: "blocked" })).toEqual([handOpen]);
+  });
+});
 
 describe("companion movement-check URL", () => {
   it("opens the stateless guest route for the Render review while retaining task order, side and rungs", () => {

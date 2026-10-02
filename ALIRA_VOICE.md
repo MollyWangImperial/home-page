@@ -5,7 +5,8 @@ Alira has one voice. The Alira page, the welcome conversation, and the movement 
 On this site that covers four places:
 
 - **The Alira page and the welcome conversation**: `/api/alira/voice` for her fixed lines, `/api/alira/speak` for everything else she writes.
-- **The daily exercises and the warm-up repetition**: not yet. They still use the device's English voice. Alira's voice is ready for them (`createVoice({ alira: true })` asks `/api/exercise-voice` with `provider: "alira"`) and will be switched on later; record their lines with `pnpm voice:bake --exercises` first.
+- **The warm-up repetition**: `createVoice({ alira: true })` asks `/api/exercise-voice` with `provider: "alira"`.
+- **The daily exercises**: not yet. They still use the device's English voice; switch them on the same way and record their lines with `pnpm voice:bake --exercises` first.
 - **The emergency FAST check**: `/api/tts/generate`.
 - **The copied assessment service** (`assessment-service/`): `local_app.py` turns on Alira's voice for every line (`INSTRUCTION_TTS_PROVIDER=elevenlabs`, `ELEVENLABS_VOICE_SCOPE=all`) and reads the key from this site's `.env.local`, however the service is started. Its recorded lines are in `assessment-service/frontend/public/audio/prepared`.
 

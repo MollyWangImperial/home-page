@@ -1,7 +1,7 @@
-/* Settings > Alira's Learning: the plan review's changes. Tags reuse alira-learning.css. */
+/* Settings > Alira's Learning: the plan review's changes. */
 .al-plan-list { display:grid; gap:10px; margin:10px 0 6px; padding:0; list-style:none; }
-.al-plan-list li { display:grid; grid-template-columns:84px minmax(0,1fr) auto; gap:4px 12px; align-items:start; padding-top:10px; border-top:1px solid #edf0e8; }
+.al-plan-list li { display:grid; grid-template-columns:84px minmax(0,1fr); gap:4px 12px; align-items:start; padding-top:10px; border-top:1px solid #edf0e8; }
 .al-plan-list li:first-child { padding-top:0; border-top:0; }
 .al-plan-day { color:#5c6f5f; font-size:13px; white-space:nowrap; }
 .al-plan-text { font-size:13.5px; }
-@media (max-width:620px) { .al-plan-list li { grid-template-columns:1fr auto; } .al-plan-day { grid-column:1 / -1; } }
+@media (max-width:620px) { .al-plan-list li { grid-template-columns:minmax(0,1fr); } .al-plan-day { grid-column:1 / -1; } }

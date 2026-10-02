@@ -81,6 +81,9 @@ describe("Alira's changes in this browser", () => {
     expect(accepted.map(entry => entry.id)).toEqual(["c1"]);
     expect(rejected).toHaveLength(1);
     expect(loadExerciseTuning().holdSeconds).toBe(1.2);
+    expect(loadExerciseTuning("ex_handopen").holdSeconds).toBe(1.2);
+    // The everyday exercise always keeps the standard settings.
+    expect(loadExerciseTuning("ex_reach").holdSeconds).toBe(1.5);
     // Withdrawing consent puts the standard settings back in force.
     saveConsent({ movement: false });
     expect(loadExerciseTuning().holdSeconds).toBe(1.5);

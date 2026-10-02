@@ -14,6 +14,7 @@ import {
 } from "@shared/alira-adaptation";
 import { loadOnboardingAnswers, onboardingQuestions, type OnboardingAnswers } from "./alira-onboarding";
 import { assessmentPlanFrom, loadRememberedAssessment, type StoredAssessment } from "./assessment";
+import { EVERYDAY_EXERCISE_ID } from "./exercise-engine/config";
 import { readLabSessions } from "./exercise-engine/lab-storage";
 import { dayKey, PATIENT_NAME } from "./home-stage";
 import { loadJournal } from "./journal-days";
@@ -256,7 +257,9 @@ export function resetAllAdaptations(at = new Date().toISOString()): AdaptationSt
 }
 
 /** The exercise settings in force; read once when a session starts so nothing changes mid-repetition. */
-export function loadExerciseTuning(): ExerciseTuning {
+export function loadExerciseTuning(exerciseId?: string): ExerciseTuning {
+  // The everyday exercise always runs with the standard settings.
+  if (exerciseId === EVERYDAY_EXERCISE_ID) return exerciseTuning(undefined);
   // Withdrawing consent puts the standard settings back in force (the log is kept for admins).
   return exerciseTuning(canLearn(loadConsent()) ? loadAdaptation().values : undefined);
 }

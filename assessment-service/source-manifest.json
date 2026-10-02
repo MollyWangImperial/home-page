@@ -1,0 +1,1336 @@
+{
+  "source_frontend": "D:/repos/rehyn-recovery-companion-v2",
+  "source_service": "D:/rh-release",
+  "files": [
+    {
+      "path": "client/src/pages/Assessment.tsx",
+      "source": "D:\\repos\\rehyn-recovery-companion-v2\\client\\src\\pages\\Assessment.tsx",
+      "sha256": "48c844e9dd38470c411af88e918cfaaf285113a092938c6a7c26060840165ea4"
+    },
+    {
+      "path": "client/src/pages/assessment.css",
+      "source": "D:\\repos\\rehyn-recovery-companion-v2\\client\\src\\pages\\assessment.css",
+      "sha256": "9962d07307198b081fc68edb5ed17630994f86906acc9e1f67cdb77a2aef03e3"
+    },
+    {
+      "path": "client/src/lib/assessment.test.ts",
+      "source": "D:\\repos\\rehyn-recovery-companion-v2\\client\\src\\lib\\assessment.test.ts",
+      "sha256": "4e701dca20705a6ac0af4718429187746539cf34c4f267d0e1d18597941b2e77"
+    },
+    {
+      "path": "client/src/lib/assessment.ts",
+      "source": "D:\\repos\\rehyn-recovery-companion-v2\\client\\src\\lib\\assessment.ts",
+      "sha256": "1d87e275e6b62f2fcb994be7679ee6d7341758cb5d6502d44e4711a2122e309c"
+    },
+    {
+      "path": "assessment-service/backend/account_reset.py",
+      "source": "D:\\rh-release\\backend\\account_reset.py",
+      "sha256": "86ef048557500b9ae668b72472e9f4cab45cfbb0928236513a45beefc200af63"
+    },
+    {
+      "path": "assessment-service/backend/alira_action_log.py",
+      "source": "D:\\rh-release\\backend\\alira_action_log.py",
+      "sha256": "ad42f2dde4ebb2d7ea59451b12d99c5112edf60dc2a2bc8ed0ae55e76e76f2d8"
+    },
+    {
+      "path": "assessment-service/backend/alira_care_orchestrator.py",
+      "source": "D:\\rh-release\\backend\\alira_care_orchestrator.py",
+      "sha256": "910cc49dc30c2b032c372f1da4399f83e2fdf9785bd3d4608bc86836c83dba40"
+    },
+    {
+      "path": "assessment-service/backend/assessment_completion.js",
+      "source": "D:\\rh-release\\backend\\assessment_completion.js",
+      "sha256": "3f34b9eac845483f5f2f97b13b9be33c429953744727b07072161fb641398d8c"
+    },
+    {
+      "path": "assessment-service/backend/assessment_completion_ui.html",
+      "source": "D:\\rh-release\\backend\\assessment_completion_ui.html",
+      "sha256": "c062c45c162967176e34a4272842a660b03878c74ebbdb0ddf7fb2e30c9b2a6c"
+    },
+    {
+      "path": "assessment-service/backend/assessment_debug_recordings.py",
+      "source": "D:\\rh-release\\backend\\assessment_debug_recordings.py",
+      "sha256": "5d5b39e24b5ea783e547505df59b75d70535d195bde122be29bee0c56a861a99"
+    },
+    {
+      "path": "assessment-service/backend/assessment_fusion.py",
+      "source": "D:\\rh-release\\backend\\assessment_fusion.py",
+      "sha256": "9338124c1526945b35fcc75f0d02555de0acfd37adf70107c2b678668c3663b5"
+    },
+    {
+      "path": "assessment-service/backend/assessment_ladder.js",
+      "source": "D:\\rh-release\\backend\\assessment_ladder.js",
+      "sha256": "628b8b912254b02dac329e96f2475476e40063bdda4ce1251dc14de2c8fd2bf3"
+    },
+    {
+      "path": "assessment-service/backend/assessment_ladder_flow.js",
+      "source": "D:\\rh-release\\backend\\assessment_ladder_flow.js",
+      "sha256": "c883cbdee8c4680cb9a06e35637bcc1a9564d5e448af8c737b3df504cc410956"
+    },
+    {
+      "path": "assessment-service/backend/assessment_ladder_ui.html",
+      "source": "D:\\rh-release\\backend\\assessment_ladder_ui.html",
+      "sha256": "ec0acd162dac64ab0ef6b34d762c1568fac3a576470bf7d523596dde3721a66b"
+    },
+    {
+      "path": "assessment-service/backend/assessment_quality.js",
+      "source": "D:\\rh-release\\backend\\assessment_quality.js",
+      "sha256": "b74db2598fd14eb807492fe6015f981403710a40f81bbb8b0202cdeef79fd98c"
+    },
+    {
+      "path": "assessment-service/backend/assessment_quality.py",
+      "source": "D:\\rh-release\\backend\\assessment_quality.py",
+      "sha256": "9f60c0e09ab0c7f2bbd4e8827ad4c2e860201f8844bc37ba09c3847d83d9d574"
+    },
+    {
+      "path": "assessment-service/backend/bake_alira_voice.py",
+      "source": "D:\\rh-release\\backend\\bake_alira_voice.py",
+      "sha256": "54d897c613e1fdb69dad567665800f1842f08a7a5d81672703b1cfc1275b3b26"
+    },
+    {
+      "path": "assessment-service/backend/biomechanics_pipeline.py",
+      "source": "D:\\rh-release\\backend\\biomechanics_pipeline.py",
+      "sha256": "80202bf9682236f94e2b142027c10f35408c695a123497bfcf9360246a5ca05b"
+    },
+    {
+      "path": "assessment-service/backend/build_testing_mouth_voice_bundle.py",
+      "source": "D:\\rh-release\\backend\\build_testing_mouth_voice_bundle.py",
+      "sha256": "46c7438824c63b25a1c307b2257fe03c784e91b1640ee442bf6b82367ee75675"
+    },
+    {
+      "path": "assessment-service/backend/build_testing_reach_voice_bundle.py",
+      "source": "D:\\rh-release\\backend\\build_testing_reach_voice_bundle.py",
+      "sha256": "5f43d34d3bc4fd391c6a7bf72d9bcbddff0dd7c5d3f436126a12765fb7cae480"
+    },
+    {
+      "path": "assessment-service/backend/chatterbox_nano_tts.py",
+      "source": "D:\\rh-release\\backend\\chatterbox_nano_tts.py",
+      "sha256": "005c8e28b3f5de9afe9de0eaf2b6327aa6bb2b084a43a73c3c22c29f85506dbe"
+    },
+    {
+      "path": "assessment-service/backend/clinical_measurement_form.py",
+      "source": "D:\\rh-release\\backend\\clinical_measurement_form.py",
+      "sha256": "873b27a44dea97fb8c24c9a32704a100f1035c5129c726bb82e53a4cac1a3623"
+    },
+    {
+      "path": "assessment-service/backend/clone_instruction_voice.py",
+      "source": "D:\\rh-release\\backend\\clone_instruction_voice.py",
+      "sha256": "a2afce6ea97403ee962c7b17b618a5e954e59c640dc534415a4319f8b8cf39de"
+    },
+    {
+      "path": "assessment-service/backend/companion_plan_preview.py",
+      "source": "D:\\rh-release\\backend\\companion_plan_preview.py",
+      "sha256": "fea647a14206b1ca18c5c268bca5520547c21488da9fe7d49c01e2b94678bb89"
+    },
+    {
+      "path": "assessment-service/backend/daily_activity_metrics.py",
+      "source": "D:\\rh-release\\backend\\daily_activity_metrics.py",
+      "sha256": "268234eb6fa92d65495b0608e1f0e72223bb3468b5f608b05d050a3416ebbbed"
+    },
+    {
+      "path": "assessment-service/backend/deploy_server.py",
+      "source": "D:\\rh-release\\backend\\deploy_server.py",
+      "sha256": "ce8ed99150147878ef2fe78a8f1439b763b597df45a03cec6946f324ff30aa18"
+    },
+    {
+      "path": "assessment-service/backend/encouragement.py",
+      "source": "D:\\rh-release\\backend\\encouragement.py",
+      "sha256": "38e498884d09d85e22e579ab79a61b031eb1d019d5f651af4a80d9447ed47dc5"
+    },
+    {
+      "path": "assessment-service/backend/fast_screening.py",
+      "source": "D:\\rh-release\\backend\\fast_screening.py",
+      "sha256": "205b09aee157a2c5e1d6b9d84a1cba0a4132e5ba06acdbec918b915991d9d888"
+    },
+    {
+      "path": "assessment-service/backend/function_assessment_config.py",
+      "source": "D:\\rh-release\\backend\\function_assessment_config.py",
+      "sha256": "3596785d53d76fdf9f0a893e6163ec3e1920c835a0065dfb95f26395be8fa40c"
+    },
+    {
+      "path": "assessment-service/backend/function_rehab_plan.py",
+      "source": "D:\\rh-release\\backend\\function_rehab_plan.py",
+      "sha256": "97c69314c0b52fe5e218f588dba23159869d620cd6d672e457b06d6348016d5a"
+    },
+    {
+      "path": "assessment-service/backend/function_scoring.py",
+      "source": "D:\\rh-release\\backend\\function_scoring.py",
+      "sha256": "9d7b50af5448d856cfa11b7d5e3571bdb974a165e67b9083ec2a141ce1d1a0c9"
+    },
+    {
+      "path": "assessment-service/backend/gait_scoring.py",
+      "source": "D:\\rh-release\\backend\\gait_scoring.py",
+      "sha256": "639a36bce80effb53ea1b27e8687bdbb3acc5fcf6433a2fad7df4858884abd3e"
+    },
+    {
+      "path": "assessment-service/backend/gait_video_analysis.py",
+      "source": "D:\\rh-release\\backend\\gait_video_analysis.py",
+      "sha256": "13d739b37301402c43acd7c8d4d2e0f885c2ac9056712423e2f2290cc4b66ac5"
+    },
+    {
+      "path": "assessment-service/backend/generate_prepared_exercise_audio.py",
+      "source": "D:\\rh-release\\backend\\generate_prepared_exercise_audio.py",
+      "sha256": "e525e1705009501a820f8cb2cdfe8de33f0c9b2205b254ff7a6f3d7b472f2d27"
+    },
+    {
+      "path": "assessment-service/backend/local_assessment_preview.py",
+      "source": "D:\\rh-release\\backend\\local_assessment_preview.py",
+      "sha256": "d78113a44dfff45b81a69176bd677773f7ab2fec22bc248df23c9f7515949d69"
+    },
+    {
+      "path": "assessment-service/backend/local_assessment_recordings.py",
+      "source": "D:\\rh-release\\backend\\local_assessment_recordings.py",
+      "sha256": "904732f12689b604911345cba254e23b7ba0548008b5c13154cdbe4bd342cf5e"
+    },
+    {
+      "path": "assessment-service/backend/local_assessment_video.js",
+      "source": "D:\\rh-release\\backend\\local_assessment_video.js",
+      "sha256": "bd92e857c843e7ca92d79cffde93744c948ca56a584145e646d86df0f89127de"
+    },
+    {
+      "path": "assessment-service/backend/local_gpu_worker.py",
+      "source": "D:\\rh-release\\backend\\local_gpu_worker.py",
+      "sha256": "dff94601d9cdcdbb3ff5b276d740357fde6ad14ef472a1866b3291f9e25e1ce0"
+    },
+    {
+      "path": "assessment-service/backend/MONGODB_PERSISTENCE.md",
+      "source": "D:\\rh-release\\backend\\MONGODB_PERSISTENCE.md",
+      "sha256": "f337a25200f2fa505094b37b8f1946764b8205049073b07783542d4bac0d45df"
+    },
+    {
+      "path": "assessment-service/backend/muscle_diagnosis.py",
+      "source": "D:\\rh-release\\backend\\muscle_diagnosis.py",
+      "sha256": "49ec87db63c365e0c42abd9c9fadd5f4140c87bc50ed179a47a15750b7e0b806"
+    },
+    {
+      "path": "assessment-service/backend/object_storage.py",
+      "source": "D:\\rh-release\\backend\\object_storage.py",
+      "sha256": "872a748ba0ee0b89ea94bcf5f721bfa220ff464faf98de376a4654441c432434"
+    },
+    {
+      "path": "assessment-service/backend/patient_insights.py",
+      "source": "D:\\rh-release\\backend\\patient_insights.py",
+      "sha256": "79659da62032cc19d764c8c13d5fd99058c92505f6f859189a22683713d40cb0"
+    },
+    {
+      "path": "assessment-service/backend/reach_angles.js",
+      "source": "D:\\rh-release\\backend\\reach_angles.js",
+      "sha256": "38c4492592861072ea2d61b959379fd37108c699c17091e58fc48f448d3a161f"
+    },
+    {
+      "path": "assessment-service/backend/reach_target.js",
+      "source": "D:\\rh-release\\backend\\reach_target.js",
+      "sha256": "68892761896de82fdd1e3493b800dcfeecc73974b67e03904eee3d1ed2c74320"
+    },
+    {
+      "path": "assessment-service/backend/reach_voice.js",
+      "source": "D:\\rh-release\\backend\\reach_voice.js",
+      "sha256": "16548b24877ac7dee605364fc0bf5277cd015356de351ed294c5412cbc16ed40"
+    },
+    {
+      "path": "assessment-service/backend/rehab_assessment.py",
+      "source": "D:\\rh-release\\backend\\rehab_assessment.py",
+      "sha256": "3930072f6a028b41422fabe89c5c07e77ced2f05838fa2981803b7805c144978"
+    },
+    {
+      "path": "assessment-service/backend/REHAB_ASSESSMENT_LOGIC.md",
+      "source": "D:\\rh-release\\backend\\REHAB_ASSESSMENT_LOGIC.md",
+      "sha256": "e666ea45b8e36e36e6af3b581a29c1ff5dd08f0fe30791fee0c2076a934fdc47"
+    },
+    {
+      "path": "assessment-service/backend/rehab_games.py",
+      "source": "D:\\rh-release\\backend\\rehab_games.py",
+      "sha256": "338525cf468fcbec8ae5d917617e8314112f895feefd7b0a4f7078c7479cdade"
+    },
+    {
+      "path": "assessment-service/backend/rehab_goal_evidence.py",
+      "source": "D:\\rh-release\\backend\\rehab_goal_evidence.py",
+      "sha256": "d6ce4bc48f8d07d27b6a95f155b008224d235b4e26cb7e9cd07aa1a4f8e31a2e"
+    },
+    {
+      "path": "assessment-service/backend/rehab_goals.py",
+      "source": "D:\\rh-release\\backend\\rehab_goals.py",
+      "sha256": "d8e0b6ccef1d4512149c0e48dc0771822f9b7d353f20e9eb404c7f54e30b4b40"
+    },
+    {
+      "path": "assessment-service/backend/rehab_packages.py",
+      "source": "D:\\rh-release\\backend\\rehab_packages.py",
+      "sha256": "20b6bc8fca7c1ca8144bf352d39580639524b3bbd3dfabb38bad21aa59e0acf8"
+    },
+    {
+      "path": "assessment-service/backend/requirements-deploy.txt",
+      "source": "D:\\rh-release\\backend\\requirements-deploy.txt",
+      "sha256": "7b13e75fa92c4c98527a4b57d867c70e337136dec249e255c3c00286ca2b5f39"
+    },
+    {
+      "path": "assessment-service/backend/requirements.txt",
+      "source": "D:\\rh-release\\backend\\requirements.txt",
+      "sha256": "48adf719e897833d1b7a6e6364d8051a6afe32ec4015cfa00ee9129ba40a0162"
+    },
+    {
+      "path": "assessment-service/backend/server.py",
+      "source": "D:\\rh-release\\backend\\server.py",
+      "sha256": "25ef5141927cd43a39ef59564c3e5f5f9c7afb7d0db41f0542fa754ec8e20a41"
+    },
+    {
+      "path": "assessment-service/backend/split_testing_reach_voice_bundle.py",
+      "source": "D:\\rh-release\\backend\\split_testing_reach_voice_bundle.py",
+      "sha256": "98904f2af5f966a38d0e697db1d87ca3fffbcca4d1c421dc5fecf0d95d63c891"
+    },
+    {
+      "path": "assessment-service/backend/testing_assessment_diagnostics.js",
+      "source": "D:\\rh-release\\backend\\testing_assessment_diagnostics.js",
+      "sha256": "e0419c1e8a868aa26853df82f5b99e8d01a08eb0276c6cf01fb5d7828343c67d"
+    },
+    {
+      "path": "assessment-service/backend/testing_mouth.js",
+      "source": "D:\\rh-release\\backend\\testing_mouth.js",
+      "sha256": "010ad7d91dbbe680f238213504840efc33b5c66f33db391bd46304136933081e"
+    },
+    {
+      "path": "assessment-service/backend/testing_mouth_flow.js",
+      "source": "D:\\rh-release\\backend\\testing_mouth_flow.js",
+      "sha256": "e827abcbedf564eaf6382f9efaccbcf0f9eb8036630e43df99654aea1b8bd661"
+    },
+    {
+      "path": "assessment-service/backend/testing_mouth_ui.html",
+      "source": "D:\\rh-release\\backend\\testing_mouth_ui.html",
+      "sha256": "10fda1e75895f433e085c0311a0a73b7c78d022b3efa4dd439cecf1dff519752"
+    },
+    {
+      "path": "assessment-service/backend/testing_mouth_voice.py",
+      "source": "D:\\rh-release\\backend\\testing_mouth_voice.py",
+      "sha256": "c7e7887a8b9c10ad7e759cbafd52b47ab904f82734cc72060c5c4fb88c70c898"
+    },
+    {
+      "path": "assessment-service/backend/testing_mouth_voice_lines.py",
+      "source": "D:\\rh-release\\backend\\testing_mouth_voice_lines.py",
+      "sha256": "3d8195c838dc9053677e284ecfbc501f6dd97ff1884a4623d9e88802871e0886"
+    },
+    {
+      "path": "assessment-service/backend/testing_reach.js",
+      "source": "D:\\rh-release\\backend\\testing_reach.js",
+      "sha256": "3e0c341ec3225a20d0b2837109f51b0e00b4911c0d06a8fc9c8f65af2582fe0b"
+    },
+    {
+      "path": "assessment-service/backend/testing_reach_camera_quality.js",
+      "source": "D:\\rh-release\\backend\\testing_reach_camera_quality.js",
+      "sha256": "19420ea71dfbf9e1bba6d25a988a523bf9266991894a0e2b13c2231d325a08f8"
+    },
+    {
+      "path": "assessment-service/backend/testing_reach_flow.js",
+      "source": "D:\\rh-release\\backend\\testing_reach_flow.js",
+      "sha256": "ebd877da79698048e59da871088f092f68a597338efc5216fd0ef509b75b366b"
+    },
+    {
+      "path": "assessment-service/backend/testing_reach_ui.html",
+      "source": "D:\\rh-release\\backend\\testing_reach_ui.html",
+      "sha256": "10decd7153f071393425bdf78acc3c49ef2d6669d4ca5f33a93a51463debfb04"
+    },
+    {
+      "path": "assessment-service/backend/testing_reach_voice.py",
+      "source": "D:\\rh-release\\backend\\testing_reach_voice.py",
+      "sha256": "3fe2c8752905960600aad540881089abc7333e71ca01844c0b4c7b3a284bf997"
+    },
+    {
+      "path": "assessment-service/backend/testing_reach_voice_lines.py",
+      "source": "D:\\rh-release\\backend\\testing_reach_voice_lines.py",
+      "sha256": "47f29948fae018b6e2a7eece64386f9b78bc9ac6200bd25a993e6fdd411bfdda"
+    },
+    {
+      "path": "assessment-service/backend/VOICE_CLONING.md",
+      "source": "D:\\rh-release\\backend\\VOICE_CLONING.md",
+      "sha256": "b379da723a5b671d3abf422cbc5a5381ff88dc015f27b616000ccf02c9488047"
+    },
+    {
+      "path": "assessment-service/backend/tests/assessment_completion.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\assessment_completion.test.cjs",
+      "sha256": "bd95dfa8f8098082b3d0cba04614c73e2768c0e00424dbfe2dd62bc447c18fc5"
+    },
+    {
+      "path": "assessment-service/backend/tests/assessment_ladder.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\assessment_ladder.test.cjs",
+      "sha256": "eb85d8eecf4f4febcb23c4df06c1a79906e857790674001a103e2faa9857b220"
+    },
+    {
+      "path": "assessment-service/backend/tests/assessment_ladder_flow.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\assessment_ladder_flow.test.cjs",
+      "sha256": "b2d8fb2ea28368c916275642a6a16e973a573d929d657e02facc7371eff659c5"
+    },
+    {
+      "path": "assessment-service/backend/tests/assessment_quality_tracker.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\assessment_quality_tracker.test.cjs",
+      "sha256": "aeee00b6fd739a1930165129116d32d49a2bb5544de788ae8f9636ed86ca2161"
+    },
+    {
+      "path": "assessment-service/backend/tests/local_assessment_video.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\local_assessment_video.test.cjs",
+      "sha256": "41b094157c44995586a4ecec6b6bfca2cb5b67106ff02a34b21d1498d58e06b4"
+    },
+    {
+      "path": "assessment-service/backend/tests/mouth_target_tracking.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\mouth_target_tracking.test.cjs",
+      "sha256": "96035ab00757f6f1fcbef5ead9644b15bc801bc2454180ffc8ffc2248281ec52"
+    },
+    {
+      "path": "assessment-service/backend/tests/reach_angles.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\reach_angles.test.cjs",
+      "sha256": "827da8e72285276a815db6ab4dbb97dbe6a7d710ef939da1d39dd19f856ef6e9"
+    },
+    {
+      "path": "assessment-service/backend/tests/reach_target_geometry.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\reach_target_geometry.test.cjs",
+      "sha256": "d0301875e111aa8795c017deb48522dac23c6dbcc0beef265d494b55442b91ed"
+    },
+    {
+      "path": "assessment-service/backend/tests/reach_voice.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\reach_voice.test.cjs",
+      "sha256": "8181b5e1c26b8671f9cc5854d51c6c1d2ae018e62f2036fabd87fc12e00e5304"
+    },
+    {
+      "path": "assessment-service/backend/tests/runner_web_bridge.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\runner_web_bridge.test.cjs",
+      "sha256": "79026ae781c526158fbba4e9aeeaf4084c57fad97c3822c9e2336708dc15e202"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_account_deletion.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_account_deletion.py",
+      "sha256": "29dc1372ee0548933b5f815cba551095946f6ebd3894e2f82adf0ca91bd2f548"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_account_reset.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_account_reset.py",
+      "sha256": "fc69cb26c04e3fe1a9833c923ff5082e2a51fe77fe98fa9e90812df2efc15034"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_account_resume_persistence.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_account_resume_persistence.py",
+      "sha256": "41e22d3e2888175f391578aca44c1975687aae35e273d2392c0024a25147168c"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_account_state_persistence.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_account_state_persistence.py",
+      "sha256": "99437ce32fb6235508570892c0f3b9fb8ae7d9351e07bef6c0e5f4f49ae1ce10"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_affected_hand_selection_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_affected_hand_selection_static.py",
+      "sha256": "034a38b256821b6d1c9c9b9980413ab9f795b4901d7f5a3906eff70ecfcc530d"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_alira_action_log.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_alira_action_log.py",
+      "sha256": "a5bf4e147de159317f24a92fd9ec63fc0ea878bc63f46753d69ccd49244d46ba"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_alira_care_api.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_alira_care_api.py",
+      "sha256": "548d00dbfec3fcc1b644100e7d962db2817f12db2d8d140a4513bff9aa479f0a"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_alira_care_orchestrator.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_alira_care_orchestrator.py",
+      "sha256": "f7f308a5e555129bbdd8f4d413898e27fd9f0831132d85fdb5b9b7ea19a6b237"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_alira_emergency_call_action_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_alira_emergency_call_action_static.py",
+      "sha256": "8fcd301479cae13a67e2887e15897599a66d2650aea1077467abe1b4b8f2b367"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_alira_living_background_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_alira_living_background_static.py",
+      "sha256": "71fb7c1d52f1651c8528ac7fabcb9d9e7e1a771b9769a402e6fb150a3be5ffc2"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_alira_realtime_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_alira_realtime_static.py",
+      "sha256": "82b4f3f87e890dcae4483a5b4415caac8589349084ace45fc85528c4bca0f497"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_alira_spec_features.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_alira_spec_features.py",
+      "sha256": "e554e687f6ba39113557e971a47e0f9ab913f9c3e9abd520df0b16e15f711c87"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_alira_voice_everywhere.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_alira_voice_everywhere.py",
+      "sha256": "5ffbcd4d57905ef7bb131168f4fdf11ce174af39482cbc48670110cac0131728"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_assessment_debug_recordings.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_assessment_debug_recordings.py",
+      "sha256": "cb787a431540cf21c6e145b1463ecc37bd50bf1f9ce790010a3a20a35e306c4d"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_assessment_readiness_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_assessment_readiness_static.py",
+      "sha256": "f57dafcbff872923365abbdc2343c46ad8ae99ece388c28235f5cc7b325d2357"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_assessment_task_quality.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_assessment_task_quality.py",
+      "sha256": "a35be8f93207d74c735f517b05c0c8918877f7c933d8aab962a4ad7914e55398"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_assessment_testing_shortcut.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_assessment_testing_shortcut.py",
+      "sha256": "e6eb4d177df5825363a023cb2f6fd780bd4ecda39f406db17bd7839b443a7a71"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_biomechanics_pipeline.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_biomechanics_pipeline.py",
+      "sha256": "00b26d22adb29acf39684332353d0b98c1f7d78ff2a341c4c92dff66dde4c11c"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_camera_setup.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_camera_setup.py",
+      "sha256": "57389794491323e51a9458855f22a831db4ce027bd2d6628bfd175a5a5637901"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_camera_viewport_scaling_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_camera_viewport_scaling_static.py",
+      "sha256": "9efd100226380a5a8fa1fe79e5c5a7bd59d7adeced8a26211e609f6ed2c8df99"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_caregiver_walking_capture_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_caregiver_walking_capture_static.py",
+      "sha256": "b71fb2d3c07919b816eab3d9d19fb8922f0542b1962c1e97aa35af259e1e01a0"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_chatterbox_nano_tts.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_chatterbox_nano_tts.py",
+      "sha256": "29bcf43800b9d94db6a3b7eb0374be9f0c0e04599483abfb946f20efbec826e6"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_companion_plan_preview.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_companion_plan_preview.py",
+      "sha256": "abf6cda2c71a465c587311b54869798e3f170505ea8377a52d54ade9a7c4b415"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_credits_and_therapist.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_credits_and_therapist.py",
+      "sha256": "a2f1c6291291b38684b3fcfe57c291a41c35225bf3a7c488f4b1e3e2a6baa312"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_daily_checkin.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_daily_checkin.py",
+      "sha256": "63f2c75cecca235d861530f62a29068bdf1bb5ba10b5c95b1be830d43bc9c1cc"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_daily_flow.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_daily_flow.py",
+      "sha256": "54e2945cf4adc104a934bd0dcdb89d93898ae42c02bc114968394734099b6a34"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_dynamic_lap_target_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_dynamic_lap_target_static.py",
+      "sha256": "8d3b5704085411d3ec6e151af57d4787d65bc39e07768dd3814005fa94eac250"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_emergency_fast_check.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_emergency_fast_check.py",
+      "sha256": "500b5d7ac214ee5758968faa6f83f0c3828abdd8473f36cd86e1d0f6a658f1c8"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_exercise_save_parallel.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_exercise_save_parallel.py",
+      "sha256": "9f391bfe241a0152168b2bb97910ebb3da3ee0ce43421057789e25fe18500d02"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_forward_reach_placement.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_forward_reach_placement.py",
+      "sha256": "b2e0898457d8c604b016c3f7a2562086c75d5f09d58bbbaae1a839cb9fc5ef11"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_function_integration.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_function_integration.py",
+      "sha256": "ae857ebc1674005ec4f167820aa1cbf84fa28610d26395fc775bb26dfab903eb"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_function_scoring.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_function_scoring.py",
+      "sha256": "0d802750a53bc298a93dd53a0c7b59e2a22523a3ce58bfa952f84709df0f87e4"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_functional_progress_metrics.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_functional_progress_metrics.py",
+      "sha256": "93abe14e11b27ecfc0f5812186ea2fd95b8054b21823e54f837d5b077bfd850d"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_gait_scoring.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_gait_scoring.py",
+      "sha256": "dc1168b110dc1c890c1d78c72bc993f89c29f753c6328ddbf59d0fcc45132b1d"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_graded_reach_trunk_lean.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_graded_reach_trunk_lean.py",
+      "sha256": "a01746b165b63c028b583318866afbb038bb4ede0673fae35239b43e5e49f11b"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_grasp_wrist_alignment.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_grasp_wrist_alignment.py",
+      "sha256": "bcec5b13bc9a65ff9091a8403850057dd14d56e4b59f40b961d58d3beb9def86"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_hand_first_open_runtime.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_hand_first_open_runtime.py",
+      "sha256": "7d2b6e6a8d17dbb967faff6307a5c6f1fbd964aaf231f2a23f6a9c8d51ffcd79"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_hand_ladder_runtime.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_hand_ladder_runtime.py",
+      "sha256": "4b8ea9b7867c4d9516bbe1d11cbad949f2c11bca3aacbfb112359bc826c09201"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_hand_marker_gate_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_hand_marker_gate_static.py",
+      "sha256": "12b7805ae2f493e6eb2cc73a5f576a458caedacd0b86bed06200b3f3705bd2ac"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_hundred_point_celebration.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_hundred_point_celebration.py",
+      "sha256": "788dc94456b035adaa84a3b26bce21868c3974b7e2de3b56469210aba88e7781"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_instruction_voice_cloning.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_instruction_voice_cloning.py",
+      "sha256": "3ed018b1b36cbf6159c8a856d50e53c72f35c99387d59fe3ea5a9760e0e6f4f5"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_iter11_features.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_iter11_features.py",
+      "sha256": "2bd2358da521c179bfe7a21c2a29aa7f22045e44e28830845818257dd56df7fd"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_iter4_features.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_iter4_features.py",
+      "sha256": "d9afe81f0cd728b066f0e3a625085ed1e2c7e229460f40766cbdf8b6815916a4"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_iter5_features.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_iter5_features.py",
+      "sha256": "1d0029d0696c1923c0e23883aa0048b7e5bcec6bb1ab599b185d785a605dff18"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_iter6_features.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_iter6_features.py",
+      "sha256": "c803bb1cca7579db68aacb1443d759721bed21b92bebc2aaa258ce55f325c234"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_iter8_tts_openai.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_iter8_tts_openai.py",
+      "sha256": "a928d8aa0683e9fdfcd0c260f23c2a4c3a63bb4d95bcd8eca80e05a201c1ac2a"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_journey_exercise_scores_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_journey_exercise_scores_static.py",
+      "sha256": "6ba3daaed5d0cf8acef56f1eacf18f4b9089c6626a56151434eb2ed2ac1689ce"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_journey_progress_panel_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_journey_progress_panel_static.py",
+      "sha256": "96537531a5a00cdca1cd40e964bb9128242f4dcc2c51b4c35ab982c490d641d0"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_ladder_lap_start_runtime.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_ladder_lap_start_runtime.py",
+      "sha256": "f2fff1827ec1166c8d748eba18864e248b8fc98af879550a340fbbe637c6a708"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_lap_calibration_regression_runtime.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_lap_calibration_regression_runtime.py",
+      "sha256": "dc565acb502bb08259e2ff66737a39f19824a20e58193b68a042725c509bb76f"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_legal_consent_gender_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_legal_consent_gender_static.py",
+      "sha256": "8cff3e1717b3cf1c526f946a973f162bdb8f05666ab0b866c3194495a4d5f6bb"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_local_assessment_preview.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_local_assessment_preview.py",
+      "sha256": "532a0507c15904b0bd12022a8d112ca7b7011ecccbb23dbfbc8c0cfa04991d16"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_local_assessment_recordings.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_local_assessment_recordings.py",
+      "sha256": "7f1ba3011da9002041dfd8f08af3c02668b4416133e51497885cdaac4a56fdf3"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_local_gpu_worker.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_local_gpu_worker.py",
+      "sha256": "7e5e0338814a505d96bc0c094863ee0066b084791bb903f9188bd46d19aeef97"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_login_handoff_bson.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_login_handoff_bson.py",
+      "sha256": "60a1f765aa13c44b45b320d357b79f1fb0127e955968014063acf7fda5004079"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_mediapipe_login_preload_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_mediapipe_login_preload_static.py",
+      "sha256": "e7e466e904fd7bbc7e9b2240e3b542d170c82695e2c9d7e70b9ea8cd37c20920"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_mobile_voice_unlock_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_mobile_voice_unlock_static.py",
+      "sha256": "2406098c7eb2ffdc9e9cfa92c8d0898ea62ba15f457e7b4aa37bfe2414782ff3"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_mongo_circuit_breaker.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_mongo_circuit_breaker.py",
+      "sha256": "e0712f021dc7b564616ad9a65ade4d94e3fb990d04c6a4bd2e6ceb33cdc1abd2"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_mongodb_activity_storage.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_mongodb_activity_storage.py",
+      "sha256": "deac9ea708ec7c51818cf171dc8bf2abd34f3d234ffd1b420c52a0493c68bef5"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_movement_snapshot_audit.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_movement_snapshot_audit.py",
+      "sha256": "ccc199f8d93191040a0a065d921ee04493088829158b7fdf2980748943cb573a"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_movement_snapshot_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_movement_snapshot_static.py",
+      "sha256": "ff8438bcf71f5223a20060861099919ad10964391b979299cd91b3560d729b6c"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_multidomain_rehab_assessment.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_multidomain_rehab_assessment.py",
+      "sha256": "1019b2aac29aa1021ef89391cdc3746e92d18ab7b3e99b1441c0b84e29f4f9ec"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_muscle_diagnosis.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_muscle_diagnosis.py",
+      "sha256": "4821bfa1308e6f1c86af681059323a1ee4a06145aab5a40edf435db8c27b56d5"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_my_time_ui_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_my_time_ui_static.py",
+      "sha256": "f8e923afc1e0d68890a72e8bd816573561012da1e97a6dc19d05a6142a87204b"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_object_storage.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_object_storage.py",
+      "sha256": "2485f20a21d709d13b60c43f1e11a7c8aa09071fb7c919ba1abe9c0793e0790f"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_palm_projection_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_palm_projection_static.py",
+      "sha256": "6714cc07bd87dcf05f1d67c5392f3121388f59fa1355be6dcef32d7c0300ccdd"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_patient_insights.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_patient_insights.py",
+      "sha256": "3b9052712577dad4999998052ceb9820508737cfc8619dcbaccd7591e96c0a71"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_pending_assessment_sync.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_pending_assessment_sync.py",
+      "sha256": "e329c4fd50055e44f3dfa35df107caa78dce0bb0a0c7456569a648b70f7e93f0"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_phase_c_features.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_phase_c_features.py",
+      "sha256": "bfa89130e0b7b99d559055346a4f4f2d9d550c92dc077f59d029b955c33ce6be"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_pre_assessment_calibration_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_pre_assessment_calibration_static.py",
+      "sha256": "eba99d4131caefd9306e07cca8965c2624a77c5d8cbe2218896eb68258bf8619"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_reach_ladder_activation_runtime.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_reach_ladder_activation_runtime.py",
+      "sha256": "e5abd7a4cce6faba1e3badab2ad141c33b1d6bcfd1afeff174cff57850f88710"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_rehab_calibration_runtime.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_rehab_calibration_runtime.py",
+      "sha256": "8aed75ff4376a3736fc23986134c66b01a934a8a86614d32e7788272a1fd5b69"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_rehab_games.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_rehab_games.py",
+      "sha256": "2dffdd673bce5c9b86c301676b2b8ba717227f248f791e98d5606fd70f07fca1"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_rehab_plan_access.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_rehab_plan_access.py",
+      "sha256": "74fb30d23708b11dd6a2d75351d5d1a1e54b73ed60e160cf09744796c16fe5df"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_rehab_runner_prepared_assets.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_rehab_runner_prepared_assets.py",
+      "sha256": "4e39c88d706bc866d6366a9e99fff758e9b8005a3d9c630d62387857db1cc92a"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_rehab_session_ui_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_rehab_session_ui_static.py",
+      "sha256": "c42382e3e49f8fa88b30dfc074aa6fc81fed0887c932d96ef325d3f627bb7114"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_rehab_session_variation.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_rehab_session_variation.py",
+      "sha256": "bcdeed21f14861aba1c2e9ef3b367fb4cc2b6493eb63fef150b34816d651206b"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_rehyn_home_initial_assessment_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_rehyn_home_initial_assessment_static.py",
+      "sha256": "a565a1097e602d6ac3d5c31d9a824b8bb726cc158b42e42fa68aa2d33cb172b1"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_stroke_rehab.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_stroke_rehab.py",
+      "sha256": "1f41889ec59381089d4ee12e0e46be53bab10a6b44f126d719f424284a46dacd"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_survey_exercise_plan.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_survey_exercise_plan.py",
+      "sha256": "f239257283ccee48a3c99519e31b313b4481fd80a7fc6c464763f7375e3c5982"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_survey_preface_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_survey_preface_static.py",
+      "sha256": "c98d3c3a55eb3e8eac6f264f2c956a9dc9dfed92fcc42b42b55e7a7a2a46e497"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_survey_safety.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_survey_safety.py",
+      "sha256": "fb6ea082c13581f8c0849db374f329c7866c05f9f3f12f9484fcd96ec264ff4e"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_t1_t3_first_approach_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_t1_t3_first_approach_static.py",
+      "sha256": "d37dd152e59d04c7a4ab8a6d76239a8958181096a0b3ec7ee617fc08015ec838"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_t3_mouth_target_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_t3_mouth_target_static.py",
+      "sha256": "e6840d632c332ca5cbbf5c75dc690bf379a5b9c10669ca66f8952b314b4e87ff"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_target_near_miss_coaching_static.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_target_near_miss_coaching_static.py",
+      "sha256": "10487ecd2ee892ccefe70fceb7fc46405e4b306da9493a113f76402015195d7c"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_task_video_recording.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_task_video_recording.py",
+      "sha256": "6e45cb4600eb18b7c33cebd1725221a3dfb482643baaba60931267e1e9689abc"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_testing_assessment_diagnostics.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_testing_assessment_diagnostics.py",
+      "sha256": "c4deff4dc8ea1294a6ba50c6064455e17db555349a50cb120b81b0e6578050d8"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_testing_library.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_testing_library.py",
+      "sha256": "aceb675edfbf891be93ca4ec06aca2e0cf712afa407e618c1ec166bc47ba3f25"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_testing_mouth.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_testing_mouth.py",
+      "sha256": "328cac080a353f3a064a7d236403aed70efa3974b7ab6ab936a1f005d1570331"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_testing_points.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_testing_points.py",
+      "sha256": "a73b5f190cb3d50f6c6960a70104bd624333952f78bd5f2bba14e9cf4e0e1e80"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_testing_reach_adaptation.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_testing_reach_adaptation.py",
+      "sha256": "cd7806a00bab5fc1ddb6fd6a89cc111b14b6783cbecc0dccf956970581de037d"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_testing_reach_lap_calibration.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_testing_reach_lap_calibration.py",
+      "sha256": "10f8c4465dc3562fa04f8840f0950007843cd8b67057d30e1ed1276498f5e3e2"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_testing_reach_voice.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_testing_reach_voice.py",
+      "sha256": "da30b935610e29136a5595274f72431af74f4905bd9e046e8118e30681b43f34"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_therapist_dashboard.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_therapist_dashboard.py",
+      "sha256": "caff95d7d89c450ef5115572adac567103dbe0435ec7b7159d178436a3fa7249"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_trial_account_registration.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_trial_account_registration.py",
+      "sha256": "d043cf1c482ba6e10be32f3a984082a8ae9b3a35f4d9a7a0ab3e17a24127366c"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_trial_sign_in.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_trial_sign_in.py",
+      "sha256": "db702be842d214e013bb9ee0982da1fd166f138dffb72e31584f934cc61c0612"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_trunk_restrained_compensation.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_trunk_restrained_compensation.py",
+      "sha256": "1d9549aca08b7939a36250c2f18f3ad14d5bbda1aa779f82440bf23e423b208c"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_tts_cache.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_tts_cache.py",
+      "sha256": "be2c2a04d4e8b246648569ae8305a15f872c332d50ce026a8aa338b87fddfe84"
+    },
+    {
+      "path": "assessment-service/backend/tests/test_upper_limb_step_failure_localization.py",
+      "source": "D:\\rh-release\\backend\\tests\\test_upper_limb_step_failure_localization.py",
+      "sha256": "fc979e8b55d3845eaaf21b92ef8cba877a0da161ef9643f21ed18181262277d8"
+    },
+    {
+      "path": "assessment-service/backend/tests/testing_assessment_diagnostics.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\testing_assessment_diagnostics.test.cjs",
+      "sha256": "0afde0bee92588f98dc1e7ae6d81660f9ed634bd56a68647d95a8f579ce73862"
+    },
+    {
+      "path": "assessment-service/backend/tests/testing_mouth.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\testing_mouth.test.cjs",
+      "sha256": "d0d9938202859823c275083d3116b86023a29544b2475dcd2886794afdfb11a5"
+    },
+    {
+      "path": "assessment-service/backend/tests/testing_mouth_voice_queue.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\testing_mouth_voice_queue.test.cjs",
+      "sha256": "23032e5f918a4b8c13fc8b1cc16125cf56796914d0f0ff7a53234781c115960d"
+    },
+    {
+      "path": "assessment-service/backend/tests/testing_reach_adaptation.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\testing_reach_adaptation.test.cjs",
+      "sha256": "0982b0963b4ed96a635e3855b5cbfd6199818909aa2b76b5dceb1cd173eaf9bf"
+    },
+    {
+      "path": "assessment-service/backend/tests/testing_reach_camera_quality.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\testing_reach_camera_quality.test.cjs",
+      "sha256": "d306f9989e158fe6437aecc3e54ea203ccff6e431845ec60ed553d27152d03a8"
+    },
+    {
+      "path": "assessment-service/backend/tests/testing_reach_overlay.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\testing_reach_overlay.test.cjs",
+      "sha256": "bacd5a631c70effd4e7d0596b5695f9a629abd0be50e8360152b6c8d2284d7ca"
+    },
+    {
+      "path": "assessment-service/backend/tests/testing_reach_wrist_activation.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\testing_reach_wrist_activation.test.cjs",
+      "sha256": "6bd7f136e93e4f103a97c66e73d720c963506c81285f94e147f9440db75a840d"
+    },
+    {
+      "path": "assessment-service/backend/tests/testing_target_consistency.test.cjs",
+      "source": "D:\\rh-release\\backend\\tests\\testing_target_consistency.test.cjs",
+      "sha256": "94764f218677de0e0c5cbfaac0ec0b659e17019bda0bf55ea77800bae61c94e3"
+    },
+    {
+      "path": "assessment-service/frontend/public/vendor/mediapipe/models/face_landmarker.task",
+      "source": "D:\\rh-release\\frontend\\public\\vendor\\mediapipe\\models\\face_landmarker.task",
+      "sha256": "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff"
+    },
+    {
+      "path": "assessment-service/frontend/public/vendor/mediapipe/models/hand_landmarker.task",
+      "source": "D:\\rh-release\\frontend\\public\\vendor\\mediapipe\\models\\hand_landmarker.task",
+      "sha256": "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1"
+    },
+    {
+      "path": "assessment-service/frontend/public/vendor/mediapipe/models/pose_landmarker_lite.task",
+      "source": "D:\\rh-release\\frontend\\public\\vendor\\mediapipe\\models\\pose_landmarker_lite.task",
+      "sha256": "59929e1d1ee95287735ddd833b19cf4ac46d29bc7afddbbf6753c459690d574a"
+    },
+    {
+      "path": "assessment-service/frontend/public/vendor/mediapipe/vision_bundle.mjs",
+      "source": "D:\\rh-release\\frontend\\public\\vendor\\mediapipe\\vision_bundle.mjs",
+      "sha256": "e77f281f9619150d937023c355bae170e9120e3b9e43f1e23a2a7bee07197669"
+    },
+    {
+      "path": "assessment-service/frontend/public/vendor/mediapipe/wasm/vision_wasm_internal.js",
+      "source": "D:\\rh-release\\frontend\\public\\vendor\\mediapipe\\wasm\\vision_wasm_internal.js",
+      "sha256": "9440cf0cc0cea21800e31581ec32aeedcc5fbf9df4509796bbc7d3f99e52ab9c"
+    },
+    {
+      "path": "assessment-service/frontend/public/vendor/mediapipe/wasm/vision_wasm_internal.wasm",
+      "source": "D:\\rh-release\\frontend\\public\\vendor\\mediapipe\\wasm\\vision_wasm_internal.wasm",
+      "sha256": "f82a8e6c05e08a44cc9f9e7ec5f845935bcbb1b1500ebe8c2f4812fb4e2917dc"
+    },
+    {
+      "path": "assessment-service/frontend/public/vendor/mediapipe/wasm/vision_wasm_nosimd_internal.js",
+      "source": "D:\\rh-release\\frontend\\public\\vendor\\mediapipe\\wasm\\vision_wasm_nosimd_internal.js",
+      "sha256": "abe9b6fbeaf86fcb53a5edce3926c82ccb0619e18fed4d9d9ce561ee7f55e054"
+    },
+    {
+      "path": "assessment-service/frontend/public/vendor/mediapipe/wasm/vision_wasm_nosimd_internal.wasm",
+      "source": "D:\\rh-release\\frontend\\public\\vendor\\mediapipe\\wasm\\vision_wasm_nosimd_internal.wasm",
+      "sha256": "38b61feab2fd7934e05cbe9f68baa308978a5e3b7f85c1913bb8ae89b8ef8b97"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/00d248d357ff87c98f4a7f39f82fb8ccf9293769b88e992f48ea04c707e59abf.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\00d248d357ff87c98f4a7f39f82fb8ccf9293769b88e992f48ea04c707e59abf.mp3",
+      "sha256": "0b2de94e466bc24cbea6530c692119c72367a620a0fff8c76ba2eb26996f10a0"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/0e9670bb82c96d9066e25d29a122d9dd07ea8866d1e0db379fa0c4b27ce272e9.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\0e9670bb82c96d9066e25d29a122d9dd07ea8866d1e0db379fa0c4b27ce272e9.mp3",
+      "sha256": "3f57573cd7a42ed18ae6da40bab6c975836a256dc01d5cb8ca518ee519117a3f"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/15029b464ff1b183cf5e5d8ee3480c0507ada12e1651f8b1b9404050c86a010b.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\15029b464ff1b183cf5e5d8ee3480c0507ada12e1651f8b1b9404050c86a010b.mp3",
+      "sha256": "d55daf334127a384abbdef1f8a106ef867c886ea8b6feae913b524a5b03b02f6"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/1a30aca4f5c0b15637ec0d68fd839573e87344c8e32dc5731f0f25a1c3eb1f6c.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\1a30aca4f5c0b15637ec0d68fd839573e87344c8e32dc5731f0f25a1c3eb1f6c.mp3",
+      "sha256": "a22265bdab440de56df61d559c09fa94106c1bb17b58e5f3e545b231b2adbbe4"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/1e84b7316c3e06548bd3fadae8fd450b9c85946d76b5511cdfb57e3bbbe39a6b.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\1e84b7316c3e06548bd3fadae8fd450b9c85946d76b5511cdfb57e3bbbe39a6b.mp3",
+      "sha256": "16a10dd950e5aacb3363e03036feb7f74c578d8ce89fe907c101163a64434a90"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/26e0b8021d4a5d55f10aee94ef86e4fdd80a93948b658a4d76f68e1d6ffe8fc4.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\26e0b8021d4a5d55f10aee94ef86e4fdd80a93948b658a4d76f68e1d6ffe8fc4.mp3",
+      "sha256": "5107139078595b74ac284739f5ed9f9786b373c0f38efb331fafd4b8a32a6f25"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/2733f7a733c5177b74caf9732345c59b400f321560bddd15d995873bb0d89e89.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\2733f7a733c5177b74caf9732345c59b400f321560bddd15d995873bb0d89e89.mp3",
+      "sha256": "e27ab61f34ceb9ad92a918e81cbcb945c234f1b59bb32204015742b8aaba220b"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/2b5b3381638713e9487f6922f643d0bf92aad8c308c97c3764c90f2c3bd32599.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\2b5b3381638713e9487f6922f643d0bf92aad8c308c97c3764c90f2c3bd32599.mp3",
+      "sha256": "14a013a8059a0d7d2f67415575333bc484ec533c61ed89cf2e184d41e7b7107f"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/31bbdc7b8ddfcbab57ee29d1bbf37737c48e137759acdb63251685218bd45432.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\31bbdc7b8ddfcbab57ee29d1bbf37737c48e137759acdb63251685218bd45432.mp3",
+      "sha256": "aa948d19299fd4174e433f362bd8a96fa863c1cd33ce2ec2674031a500aacb84"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/331397609775523bc4fd64ff0efafa37e2200357caf5168de282974cdd9853b1.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\331397609775523bc4fd64ff0efafa37e2200357caf5168de282974cdd9853b1.mp3",
+      "sha256": "b9d6ec327f892eb5e0e029c4c47968dc4c82612706e933ca62527cbcfa195280"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/3421b85a6f88676f128f0d74b2864fbaea398d57fbd544b1ccd3622b843f374e.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\3421b85a6f88676f128f0d74b2864fbaea398d57fbd544b1ccd3622b843f374e.mp3",
+      "sha256": "39fb47ed29a92c8b690013bf0e632e860c55f4c42045d8a7c45198c07452a16b"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/3838d7d9702a7196652f1df38a865ebcbee7ecea31cf1d74efc190b164064842.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\3838d7d9702a7196652f1df38a865ebcbee7ecea31cf1d74efc190b164064842.mp3",
+      "sha256": "9bf34818540b224836f8687da8d179eb0353ae3586c1bc58227b8ea501a76f7e"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/3ad06b65d5494b7d257153abfa709f060ec58db838046be2034c546b6f528cd9.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\3ad06b65d5494b7d257153abfa709f060ec58db838046be2034c546b6f528cd9.mp3",
+      "sha256": "9bebe12b79042d3c45157bc8cb1b5eea99dbe13fa93da10c9ea85db0db0da23f"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/3c8d98e17674d663c42148a4108173192be6b6605262908ce062a603a023e31c.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\3c8d98e17674d663c42148a4108173192be6b6605262908ce062a603a023e31c.mp3",
+      "sha256": "e77ec0f22cf3d7fd3a72597ac8a48e9c94a31c2d468ac4770ebb2cf1d08efc08"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/43ba8fc1e2cc9b1511cc353426f4ed01d7460c7630972449bc4bbcb1d4d796d8.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\43ba8fc1e2cc9b1511cc353426f4ed01d7460c7630972449bc4bbcb1d4d796d8.mp3",
+      "sha256": "5d4edf912ee3d328002e0b2d668aae96c7f99393b44630558902067f6aaac113"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/49a72ae688745e0f0004cef68bb9a188508bb08f8b346d7f1bf3d63b2aa9901b.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\49a72ae688745e0f0004cef68bb9a188508bb08f8b346d7f1bf3d63b2aa9901b.mp3",
+      "sha256": "1da15e1f83b3f8f5054d000fa851a42f4ffaadc94002fdf8baf8b9e8dac2526a"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/51181a3ac132d45c80a9082060d749eaa2f3ade54d42097be903722e10f150e1.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\51181a3ac132d45c80a9082060d749eaa2f3ade54d42097be903722e10f150e1.mp3",
+      "sha256": "82402c96b6aad2ec63eba5bf4bed8b030690a43225036f66c9c9f78cd6cacec4"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/5191cf60446649372b5c62303348c339e2f34ddfc326982d454ebde2ab18a8ff.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\5191cf60446649372b5c62303348c339e2f34ddfc326982d454ebde2ab18a8ff.mp3",
+      "sha256": "7aacfe0957751ef297f6b568156a2c411f3f969e49b2ff60273f69f0e1183ab0"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/53ca40dd9b3bc897fe6f4fa524ac10cfb434cf051d6a47d97d993e88a20c72ab.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\53ca40dd9b3bc897fe6f4fa524ac10cfb434cf051d6a47d97d993e88a20c72ab.mp3",
+      "sha256": "8f64ffb7a0566e7d64a7b767962644ace7c4df3f0812d9cc6802f336fa6f3743"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/5529677d2c9c0feb2086d934884d736e4b51bdcdfd3546625b07bfaac0a510bd.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\5529677d2c9c0feb2086d934884d736e4b51bdcdfd3546625b07bfaac0a510bd.mp3",
+      "sha256": "db967affe4f4b1f06330b72be31e82e3e3151dd8f63e16c72b616b9fbd68ff5b"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/57bb4568f809d9ed473b8dd696e52357d09cb20a225f1a747afc85d7b056c2d6.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\57bb4568f809d9ed473b8dd696e52357d09cb20a225f1a747afc85d7b056c2d6.mp3",
+      "sha256": "fd6dd39c21dea4ea5019c68b032099e291bd61fa1a060f6bfbd1b7f3b055edd0"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/57e66698862870c3aa162ab2c07723369d3d1c7195b0096ced92e01e2a3fa284.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\57e66698862870c3aa162ab2c07723369d3d1c7195b0096ced92e01e2a3fa284.mp3",
+      "sha256": "90df5f489bf72afc5ce28c6cdc1268f406e325b0f2675c7908bbcf8550e835d2"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/57e9eda86fb9030a50a7a7338d304e0f1657e3c33b16be6e5745dec7eb7ccca7.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\57e9eda86fb9030a50a7a7338d304e0f1657e3c33b16be6e5745dec7eb7ccca7.mp3",
+      "sha256": "698220afca675c7cbda8c8a99e63d43cbe90e9e75072ae1dc1a882dee3edf1b7"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/5b5fddd064de583ae1e21403bf85d712f09334be7709c9ce84fd07bf00fec984.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\5b5fddd064de583ae1e21403bf85d712f09334be7709c9ce84fd07bf00fec984.mp3",
+      "sha256": "cf5cea4e88ab75cc30481a5c5643a7a603fb5cefeb1b79fc68a5e94340edc30d"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/5f00dd47b73190411bf9bbed99420ca7f764234873477095dd70648ce0ed0827.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\5f00dd47b73190411bf9bbed99420ca7f764234873477095dd70648ce0ed0827.mp3",
+      "sha256": "ad09c1acb0277bc65cf7b35995b5e4f0581854c5d7c471d1ab8e71f60f3c181b"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/63aa8ae99c45630736820af31cff3178ea5b5a51c7b7778c8e81b0a2a9ad656a.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\63aa8ae99c45630736820af31cff3178ea5b5a51c7b7778c8e81b0a2a9ad656a.mp3",
+      "sha256": "ed306e91e9c2c0f9274dec6c7d50e8f36fd91852bf876bce0d9b31a005309cbb"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/68140b9c2d5f65b88929941059e69207246cb06a5c50bf15cd58498604c8172b.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\68140b9c2d5f65b88929941059e69207246cb06a5c50bf15cd58498604c8172b.mp3",
+      "sha256": "0bb4f23d0b3ce0eed0dba70f9a5f4b8710df068dcd92240f92df473d9ee3838f"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/6b1d256dd92c93de4efe14f67b063415cc5b93752bd35f26c30ef35675798c2b.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\6b1d256dd92c93de4efe14f67b063415cc5b93752bd35f26c30ef35675798c2b.mp3",
+      "sha256": "55b3774e050a505908904ad6d115ca84b3e60572da05707553f9fd80825b76e4"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/6bbf84c7934386a2ecf99938a01d568540e8dbaebdebf42aadd36357a62e2e77.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\6bbf84c7934386a2ecf99938a01d568540e8dbaebdebf42aadd36357a62e2e77.mp3",
+      "sha256": "d13796ffde260d9cffacda6cff1403619602a3ef93d516eeaee74f38e3d36f64"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/6d2c36b822e00390f685f478cb7368635e3cc85730e2b5ba28c241eb1b3832ce.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\6d2c36b822e00390f685f478cb7368635e3cc85730e2b5ba28c241eb1b3832ce.mp3",
+      "sha256": "85ab5920e61e0d6745345128e0196e70a7557164a2e4fdc91860e1ae9e4625a8"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/6fa3539c7e21ae195dbceba15119eee9281de08e5462518a401d889b281f8602.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\6fa3539c7e21ae195dbceba15119eee9281de08e5462518a401d889b281f8602.mp3",
+      "sha256": "c433c23ab0963ffab26beb08e014ff3e893b2b217c56c086bce28baeecfd2c9c"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/77fa65ab5fbb7fe493dd2dfe110eacda346f20476cdfb19b7149a96821ad9294.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\77fa65ab5fbb7fe493dd2dfe110eacda346f20476cdfb19b7149a96821ad9294.mp3",
+      "sha256": "4f728aad37a55783e722cdf769fbe40caa03cf0d416a5af638d871abcc9c4a71"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/78e71f617c3af9c842c7ed00884f305a3c3c961d57dc694bd6e43c790b5e5f07.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\78e71f617c3af9c842c7ed00884f305a3c3c961d57dc694bd6e43c790b5e5f07.mp3",
+      "sha256": "dee6922c4ad0e98379b0b8b212d9d247091b2988a302054587e15acece4aaccf"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/840870439cde917cfb6649c748529b49b7d4b91b7bcd7f067dc95491dd90bd23.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\840870439cde917cfb6649c748529b49b7d4b91b7bcd7f067dc95491dd90bd23.mp3",
+      "sha256": "7c4f50dcdf27c42a6976c842f595dc5e124aceb9b31d28b6d131ead7d8b9bbea"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/87dc90e167c1f3dc9cfcb4991c556f723ed011acf61e407be2b043512567e240.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\87dc90e167c1f3dc9cfcb4991c556f723ed011acf61e407be2b043512567e240.mp3",
+      "sha256": "165175e5602a46dc4794e4b153ab1938a3e6c77b7a331e4f49bd8119ee3111d8"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/8afc906b29a4315c9b58951be31c84c0abd1aacf57c9a37abfe2291ecd39365c.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\8afc906b29a4315c9b58951be31c84c0abd1aacf57c9a37abfe2291ecd39365c.mp3",
+      "sha256": "d86425916f81d280cfcd863671e32b48cacf1d90b0e573b39167d87df2aa4912"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/8dd15a3a18013291aff4b74dac89ba150d348780e1c1eb94eabefc487e1a875c.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\8dd15a3a18013291aff4b74dac89ba150d348780e1c1eb94eabefc487e1a875c.mp3",
+      "sha256": "76a449faa240d1e12bfae641c1d6f4af7c872c0b4fea5b7b4cdce58c61c55ffc"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/8f807579c7b65d498f7f98c108f2e82d62e00adc3f8ae7d356fe06c4ede49f19.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\8f807579c7b65d498f7f98c108f2e82d62e00adc3f8ae7d356fe06c4ede49f19.mp3",
+      "sha256": "f76faef370630b8dae70c3c9fe1e7ac2f24806923f5b9634af485aa40277d4da"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/904247430a93a3ff44809628781c892bd50c0527b2f3bcc69fc1977270ae7e9f.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\904247430a93a3ff44809628781c892bd50c0527b2f3bcc69fc1977270ae7e9f.mp3",
+      "sha256": "256fc961e15b1aeb44bed6eabdfe19de722d04c3c0b9772bbeeb2ed84ef4fda0"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/932ab0de038e6f564edfc3324043c1a38bc9a74210847958f6861c94b7084c44.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\932ab0de038e6f564edfc3324043c1a38bc9a74210847958f6861c94b7084c44.mp3",
+      "sha256": "53266e28bf66d35e541feeed4684a263e41cd5883828e31cdc8602e5f20b39fc"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/979dca47d826628e4ce4542656d7dbf3c998865361e7701134c7fecac83d0eb5.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\979dca47d826628e4ce4542656d7dbf3c998865361e7701134c7fecac83d0eb5.mp3",
+      "sha256": "57acf3e74f78effeb5cf74a700f3894042c34326fa9fb4b7e317c167cf233929"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/98095839a746794fbc6df4a0d036a0fd57c32f35b12fb8dbbb243f36dbff8e90.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\98095839a746794fbc6df4a0d036a0fd57c32f35b12fb8dbbb243f36dbff8e90.mp3",
+      "sha256": "75c927ae22da61858160bee68c0e82193d4caae931bca5389dcf0eee29036f3a"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/9b75df548fe7a116d7e3720a6ad6199509efef15b5da35d1a61ec8254d1891db.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\9b75df548fe7a116d7e3720a6ad6199509efef15b5da35d1a61ec8254d1891db.mp3",
+      "sha256": "aa4d61c84d6ac8fcc93d247a85ef5a14e54619dda4dc0094a6bece61c4b967bf"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/a2e18f6887c6ede09192fd2d6713278ed76b47c2d4394890c0a6d636d0f40c88.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\a2e18f6887c6ede09192fd2d6713278ed76b47c2d4394890c0a6d636d0f40c88.mp3",
+      "sha256": "14fef3474a1204f7517515757c861137f0cc73f85d0898fa7a265aef6d3041fb"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/a33a45de7a66d52d230d324d709ff2b3c7c4efc663c8742c1c109fa4ab2ef15c.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\a33a45de7a66d52d230d324d709ff2b3c7c4efc663c8742c1c109fa4ab2ef15c.mp3",
+      "sha256": "b74faaadc468c698ecb55bbc98d0b987e6620534f1a5c2339fd2254be44c815f"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/a4563d5918386b519b2d24076d768884c9693b2c60d2dd28dd58b8a7b2dd90df.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\a4563d5918386b519b2d24076d768884c9693b2c60d2dd28dd58b8a7b2dd90df.mp3",
+      "sha256": "0893d3546e9b1a67662326772c33dc638aff89879d4d0a7fc0cedc7c93b3d56a"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/alira-voice-manifest.json",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\alira-voice-manifest.json",
+      "sha256": "2cf42cabd922a01221416343ff54bc1d84927bd0443acabd68e63934def4ccdc"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/bb54917d6f0bf8f8f6006766d880fb86ef20a84ee1dd33e81577d2228cc6ca0e.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\bb54917d6f0bf8f8f6006766d880fb86ef20a84ee1dd33e81577d2228cc6ca0e.mp3",
+      "sha256": "cb1d91a44b26711f11c5a7db4dbee332cd90afd9e495ef97967d41331f890bec"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/bc1b3f3c224c5c27081d444ffba3a73f153ef984e9c6f7f96347ab2ea9c4d115.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\bc1b3f3c224c5c27081d444ffba3a73f153ef984e9c6f7f96347ab2ea9c4d115.mp3",
+      "sha256": "0293c5662532fa322d5f505dab8ac2016b65438a76dd6c6ce037ac65d84525a4"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/bc23ad233c7334af21ef75051f8003aa4efe20bd1e03f9536b5909a9e24dc852.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\bc23ad233c7334af21ef75051f8003aa4efe20bd1e03f9536b5909a9e24dc852.mp3",
+      "sha256": "4f41f5f3c9fe5d2e9c75cd454891c757497fddb9d548c24d46d92becbaf2d7ae"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/bd65ad435a81984b12b8f6540f18e91996a8303825b63c935878f07999350856.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\bd65ad435a81984b12b8f6540f18e91996a8303825b63c935878f07999350856.mp3",
+      "sha256": "af0ac4d3271c09e0f87db4c3e1a707f77ddf04d73f21ed75dc3d65c6118bed04"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/c05658a1a9a50752a1749ef100e6b1e01ba66d1d40d62bc9047ce28a3103b934.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\c05658a1a9a50752a1749ef100e6b1e01ba66d1d40d62bc9047ce28a3103b934.mp3",
+      "sha256": "6204cce70e20eb9e463a3bc69f9f567df44b67876543c34cdab5f11388b92c07"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/c4f72d7f12ad77075d9ec47c6ac13fcbe376190b8020f8e2f15386ea210c8fc9.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\c4f72d7f12ad77075d9ec47c6ac13fcbe376190b8020f8e2f15386ea210c8fc9.mp3",
+      "sha256": "08d324513994fd4a009bde967379fb78a19c8cbab4b2fced6683067630de1b0c"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/c7d2e8c49464c1460f0e6e54e545cecc0293c27e418fd3a0391c639322cfcca5.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\c7d2e8c49464c1460f0e6e54e545cecc0293c27e418fd3a0391c639322cfcca5.mp3",
+      "sha256": "3d955cfecd715fd44f73c7fe3fd2c8d6720aa3b7cb30c2cc80c7962d34618544"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/cb731683c15dee61c597beffc26b1e2588e79012b5680cf573fc72d9cfa14772.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\cb731683c15dee61c597beffc26b1e2588e79012b5680cf573fc72d9cfa14772.mp3",
+      "sha256": "1f653125ed8b3c6b2f4d4c79a90208623fa5e6f517ebdff068b3420f92292bd6"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/cdf12a53a563049d6769d26c65980367cd11b3092b4ac7380618d16dc9567ea0.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\cdf12a53a563049d6769d26c65980367cd11b3092b4ac7380618d16dc9567ea0.mp3",
+      "sha256": "d23a1f40d7f2bd3f531e4278752691ac335ea9b14cc9e21ad42cb73a4fa04d3c"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/d4e57c46d9ba25a395c94a53222b4f263d48139ad30fbb0282bb91e67dd423c5.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\d4e57c46d9ba25a395c94a53222b4f263d48139ad30fbb0282bb91e67dd423c5.mp3",
+      "sha256": "2ba7ea01e75f469932ae7df0ff7a184525f0cea05e9ac817531605e4c2e58008"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/d8955baa878568558c9743408c1170513c1e84ac83c2f6a5c2e9601ac2813d07.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\d8955baa878568558c9743408c1170513c1e84ac83c2f6a5c2e9601ac2813d07.mp3",
+      "sha256": "53a87712b44ee30334dbdef409dfc32c85d2633b042c51c31e9e78e4fdab9c17"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/dc06db0532131c3f7f80b970ff10bef336a72aa4a4d38629effae9258fbe62e7.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\dc06db0532131c3f7f80b970ff10bef336a72aa4a4d38629effae9258fbe62e7.mp3",
+      "sha256": "ef9933d45fc6617a831147e614dad4ff3ff6cae195f9d9c5623c1f89f6944f17"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/e36149510a673c042506f6b45ff49b041e94b106b8030dc8b29a239e35d5edb3.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\e36149510a673c042506f6b45ff49b041e94b106b8030dc8b29a239e35d5edb3.mp3",
+      "sha256": "80279d5c2940fedf28378ae31e8b08d9f0705bd51f488fe9a044123c1048627c"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/e97b8ee5f90620b79b171ed342c7e07a620327f703c195662f21ea932758637f.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\e97b8ee5f90620b79b171ed342c7e07a620327f703c195662f21ea932758637f.mp3",
+      "sha256": "795e85a47343562c43a6f4cf8790a06988f525f6ab60e1cae9a3624fec1e4115"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/e9e4c37eb4e30048af050f0bc8fce625599bf4438a074efa9be4d739f2a44552.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\e9e4c37eb4e30048af050f0bc8fce625599bf4438a074efa9be4d739f2a44552.mp3",
+      "sha256": "0653e91b3c73c2c4db98229e57820bb571169d2f9ddcb1d3193883a711db3724"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/f8d6c4ed5e618f688e75e81d4ef58f78e53e8cfc17851854e8ff89c2ae6fc112.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\f8d6c4ed5e618f688e75e81d4ef58f78e53e8cfc17851854e8ff89c2ae6fc112.mp3",
+      "sha256": "dfa3416c0cbecd664013ed883750f0c0294bf84c0a56d96f6d1517740c9e22e7"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/fd7b50509ebb5c266e20dd53c6dcacb4c36609ebf712a5d94614e95c8e96e7a2.mp3",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\fd7b50509ebb5c266e20dd53c6dcacb4c36609ebf712a5d94614e95c8e96e7a2.mp3",
+      "sha256": "d4997cf64308fbbdc88b961c36d04db48f10a010cb641bd16922ac11b567e6aa"
+    },
+    {
+      "path": "assessment-service/frontend/public/audio/prepared/manifest.json",
+      "source": "D:\\rh-release\\frontend\\public\\audio\\prepared\\manifest.json",
+      "sha256": "6dc3bd468f13fcfb866c69e1de30334018879d6fb12e6239c0936f061d6e223e"
+    },
+    {
+      "path": "assessment-service/testing/trunk-lean-comparison/tests/trunk_lean_metrics.test.cjs",
+      "source": "D:\\rh-release\\testing\\trunk-lean-comparison\\tests\\trunk_lean_metrics.test.cjs",
+      "sha256": "1ca4214bec1de2532ff4733f39cefd0e5c80c06c41701bcec70e6271a0b57687"
+    },
+    {
+      "path": "assessment-service/testing/trunk-lean-comparison/trunk_lean_comparison.html",
+      "source": "D:\\rh-release\\testing\\trunk-lean-comparison\\trunk_lean_comparison.html",
+      "sha256": "bc17b4a9c59a00359f9b0ed384acd9bb473aff659ab52f74c5f98eb61417aefa"
+    },
+    {
+      "path": "assessment-service/testing/trunk-lean-comparison/trunk_lean_comparison.js",
+      "source": "D:\\rh-release\\testing\\trunk-lean-comparison\\trunk_lean_comparison.js",
+      "sha256": "8ef46ca6eb8e749c8a94e40ba2ed94d10d66a3b0cf072617a7202e5f87d4935f"
+    },
+    {
+      "path": "assessment-service/testing/trunk-lean-comparison/trunk_lean_metrics.js",
+      "source": "D:\\rh-release\\testing\\trunk-lean-comparison\\trunk_lean_metrics.js",
+      "sha256": "81298a1f49c00182b11013638d1fb521d928eed81c339cb2938923bb907a93a7"
+    },
+    {
+      "path": "assessment-service/docs/function-ladder-implementation.md",
+      "source": "D:\\rh-release\\docs\\function-ladder-implementation.md",
+      "sha256": "63706700c93bac97a352f5c6b2dafc21ccd60594544169b1542e4fc1dc8eaf70"
+    },
+    {
+      "path": "assessment-service/docs/function-scoring.md",
+      "source": "D:\\rh-release\\docs\\function-scoring.md",
+      "sha256": "9a6d92d6cefcbd25d6b7b81f310de4f2e8c7355d3aa8f8baeee11d7c30afcd2c"
+    },
+    {
+      "path": "assessment-service/docs/local-assessment-debug-videos.md",
+      "source": "D:\\rh-release\\docs\\local-assessment-debug-videos.md",
+      "sha256": "555c5df22bf647c4cf512a78b0fe9ee9208d721621a6c9cd073db3ae81781968"
+    },
+    {
+      "path": "assessment-service/frontend/src/shims/webview-web.tsx",
+      "source": "D:\\rh-release\\frontend\\src\\shims\\webview-web.tsx",
+      "sha256": "ef250ce4f4cea7a2f8b87619b1b3a564c7f901bef846924c710889196122f38d"
+    }
+  ]
+}

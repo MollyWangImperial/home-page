@@ -13,6 +13,12 @@ export const LEVEL_BY_RUNG: Record<Rung, Level> = { 1: "easy", 2: "medium", 3: "
 /** Reps per rung, engineering default. */
 export const REPS_BY_RUNG: Record<Rung, number> = { 1: 6, 2: 8, 3: 10 };
 
+/**
+ * Graded Forward Reach is in every plan, every day, at level 1, and is listed first so it can be
+ * used straight away. Alira's plan review and learned settings never change it.
+ */
+export const EVERYDAY_EXERCISE_ID = "ex_reach";
+
 /** Exercises with a calibrated lap and an anatomical/contact target. */
 export const usesSeatedTargets = (id: string) => id === "ex_reach" || id === "ex_h2m";
 

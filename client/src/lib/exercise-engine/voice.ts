@@ -18,7 +18,7 @@ export function pickEnglishVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesi
 
 /**
  * Always assign an explicit English voice; never fall back to the computer's default voice.
- * `alira: true` asks for Alira's ElevenLabs voice first. It is off for now: the exercises keep
+ * `alira: true` asks for Alira's ElevenLabs voice first. The warm-up uses it; the exercises keep
  * the device's English voice until Alira's exercise voice is switched on (see ALIRA_VOICE.md).
  */
 export function createVoice(options: { alira?: boolean } = {}): RunnerVoice {

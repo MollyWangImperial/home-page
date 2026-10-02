@@ -41,13 +41,29 @@ const adviceLines = [
   ]),
 ];
 
-const exerciseLines = Object.values(EXERCISES).flatMap(exercise => [
+const linesOf = (exercise: (typeof EXERCISES)[string]) => [
   exercise.setupVoice,
   exercise.calibrationInstruction,
   ...exercise.cycle.flatMap(step => [step.voice, `${step.caption}.`]),
   ...exercise.feedback.map(rule => rule.say),
   exercise.praise,
-]);
+];
+const exerciseLines = Object.values(EXERCISES).flatMap(linesOf);
+
+// Graded Forward Reach is the everyday exercise and already speaks in Alira's voice, so everything
+// it can say is recorded with her lines: its own wording plus the shared session and number lines.
+const reach = EXERCISES.ex_reach;
+const reachLines = [
+  ...linesOf(reach),
+  ...sessionLines,
+  ...numberLines,
+  ELBOW_ADVICE,
+  SHOULDER_ADVICE,
+  CLOSER_TARGET_LINE,
+  ...[true, false].flatMap(finalRep => [keepInViewLine(finalRep), reachedTargetsLine(finalRep)]),
+  ...reach.romSteps.flatMap(rom => [moveFurtherLine(rom.label, true), moveFurtherLine(rom.label, false)]),
+  ...reach.feedback.map(rule => finalRepAdvice(rule.say)),
+];
 
 // The FAST check's phrase is fixed in fast-check-runtime.js ("The sky is blue today").
 const fastLines = [
@@ -66,8 +82,12 @@ function lineId(text: string): string {
 }
 
 const unique = (lines: string[]) => Array.from(new Set(lines.map(line => line.trim()).filter(Boolean)));
+const reachSet = new Set(unique(reachLines));
 
 export const aliraSpokenLines: Record<string, string> = Object.fromEntries([
   ...unique(fastLines).map(text => [`fast-${lineId(text)}`, text]),
-  ...unique([...Object.values(WARM_REP_LINES), ...sessionLines, ...exerciseLines, ...adviceLines, ...numberLines]).map(text => [`exercise-${lineId(text)}`, text]),
+  // The warm-up speaks in Alira's voice now, so its lines are recorded with hers, not with the exercises.
+  ...unique(Object.values(WARM_REP_LINES)).map(text => [`warmup-${lineId(text)}`, text]),
+  ...unique(reachLines).map(text => [`reach-${lineId(text)}`, text]),
+  ...unique([...exerciseLines, ...adviceLines]).filter(text => !reachSet.has(text)).map(text => [`exercise-${lineId(text)}`, text]),
 ]);

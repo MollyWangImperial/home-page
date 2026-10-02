@@ -1,4 +1,4 @@
-// The six-beat session script (section 2): set up, show me once, warm rep, scored reps, rescue, wrap.
+﻿// The six-beat session script (section 2): set up, show me once, warm rep, scored reps, rescue, wrap.
 // Frame-driven and free of DOM and speech APIs so it can run against camera frames, simulated frames
 // or a test harness. Timing comes from frame.t.
 
@@ -965,3 +965,7 @@ export function simFrame(t: number, cfg: ExerciseConfig, targets: Record<string,
 
 /** Sim: value a finger_extension-style metric takes at rest, for tests. */
 export const simRest = (metric: string) => SIM_REST[metric] ?? 0;
+
+
+
+

@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AdaptationState, ChangeEntry, LearningSummary, WarmRepRecord } from "@shared/alira-adaptation";
-import { ADAPTATION_KEY, CONSENT_KEY, learningToday, REPORTS_KEY, WARM_REP_KEY } from "@/lib/alira-learning-store";
+import { ADAPTATION_KEY, CONSENT_KEY, currentSafety, learningToday, REPORTS_KEY, WARM_REP_KEY } from "@/lib/alira-learning-store";
 import { AliraLearningPanel } from "./AliraLearning";
 import { AliraLearningConsent } from "./AliraLearningConsent";
 
@@ -114,7 +114,7 @@ describe("Alira's Learning tab", () => {
     expect(JSON.parse(values.get(ADAPTATION_KEY)!).summaries).toHaveLength(3);
   });
 
-  it("keeps the safety restriction after pain without displaying the warm-up card", () => {
+  it("keeps the safety restriction after pain without displaying the removed notices", () => {
     shareMovement();
     const reach = { shoulderFlexion: 58, elbowExtension: 140, wristHeight: 0.9, trunkLeanDeg: 3, shoulderElevationPct: 4, faceApproachPct: 2, heldMs: 1500 };
     const warm: WarmRepRecord = {
@@ -127,9 +127,12 @@ describe("Alira's Learning tab", () => {
     expect(text).not.toContain("Today's warm-up");
     expect(text).not.toContain("Resting angles");
     expect(text).not.toContain("Simulated, not a real reach");
-    expect(text).toContain("Alira can only make things easier right now");
-    expect(text).toContain("Reported a lot of pain after the warm-up today.");
-    expect(text).toContain("We recommend a physiotherapist checks in with Zak");
+    expect(text).not.toContain("Alira can only make things easier right now");
+    expect(text).not.toContain("Reported a lot of pain after the warm-up today.");
+    expect(text).not.toContain("We recommend a physiotherapist checks in with Zak");
+    // Hiding the banner must not relax the rules used by learning and exercise gates.
+    expect(currentSafety()).toMatchObject({ easierOnly: true, checkWithPhysio: true });
+    expect(currentSafety().reasons).toContain("Reported a lot of pain after the warm-up today.");
   });
 
   it("keeps access choices off when displaying earlier changes without the removed warning", () => {

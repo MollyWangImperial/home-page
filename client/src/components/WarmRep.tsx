@@ -352,7 +352,8 @@ export function WarmRep({ source, side, onDone, onSkip, onStop }: WarmRepProps) 
   const begin = () => {
     stopAll();
     const run = runRef.current;
-    const voice = createVoice();
+    // Alira's ElevenLabs voice, the same as the movement check; the device voice only if hers can't answer.
+    const voice = createVoice({ alira: true });
     voice.onAvailability = available => { if (runRef.current === run) setVoiceMissing(!available); };
     voiceRef.current = voice;
     const warm = new WarmRepTracker({ side, source, day: learningToday() });

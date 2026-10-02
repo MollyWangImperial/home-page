@@ -20,6 +20,7 @@ export function getAssessmentBase(value: unknown, dev = false): string {
 }
 
 import type { OnboardingAnswers } from "./alira-onboarding";
+import { EVERYDAY_EXERCISE_ID, EXERCISES, REPS_BY_RUNG } from "./exercise-engine/config";
 
 export type RunnerOptions = {
   affectedSide: "left" | "right";
@@ -131,6 +132,28 @@ export type AssessmentReport = {
 };
 export type StoredAssessment = { id: string; completedAt: string; package?: string; report?: AssessmentReport; planChatCompleted?: boolean };
 
+/**
+ * Every designed plan starts with Graded Forward Reach at level 1, done daily, whether or not the
+ * plan named it, so the patient can begin with it at once. A plan held for clinical review, or an
+ * empty plan (the answers call for supported movement rather than camera exercises), is left as it is.
+ */
+export function withEverydayExercise(plan: PlanExercise[], gate?: AssessmentReport["clinical_review_gate"]): PlanExercise[] {
+  if (gate?.rehab_access === "blocked" || plan.length === 0) return plan;
+  const named = plan.find(exercise => exercise?.id === EVERYDAY_EXERCISE_ID);
+  const everyday: PlanExercise = {
+    id: EVERYDAY_EXERCISE_ID,
+    name: EXERCISES[EVERYDAY_EXERCISE_ID].name,
+    description: "Seated. Reach forward to the target and back, slowly, with your affected arm.",
+    sets: 1,
+    reps: REPS_BY_RUNG[1],
+    ...named,
+    frequency: "Daily",
+    difficulty: "easy",
+    target_rung: null,
+  };
+  return [everyday, ...plan.filter(exercise => exercise?.id !== EVERYDAY_EXERCISE_ID)];
+}
+
 /** Keep the scored report and task summaries, never camera frames or video blobs. */
 function retainReport(record: AssessmentReport): AssessmentReport {
   return {
@@ -144,7 +167,7 @@ function retainReport(record: AssessmentReport): AssessmentReport {
       return { task_id: task.task_id, duration_ms: task.duration_ms, completed_steps: task.completed_steps,
         total_steps: task.total_steps, steps: task.steps, metrics };
     }) : undefined,
-    rehab_plan: Array.isArray(record.rehab_plan) ? record.rehab_plan : undefined,
+    rehab_plan: Array.isArray(record.rehab_plan) ? withEverydayExercise(record.rehab_plan, record.clinical_review_gate) : undefined,
     function_rehab_plan: record.function_rehab_plan, clinical_review_gate: record.clinical_review_gate,
   };
 }
@@ -174,7 +197,9 @@ export function loadRememberedAssessment(): StoredAssessment | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<StoredAssessment>;
     if (typeof parsed.id !== "string" || typeof parsed.completedAt !== "string") return null;
-    const report = parsed.report?.metrics?.function_score || Array.isArray(parsed.report?.rehab_plan) ? parsed.report : undefined;
+    let report = parsed.report?.metrics?.function_score || Array.isArray(parsed.report?.rehab_plan) ? parsed.report : undefined;
+    // Plans saved before the everyday exercise was added get it too.
+    if (report && Array.isArray(report.rehab_plan)) report = { ...report, rehab_plan: withEverydayExercise(report.rehab_plan, report.clinical_review_gate) };
     return { id: parsed.id, completedAt: parsed.completedAt, package: parsed.package, report, planChatCompleted: parsed.planChatCompleted === true };
   } catch {
     return null;

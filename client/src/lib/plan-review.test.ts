@@ -190,7 +190,7 @@ describe("the review in the app", () => {
     expect(state.states.ex_handopen).toEqual({ level: 1, restingThrough: "2026-10-02" });
     expect(state.outbox.map(item => item.alert.id)).toEqual(["warning:2026-10-01:ex_handopen:rest"]);
     expect(launchablePlan(assessment, "2026-10-01").map(e => e.id)).toEqual(["ex_reach"]);
-    expect(launchablePlan(assessment, "2026-10-03").map(e => e.id)).toEqual(["ex_handopen", "ex_reach"]);
+    expect(launchablePlan(assessment, "2026-10-03").map(e => e.id)).toEqual(["ex_reach", "ex_handopen"]);
     expect(unseenChanges()).toHaveLength(1);
     markChangesSeen();
     expect(unseenChanges()).toHaveLength(0);
@@ -231,8 +231,9 @@ describe("the review in the app", () => {
     const attempts = attemptsFrom([session({ sim: true }) as never], { "2026-09-28": { ex_handopen: { score: 40, at: "x" } } }, false);
     expect(attempts).toEqual([{ exerciseId: "ex_handopen", day: "2026-09-28", level: null, score: 40, repsPlanned: null, repsDone: null, eased: false }]);
     expect(planItems(withPlan())).toEqual([
-      { id: "ex_handopen", name: expect.any(String), baseLevel: 2, fixedLevel: false },
+      // The everyday exercise comes first, at level 1, and never changes level.
       { id: "ex_reach", name: expect.any(String), baseLevel: 1, fixedLevel: true },
+      { id: "ex_handopen", name: expect.any(String), baseLevel: 2, fixedLevel: false },
     ]);
   });
 

@@ -1,11 +1,11 @@
 import { memo, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Check, SendHorizontal, ShieldAlert, Square } from "lucide-react";
+import { Check, SendHorizontal, Square } from "lucide-react";
 import {
   CONSENT_CATEGORIES, PARAM_IDS, changesOn, currentValue, formatValue, paramSpec,
   type AdaptationState, type AutoValues, type ParamId,
 } from "@shared/alira-adaptation";
 import {
-  autoValuesNow, currentSafety, learningToday, learningVersion, loadAdaptation,
+  autoValuesNow, learningToday, learningVersion, loadAdaptation,
   loadConsentRecord, subscribeLearning,
 } from "@/lib/alira-learning-store";
 import {
@@ -23,25 +23,12 @@ import "./how-it-works.css";
 import "./alira-learning.css";
 
 type Turn = ChannelTurn;
-type Shown = { tone: "ok" | "warn"; text: string };
+type Shown = { tone: "warn"; text: string };
 
 const ACCESS_LABELS = { survey: "Answers to Alira's questions", movement: "Movement results", camera: "Warm-up still pictures", personal: "Name and personal goal", journal: "Journal" };
 const FOLLOW_UPS = ["Explain that more simply", "What evidence did you use?", "What would change your mind?"];
 
-const SKIP_WORDS: Record<Extract<LearningOutcome, { kind: "skipped" }>["reason"], string> = {
-  no_consent: "Alira did not review anything, because Zak has not agreed to share his movement results. Nothing was sent and nothing was changed.",
-  daily_limit: "Alira did not review again, because she has already reviewed as many times today as she is allowed to. Nothing was changed.",
-  disabled: "Alira did not review anything, because her learning is switched off on this site. Nothing was changed.",
-};
-
 // ---------------------------------------------------------------- wording helpers
-
-function timeOf(at: string | null | undefined): string {
-  if (!at) return "";
-  const date = new Date(at);
-  return Number.isNaN(date.getTime()) ? "" : date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-}
-const atTime = (at: string | null | undefined) => (timeOf(at) ? ` at ${timeOf(at)}` : "");
 
 const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
 const valueWords = (id: ParamId, value: number | null, auto: AutoValues) => formatValue(id, value, auto[id]);
@@ -62,13 +49,8 @@ function easierWords(id: ParamId): string {
 }
 
 function outcomeWords(outcome: LearningOutcome | null): Shown | null {
-  if (!outcome) return null;
-  if (outcome.kind === "done") {
-    const count = outcome.summary.changeIds.length;
-    return { tone: "ok", text: `Alira finished reviewing${atTime(outcome.summary.at)}. ${count ? `She made ${plural(count, "change")}.` : "She made no changes."}` };
-  }
-  if (outcome.kind === "failed") return { tone: "warn", text: `The last review did not finish. ${outcome.error || "Please try again."}` };
-  return { tone: "warn", text: SKIP_WORDS[outcome.reason] };
+  if (!outcome || outcome.kind !== "failed") return null;
+  return { tone: "warn", text: `The last review did not finish. ${outcome.error || "Please try again."}` };
 }
 
 /** Up to three opening questions, adapted to whether Alira changed anything today. */
@@ -82,11 +64,9 @@ function starterQuestions(state: AdaptationState, today: string): string[] {
 }
 
 function readStores() {
-  const today = learningToday();
   return {
     state: loadAdaptation(),
     consent: loadConsentRecord(),
-    safety: currentSafety(today),
     auto: autoValuesNow(),
   };
 }
@@ -125,7 +105,6 @@ export function AliraLearningPanel({ onOpenData }: { onOpenData: () => void }) {
   useEffect(() => { if (turns.length || busy) end.current?.scrollIntoView({ block: "end" }); }, [turns, searching, busy]);
 
   const unavailable = status !== null && (!status.enabled || !status.configured);
-  const chatNote = !status ? null : !status.enabled ? "This chat is switched off on this site." : !status.configured ? "My thinking service isn't connected yet: the server has no API key." : null;
 
   async function ask(question: string) {
     const text = question.trim();
@@ -163,7 +142,6 @@ export function AliraLearningPanel({ onOpenData }: { onOpenData: () => void }) {
         <section className="al-chat" aria-labelledby="al-chat-title">
           <h3 id="al-chat-title">Ask Alira about today</h3>
           <div className="al-log" role="log" aria-live="polite" aria-label="Conversation with Alira about what she learned">
-            {chatNote && <p className="hw-note">{chatNote}</p>}
             <div className="hw-row">
               <span className="hw-avatar hw-avatar-sm"><AliraAvatar /></span>
               <div className="hw-bubble"><TypedChatText text={greeting} onComplete={() => setGreetingDone(true)}>{visible => <Markdown text={visible} />}</TypedChatText></div>
@@ -224,8 +202,8 @@ export function AliraLearningPanel({ onOpenData }: { onOpenData: () => void }) {
 const LearningReview = memo(function LearningReview({ onOpenData }: { onOpenData: () => void }) {
   const version = useSyncExternalStore(subscribeLearning, learningVersion, () => 0);
   const lastRun = useSyncExternalStore(subscribeLearningRun, lastLearningOutcome, () => null);
-  const { state, consent, safety, auto } = useMemo(readStores, [version]);
-  const shown = outcomeWords(lastRun && lastRun.kind !== "done" ? lastRun : null);
+  const { state, consent, auto } = useMemo(readStores, [version]);
+  const shown = outcomeWords(lastRun);
 
   return (
     <>
@@ -246,14 +224,6 @@ const LearningReview = memo(function LearningReview({ onOpenData }: { onOpenData
           <button type="button" className="al-link" onClick={onOpenData}>Choose what Alira can access</button>
         </div>
       </section>
-
-      {safety.easierOnly && (
-        <section className={`al-banner${safety.checkWithPhysio ? " al-banner-strong" : ""}`} aria-labelledby="al-safety-title">
-          <h3 id="al-safety-title"><ShieldAlert size={17} aria-hidden="true" />Alira can only make things easier right now</h3>
-          {safety.reasons.length > 0 && <ul>{safety.reasons.map((reason, index) => <li key={index}>{reason}</li>)}</ul>}
-          {safety.checkWithPhysio && <p className="al-physio">We recommend a physiotherapist checks in with Zak before anything is made harder again.</p>}
-        </section>
-      )}
 
       {/* The daily plan review's changes to levels and rest days (lib/plan-review.ts). */}
       <PlanChangesCard />

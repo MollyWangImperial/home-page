@@ -13,8 +13,8 @@
       "speed": 0.95
     }
   },
-  "ready": 433,
-  "total": 505,
+  "ready": 410,
+  "total": 410,
   "clips": {
     "9267c8099078927d73806efc790ab3dbea4432876205dd196f0b7f1ea02809ae.mp3": {
       "phraseIds": [
@@ -721,2327 +721,2166 @@
     },
     "fe6b87149649ea857e51565d7d6f29dd3856d557c978f1df01ddc695d05c2e82.mp3": {
       "phraseIds": [
-        "exercise-50f1d8cd"
+        "warmup-50f1d8cd"
       ],
       "text": "Let's warm up. Sit so I can see you from your head down to your lap.",
       "bytes": 71515
     },
     "151c683dbeb72392cc91e3194134dc84656ffd391064e72afc1cb9e681802458.mp3": {
       "phraseIds": [
-        "exercise-51687f78"
+        "warmup-51687f78"
       ],
       "text": "Rest your hand on your lap, and sit tall.",
       "bytes": 37660
     },
     "735d1801f658eaef2de7ec1352d9b88a7f8954b90012b6db446b0ceff0a58c0a.mp3": {
       "phraseIds": [
-        "exercise-0c649e88"
+        "warmup-0c649e88"
       ],
       "text": "Now reach forward as far as feels comfortable, and hold it there.",
       "bytes": 58140
     },
     "3f7029dd7900b88b7435e03c050a99a69189ce2b8321c665f77ed3106ee6f3a2.mp3": {
       "phraseIds": [
-        "exercise-0a76be04"
+        "warmup-0a76be04"
       ],
       "text": "Lovely. Rest your hand back on your lap.",
       "bytes": 39750
     },
     "70ccbc5849990238f6eafbcfeef1b3244554d6a7e0f7835cd006f870ca124480.mp3": {
       "phraseIds": [
-        "exercise-d0d9a8f8"
+        "warmup-d0d9a8f8"
       ],
       "text": "That's fine. Rest your hand back on your lap.",
       "bytes": 44765
     },
     "174ae4b2f50bbd66c42965d3612c05697cab39604c748ad13fa6e24685aeaf90.mp3": {
       "phraseIds": [
-        "exercise-a0271983"
+        "warmup-a0271983"
       ],
       "text": "One more time. Reach forward and hold.",
       "bytes": 43511
     },
     "62bb7b022db4a258b96997e7ef40188da898895da891006f59093fb744c5959d.mp3": {
       "phraseIds": [
-        "exercise-137fb09e"
+        "warmup-137fb09e"
       ],
       "text": "That's it. Thank you.",
       "bytes": 29301
     },
-    "86d3a5b3c524f468322011d2c745e626132381730624e797f69b9aeb1859d990.mp3": {
-      "phraseIds": [
-        "exercise-d7f611cf"
-      ],
-      "text": "The next repetition starts in three seconds.",
-      "bytes": 44765
-    },
-    "88fd60c3a1886076f189c549f70b9a82a98d76a5a6a177456f1a695ea3221af4.mp3": {
-      "phraseIds": [
-        "exercise-e72c88bc"
-      ],
-      "text": "Now watch the demonstration on the right. I will show you how to do the movement. Just watch; nothing is scored.",
-      "bytes": 106623
-    },
-    "7e21cade5cd27cd1005e5257de166b17410066abc47c7b1f3e02654c440f40ac.mp3": {
-      "phraseIds": [
-        "exercise-d53324e0"
-      ],
-      "text": "Now one practice repetition. It is not scored. Reach to the circle and hold while I learn your movement, then return to your lap.",
-      "bytes": 126685
-    },
-    "45db310331d5475f1a5561e4dee0a24471b426e5bc329b1fa0389cb8c7e5d284.mp3": {
-      "phraseIds": [
-        "exercise-c1162d14"
-      ],
-      "text": "Now one practice repetition. It is not scored. Bring your hand to the mouth circle and hold while I learn your movement, then return to your lap.",
-      "bytes": 146747
-    },
-    "82d4883bbc0aae1452029f80caefcaf77a90cef4bef440689ee1355d906f6791.mp3": {
-      "phraseIds": [
-        "exercise-d4f13cbd"
-      ],
-      "text": "Now one practice repetition. It is not scored, and it helps me learn your starting position.",
-      "bytes": 90323
-    },
-    "8c93411d757b555c07e9c4ab181b32d25f15a6bcb0587b28fa84e916453b9e6c.mp3": {
-      "phraseIds": [
-        "exercise-4fed781a"
-      ],
-      "text": "Do you want to skip this one for today?",
-      "bytes": 32226
-    },
-    "2fc7ec0491b182c9b4eb4749919b9d24da4b25159abe14627d53f662d54ee01d.mp3": {
-      "phraseIds": [
-        "exercise-ae0763f3"
-      ],
-      "text": "Let's bring the target a little closer.",
-      "bytes": 33898
-    },
-    "ea07bea08242e3c32ecef1517001e3ea92dcaf9c15543977edc084a0e229aea9.mp3": {
-      "phraseIds": [
-        "exercise-c5bf93bb"
-      ],
-      "text": "On the next repetition, lift your arm a little more from your shoulder while keeping your chest upright.",
-      "bytes": 89487
-    },
-    "ba504dec249f6db7b55f6e29aa5d7941c17dd30d94693e2cd7ce6f0a89014639.mp3": {
-      "phraseIds": [
-        "exercise-d76dd55e"
-      ],
-      "text": "No problem, we will skip this one for today.",
-      "bytes": 41004
-    },
-    "684a1d0870d195e65eb498223678039da8df35a8375f3b49ed9f6c1f5247b5eb.mp3": {
-      "phraseIds": [
-        "exercise-34faa918"
-      ],
-      "text": "Only redo this exercise if you have enough energy and do not feel fatigued. If you feel tired, rest for now.",
-      "bytes": 119162
-    },
     "1ba121795e54a7777a1a3072062da1eca262bca7126dc37333cb6391594017f7.mp3": {
       "phraseIds": [
-        "exercise-8fe0440a"
+        "reach-8fe0440a"
       ],
       "text": "Welcome. We are going to practice the graded forward reach. Sit upright, with your back away from the chair. Place your affected hand on your lap. I'll guide you through each repetition.",
       "bytes": 178094
     },
     "3a0b394aff6608b88e35e78baee6015e901688e39ad84169a0ac676301df2d14.mp3": {
       "phraseIds": [
-        "exercise-2d4044b6"
+        "reach-2d4044b6"
       ],
       "text": "Before we begin, sit still with your affected hand resting on the visible part of your lap. Keep your face, shoulders, affected arm, and the top of your affected thigh in view.",
       "bytes": 206933
     },
     "cb5a5ae33787d0fa9ede48b7c165341930f4e699f6fb7a2fea801870e841e69c.mp3": {
       "phraseIds": [
-        "exercise-5564f8c3"
+        "reach-5564f8c3"
       ],
       "text": "Slowly reach your hand forward, as far as you comfortably can.",
       "bytes": 58140
     },
     "ed8cf7277b242e8f69004bcafb0aa5a7e45bdb1cb13502e423d6210ae6ba0b0b.mp3": {
       "phraseIds": [
-        "exercise-10e7d9fe"
+        "reach-10e7d9fe"
       ],
       "text": "Reach forward to the target.",
       "bytes": 25539
     },
     "2004f8851c0edb1926a5dbdb31d535289ea4bb1da076a8111269a5553978dea3.mp3": {
       "phraseIds": [
-        "exercise-30eaec06"
+        "reach-30eaec06"
       ],
       "text": "Now gently return your hand to the same place on your lap.",
       "bytes": 58140
     },
     "a1ee7358a818135f58564f55b78a729fe8cecfa4f74ecec43dc09b877704d1a9.mp3": {
       "phraseIds": [
-        "exercise-9c570d87"
+        "reach-9c570d87"
       ],
       "text": "Return to lap.",
       "bytes": 20942
     },
     "fda386d3a90c3f09be65e37715e8176b09423ffc594b5fe58a82c04306add1c4.mp3": {
       "phraseIds": [
-        "exercise-6261ddef"
+        "reach-6261ddef"
       ],
       "text": "I noticed your back leaned forward. On the next repetition, try keeping your spine tall and let your arm do the work.",
       "bytes": 109549
     },
     "b3e905247c95286d15a5c741067847ee8bc93e753c14db9b1781e756e998f42c.mp3": {
       "phraseIds": [
-        "exercise-70c2aecc"
+        "reach-70c2aecc"
       ],
       "text": "Your shoulder lifted up toward your ear. Try keeping your shoulder relaxed and dropped down on the next try.",
       "bytes": 97010
     },
     "5ff154871606123060e01a025d7218b108e50a75f48d295a20c262b05b9acc35.mp3": {
       "phraseIds": [
-        "exercise-3b9e7f26"
+        "reach-3b9e7f26"
       ],
       "text": "You almost reached the target. On the next try, push gently from your shoulder to extend a little further.",
       "bytes": 114146
     },
     "62bdc24b12db46955e08454b7a72da6a7cf07785e38907bc6bfba26d1bccd8dc.mp3": {
       "phraseIds": [
-        "exercise-64077675"
+        "reach-64077675"
       ],
       "text": "Beautiful repetition. Keep that smooth, steady motion from start to finish.",
       "bytes": 84471
     },
-    "ab7b843b01b2ff3f29aded82e9d0635f1b88e50f0ec16ac419078ea9869b09ec.mp3": {
+    "86d3a5b3c524f468322011d2c745e626132381730624e797f69b9aeb1859d990.mp3": {
       "phraseIds": [
-        "exercise-994d9c29"
+        "reach-d7f611cf"
       ],
-      "text": "We will practice hand-to-mouth, an essential daily activity. A cup is drawn on your screen, so you do not need a real one. Sit tall with your back away from the chair and your affected hand resting on your lap. Keep your head up: the cup comes to your mouth, not your mouth to the cup.",
-      "bytes": 284256
+      "text": "The next repetition starts in three seconds.",
+      "bytes": 44765
     },
-    "475e4cf8c55804190d94ab61c21ec185037658776610e63b84238df3b057ac9f.mp3": {
+    "88fd60c3a1886076f189c549f70b9a82a98d76a5a6a177456f1a695ea3221af4.mp3": {
       "phraseIds": [
-        "exercise-0eb5c23a"
+        "reach-e72c88bc"
       ],
-      "text": "Sit tall with your affected hand resting on the visible part of your lap. Keep your face, both shoulders, your affected arm and the top of your thigh in view, and hold still while I learn your upright position.",
-      "bytes": 208187
-    },
-    "8407f3d2e835297e46e93be10087b031aec431eee1cd944fc3c41cca141283a8.mp3": {
-      "phraseIds": [
-        "exercise-b9c7bc82"
-      ],
-      "text": "Bend your elbow and bring the cup up to your mouth, slowly and smoothly. Hold it at your lips as if taking a sip. Head up, shoulder relaxed.",
-      "bytes": 151763
-    },
-    "7110bc427e2a8edb5f2a224ae2eadedf03024a56fb88ac3a115e824e5bb3bd9b.mp3": {
-      "phraseIds": [
-        "exercise-a565c245"
-      ],
-      "text": "Bring the cup to your mouth and hold, as if taking a sip.",
-      "bytes": 54378
-    },
-    "81a79618f6b51866b2223d222cc6a543ac99c5008e85500a4434afab031f04e3.mp3": {
-      "phraseIds": [
-        "exercise-306fbb4d"
-      ],
-      "text": "Now lower the cup and bring your hand back to the same place on your lap.",
-      "bytes": 65663
-    },
-    "2c093deb464bbc6417d141c220619701b26cd0f6c84fae315ba0e4c0737b4106.mp3": {
-      "phraseIds": [
-        "exercise-45483fa1"
-      ],
-      "text": "Lower the cup and return to your lap.",
-      "bytes": 35152
-    },
-    "5ae1781200a3d8e9559b4a39704f93d4e47efe58b455911e87fb658aca85e4a9.mp3": {
-      "phraseIds": [
-        "exercise-a3b15465"
-      ],
-      "text": "Your trunk leaned to meet your hand. On the next try, keep your back tall and bring your hand to your mouth instead.",
+      "text": "Now watch the demonstration on the right. I will show you how to do the movement. Just watch; nothing is scored.",
       "bytes": 106623
     },
-    "7794a34283e03a1e793e8075984019de92fcf2f7158dd379328d4df9f2b61263.mp3": {
+    "7e21cade5cd27cd1005e5257de166b17410066abc47c7b1f3e02654c440f40ac.mp3": {
       "phraseIds": [
-        "exercise-a1042e3f"
+        "reach-d53324e0"
       ],
-      "text": "Your head dropped toward the cup. Keep it up and bring the cup to you.",
-      "bytes": 63573
-    },
-    "66d7d831e95815757bae388e23b0bf29c95fb7a9e3d457f7f4649ff3e78aef88.mp3": {
-      "phraseIds": [
-        "exercise-fd23c94a"
-      ],
-      "text": "Your shoulder lifted toward your ear. Relax it before you bend your elbow again.",
-      "bytes": 71097
-    },
-    "534f0ce88328c7029269d98e63c861c8009ce6455ac47bdade0dec5a92bf76b3.mp3": {
-      "phraseIds": [
-        "exercise-a4dbd897"
-      ],
-      "text": "Almost there. On the next try, bend your elbow a bit more to bring your hand closer to your mouth.",
-      "bytes": 93248
-    },
-    "fa97bac795e625b266caa05778c7052be114152626778bbc5bf37c8d695ad6ac.mp3": {
-      "phraseIds": [
-        "exercise-a1be4797"
-      ],
-      "text": "Smooth hand-to-mouth. Keep that quality on the next repetition.",
-      "bytes": 67335
-    },
-    "9d543ef375c0d1058d500e2900bc739f66d7de6cae95341b066b03bd71541e5b.mp3": {
-      "phraseIds": [
-        "exercise-f46578b2"
-      ],
-      "text": "We will practise supported arm elevation. Sit tall with your affected forearm supported on a table or towel. Move only in a comfortable, pain-free range.",
-      "bytes": 158032
-    },
-    "fd6eb0db9af6d321e145f873b866fc7cbf20052dba656872e374f7782747b028.mp3": {
-      "phraseIds": [
-        "exercise-9c05c178"
-      ],
-      "text": "Sit tall with your supported forearm, shoulders, and hips visible. Hold the comfortable starting position without pain.",
-      "bytes": 112475
-    },
-    "6f955a38e611de33874ede4e8ebbfcdd1a1e6dafacd963767aec08209ac8454d.mp3": {
-      "phraseIds": [
-        "exercise-81277cbb"
-      ],
-      "text": "Using the support, slowly slide your affected arm toward the upper target. Stop before pain and keep your shoulder relaxed.",
-      "bytes": 122924
-    },
-    "77b345f106fb351bea2803acad4f9e5a58461995e06ead03d01cceed13cbe58a.mp3": {
-      "phraseIds": [
-        "exercise-7ee8c10d"
-      ],
-      "text": "Slide toward the upper target.",
-      "bytes": 34316
-    },
-    "cfa9882f24e86a7f3309553522d5ef42c2e6f0ecd654f2490aaebbb8e1698bc4.mp3": {
-      "phraseIds": [
-        "exercise-ef0154a5"
-      ],
-      "text": "Now slide your arm back to the starting position, slowly and with control.",
-      "bytes": 68589
-    },
-    "aecb5287318554ec64db9ef1c9774c0d98469ec222ecd75147ddf974a395e01c.mp3": {
-      "phraseIds": [
-        "exercise-9f224a9a"
-      ],
-      "text": "Slide back with support.",
-      "bytes": 27211
-    },
-    "9b46d1331806799fc09ba51593e0b3573d75a3da8f80c957606c95c3455ae465.mp3": {
-      "phraseIds": [
-        "exercise-e5edbfc5"
-      ],
-      "text": "Your shoulder lifted toward your ear. Try keeping your shoulder relaxed and pressed down as you raise your arm.",
-      "bytes": 93248
-    },
-    "2bf1d77113d2dffbae885f1e1b3f3252d5f08371d7d5ec233c3e733d40913f25.mp3": {
-      "phraseIds": [
-        "exercise-59e1338d"
-      ],
-      "text": "I noticed you leaned to one side. On the next repetition, try to stay tall and centered.",
-      "bytes": 90323
-    },
-    "72876d07efe8e26c0d1e28220e182e5c3a9906d87407f4bf277d8e4c53261346.mp3": {
-      "phraseIds": [
-        "exercise-99620dcc"
-      ],
-      "text": "Almost reached the top. On the next try, exhale gently and try to go a little higher.",
-      "bytes": 88651
-    },
-    "739135a27db6e26c58247492824cc7f2279b0e9a0ffe6d41c16a3aed6ad6deac.mp3": {
-      "phraseIds": [
-        "exercise-cbcc9fb5"
-      ],
-      "text": "Wonderful shoulder elevation. Keep that same control on the next repetition.",
-      "bytes": 80710
-    },
-    "169dd272da7a8c175bac77d9ccdab33cc680d0c549cbf0be5de0ac6154c335ad.mp3": {
-      "phraseIds": [
-        "exercise-c71cb8dd"
-      ],
-      "text": "We will practise opening and relaxing your affected hand with your forearm supported on a table. A soft ball is drawn on your screen. Imagine opening your hand around it, no real object is needed.",
-      "bytes": 197320
-    },
-    "c0816b38681101b705b9e6478bb48f835374d9b76ad8855e59704abcd04db5c2.mp3": {
-      "phraseIds": [
-        "exercise-413018d4"
-      ],
-      "text": "Support your forearm and hold your affected hand toward the camera. Keep the whole hand, wrist, and fingertips visible, and let the fingers rest in their comfortable starting position.",
-      "bytes": 162212
-    },
-    "d4dac550c1c9ee0b152f0f9999a73facac51604cec527aedf254b8b0098a7543.mp3": {
-      "phraseIds": [
-        "exercise-32e68971"
-      ],
-      "text": "Slowly open your affected hand around the ball on your screen, as wide as is comfortable. Hold for a moment, then let the fingers relax.",
+      "text": "Now one practice repetition. It is not scored. Reach to the circle and hold while I learn your movement, then return to your lap.",
       "bytes": 126685
     },
-    "267d97f6a426ac4e82682308fc11063789cc452d319d5c93b7bb0d40b6282c5d.mp3": {
+    "45db310331d5475f1a5561e4dee0a24471b426e5bc329b1fa0389cb8c7e5d284.mp3": {
       "phraseIds": [
-        "exercise-261029f4"
+        "reach-c1162d14"
       ],
-      "text": "Open your hand around the ball.",
-      "bytes": 34316
+      "text": "Now one practice repetition. It is not scored. Bring your hand to the mouth circle and hold while I learn your movement, then return to your lap.",
+      "bytes": 146747
     },
-    "0ded17d8cea1d8149e800b984bab55277cbeeb1e2e2d14b7e0fafac6af026dfb.mp3": {
+    "82d4883bbc0aae1452029f80caefcaf77a90cef4bef440689ee1355d906f6791.mp3": {
       "phraseIds": [
-        "exercise-96f5c4d1"
+        "reach-d4f13cbd"
       ],
-      "text": "Now let your fingers relax.",
-      "bytes": 31391
+      "text": "Now one practice repetition. It is not scored, and it helps me learn your starting position.",
+      "bytes": 90323
     },
-    "16e6985b403a0a2c7d813db0717ed6093510244cbee77cea0f05cfd1efe948c3.mp3": {
+    "8c93411d757b555c07e9c4ab181b32d25f15a6bcb0587b28fa84e916453b9e6c.mp3": {
       "phraseIds": [
-        "exercise-9d0fad4f"
+        "reach-4fed781a"
       ],
-      "text": "Let the fingers relax.",
-      "bytes": 24703
-    },
-    "7fa4657e078fb763ccb83f3cdc4ab00b40594933b9d89edc3d067c814acaf7fe.mp3": {
-      "phraseIds": [
-        "exercise-4d46d729"
-      ],
-      "text": "Nearly open. On the next one, try to open your hand a little wider.",
-      "bytes": 66499
-    },
-    "2bb8d91b5126e2dff5c07c9d4180496e6d06ddb7ec2fd17dc911714862feb3c2.mp3": {
-      "phraseIds": [
-        "exercise-8ccdfffe"
-      ],
-      "text": "Wonderful finger extension. Try to hold for a full second before relaxing.",
-      "bytes": 76112
-    },
-    "9f05820dad4ea710f3cb9ef1b848f65404d42a08b94dac569c7176805ab248fc.mp3": {
-      "phraseIds": [
-        "exercise-7ceae38f"
-      ],
-      "text": "We will practise reaching for a cup, opening your hand, grasping it, and carrying it across. The cup is drawn on your screen, so you do not need a real object.",
-      "bytes": 151345
-    },
-    "57848818d5f242b3c00bf7d10993d17ad330bbf46483d29e6e845a616e9d2bda.mp3": {
-      "phraseIds": [
-        "exercise-3b60290a"
-      ],
-      "text": "Sit square to the camera with both shoulders, hips, elbows, and wrists visible, and your affected hand in view. Rest your hands and hold still.",
-      "bytes": 175586
-    },
-    "f7c39e9f2d1b10410cc72e56952a6acc56a2c493b1bdf33eb84def09805fcccb.mp3": {
-      "phraseIds": [
-        "exercise-9ce7448c"
-      ],
-      "text": "Reach toward the cup on your screen with your affected hand.",
-      "bytes": 54378
-    },
-    "f9d1181e3070076fa54cfaabf6acf8924a49dc5fc5755fcd978078e44ce89087.mp3": {
-      "phraseIds": [
-        "exercise-bace6b52"
-      ],
-      "text": "Reach to the cup.",
-      "bytes": 26375
-    },
-    "2eebe70fe2e3b243d37d39d7344637cebef0b2cfdf08ff5e39ffd80563484853.mp3": {
-      "phraseIds": [
-        "exercise-6ed3e91c"
-      ],
-      "text": "Now open your hand wide, ready to take the cup.",
-      "bytes": 52288
-    },
-    "567450fbee7e9b09e6766e451208a330938fcd5276f8a0a032e534e80c936375.mp3": {
-      "phraseIds": [
-        "exercise-aa59ef4e"
-      ],
-      "text": "Open your hand wide around the cup.",
-      "bytes": 35988
-    },
-    "6d9aac32beca1aee467993ab7d758aa38836a7aa582602aee96ba94fa3a8465c.mp3": {
-      "phraseIds": [
-        "exercise-6f846cc3"
-      ],
-      "text": "Close your fingers around the cup to grasp it.",
-      "bytes": 42675
-    },
-    "b030a2eb34193db0715c4dfb75e1fd40c372df7d60d6919c096de889e37f6997.mp3": {
-      "phraseIds": [
-        "exercise-c4f4fcf2"
-      ],
-      "text": "Close your fingers around the cup.",
+      "text": "Do you want to skip this one for today?",
       "bytes": 32226
     },
-    "55ab1da96d630d6f76dad72403c33916f8e04b57f53c1269f69b7b4616362989.mp3": {
+    "2fc7ec0491b182c9b4eb4749919b9d24da4b25159abe14627d53f662d54ee01d.mp3": {
       "phraseIds": [
-        "exercise-87318fa3"
+        "reach-ae0763f3"
       ],
-      "text": "The cup is in your hand. Carry it slowly across to the other side.",
-      "bytes": 69425
+      "text": "Let's bring the target a little closer.",
+      "bytes": 33898
     },
-    "e65ff54b547512d7519c64b0b506402cc89c8cfd7161898224ab2bb2d2e5e0cf.mp3": {
+    "ea07bea08242e3c32ecef1517001e3ea92dcaf9c15543977edc084a0e229aea9.mp3": {
       "phraseIds": [
-        "exercise-420a5050"
+        "reach-c5bf93bb"
       ],
-      "text": "Carry the cup across.",
-      "bytes": 19688
+      "text": "On the next repetition, lift your arm a little more from your shoulder while keeping your chest upright.",
+      "bytes": 89487
     },
-    "170de7a10bd11de2d38f0c58b2783b11a64938590507341dec0e2d35daaa024e.mp3": {
+    "ba504dec249f6db7b55f6e29aa5d7941c17dd30d94693e2cd7ce6f0a89014639.mp3": {
       "phraseIds": [
-        "exercise-0595d7b8"
+        "reach-d76dd55e"
       ],
-      "text": "Open your fingers to set the cup down.",
-      "bytes": 38078
-    },
-    "123e433da3af5ff6eccb472e6a1ee0b55700da666fc04ed9db088c1068543273.mp3": {
-      "phraseIds": [
-        "exercise-37261ff9"
-      ],
-      "text": "Open your hand to set the cup down.",
-      "bytes": 35152
-    },
-    "fb453049fb0262ee223654b2da5714ea577194bcd2dbc86ed659697b8b95533b.mp3": {
-      "phraseIds": [
-        "exercise-52d040ac"
-      ],
-      "text": "Now bring your empty hand back to your lap. Nicely done.",
-      "bytes": 48527
-    },
-    "6945ea503c3d2f526f80fa057f1d1c9bb9873c44502e742a68b992573bfb34a2.mp3": {
-      "phraseIds": [
-        "exercise-9efbb3d1"
-      ],
-      "text": "Return your empty hand to your lap.",
-      "bytes": 35988
-    },
-    "ff7df98722643ccef9f28479a53e0689a9b8580c314c7ec06f29a579fa5cf8a4.mp3": {
-      "phraseIds": [
-        "exercise-e83176b9"
-      ],
-      "text": "I noticed your chest leaned toward the cup. Keep your shoulders square and let your arm do the reaching.",
-      "bytes": 94084
-    },
-    "c0ae9e7e973615a543e3d0b860e773fe0fc9e42127cb7b0f366c9d85b00d0ba8.mp3": {
-      "phraseIds": [
-        "exercise-fc26af0b"
-      ],
-      "text": "Your body leaned to the side to carry the cup. Keep upright and let your arm cross the midline.",
-      "bytes": 94502
-    },
-    "d2f98a7d3c7daee7781e5b73ccb2050666e07f395e97c611ca9d423a1e28deea.mp3": {
-      "phraseIds": [
-        "exercise-7eb034fc"
-      ],
-      "text": "Your shoulder lifted toward your ear. Set it down before lifting the cup again.",
-      "bytes": 70261
-    },
-    "6a16d75ee2b6bc52978577749bc2b7144e0d169d696f9488dd83830d12b5ca63.mp3": {
-      "phraseIds": [
-        "exercise-7507079f"
-      ],
-      "text": "Almost reached the far target. On the next try, extend a little further across your body.",
-      "bytes": 104951
-    },
-    "da7f716d88b8bd3a10d6d21e74b22803533635c71d6ac7edc1ab51f58e685d31.mp3": {
-      "phraseIds": [
-        "exercise-3563e5d3"
-      ],
-      "text": "Beautiful transport. Focus on a smooth release at the end.",
-      "bytes": 62737
-    },
-    "f4d72c0ca4961a38efd3c976f2e4be7bf9580e8b6b9cba61d51d9d37c392105a.mp3": {
-      "phraseIds": [
-        "exercise-8f005ebd"
-      ],
-      "text": "We will practice pinch. A small peg and a container are drawn on your screen, so you do not need real objects. Pinch your thumb to each finger in turn as I call it, and let go between each one.",
-      "bytes": 210695
-    },
-    "6e3b750b782f05bfa72a13c9e0cde57ec7cf92e0d837fc667956605e1d014a59.mp3": {
-      "phraseIds": [
-        "exercise-72b5b347"
-      ],
-      "text": "Support your forearm and hold your affected hand toward the camera. Keep your thumb, all four fingers, and wrist clearly visible.",
-      "bytes": 122924
-    },
-    "c77765e465dde292ef9329b659545ea3c50e688ba185f9a036b67ec279035fbb.mp3": {
-      "phraseIds": [
-        "exercise-e9159eeb"
-      ],
-      "text": "Nearly there. Curl the finger a little more to meet your thumb.",
-      "bytes": 60648
-    },
-    "747686d78ab1aa379b49c9af58541cb0e29507f7029d1d66aa8af87e4ff75d2e.mp3": {
-      "phraseIds": [
-        "exercise-af8c424c"
-      ],
-      "text": "Lovely pinch control. Keep the thumb and finger meeting cleanly.",
-      "bytes": 71097
-    },
-    "61adc4ebe221261273d8a1b9e4e044cae041187dd925c87a2e17614302feeff9.mp3": {
-      "phraseIds": [
-        "exercise-917b6483"
-      ],
-      "text": "Welcome. Sit in a stable chair with both feet supported, and keep a carer nearby if you need help with balance. We will practise one slow knee movement at a time.",
-      "bytes": 169735
-    },
-    "d331cb2ba80b0ce68275d8efa52ad2842d4e673b3dbf2c1be128151e90c6bf27.mp3": {
-      "phraseIds": [
-        "exercise-616e9119"
-      ],
-      "text": "Move the phone back until I can see your hips, knees and feet. Sit still with both feet supported.",
-      "bytes": 97010
-    },
-    "080529686aa6cc619f8f46821388270fe6c32017f346c4223261915d394bbee0.mp3": {
-      "phraseIds": [
-        "exercise-3bf8322f"
-      ],
-      "text": "Slowly straighten your affected knee within a comfortable range. Keep your thigh supported and breathe normally. Hold it there.",
-      "bytes": 119998
-    },
-    "301ed2c3ec7592a95743ecf7c36b5a89b868226c679ccbb2eb54030e55514733.mp3": {
-      "phraseIds": [
-        "exercise-5459d996"
-      ],
-      "text": "Straighten your knee and hold.",
-      "bytes": 33062
-    },
-    "6227640ed759ace8de368fda6d8301cbac43f22f0b00ab49abb46bfcb857e734.mp3": {
-      "phraseIds": [
-        "exercise-28cb60c5"
-      ],
-      "text": "Now gently bend the knee and lower your foot back to the floor, slowly.",
-      "bytes": 66499
-    },
-    "99f0e4a297af850686282b65b530fb4907069180489d14c575b9956b7f555bb8.mp3": {
-      "phraseIds": [
-        "exercise-a058ca3a"
-      ],
-      "text": "Lower slowly.",
-      "bytes": 20524
-    },
-    "037f6d25aa1c0b50d9a132832e39cf9d03dc6ecd383cc490688e361fedc641d4.mp3": {
-      "phraseIds": [
-        "exercise-8b33384e"
-      ],
-      "text": "Your hip lifted off the chair. Keep both hips settled while the lower leg moves.",
-      "bytes": 71515
-    },
-    "cf62905920aa752c4ab5976338b53fecc4df2430c5ab174ac5928c64c05b7323.mp3": {
-      "phraseIds": [
-        "exercise-a17ceb9c"
-      ],
-      "text": "You leaned back to lift the foot. Stay tall on the next one.",
-      "bytes": 62737
-    },
-    "a0b89cdb5c9eda9e5f78bac0c61f24e7c508c62c700a262f3de1fd37fe3397b3.mp3": {
-      "phraseIds": [
-        "exercise-9c9e5cb2"
-      ],
-      "text": "Almost straight. On the next try, reach a little further if it feels comfortable.",
-      "bytes": 87397
-    },
-    "e75fb062a1308d28fd0b3e596c2ecafdbef719377766d22aa8e06d3eb5f106cf.mp3": {
-      "phraseIds": [
-        "exercise-08e19e9d"
-      ],
-      "text": "Well done. Keep the movement slow and let the leg do as much as it safely can.",
-      "bytes": 76112
-    },
-    "30f6167bf9198e86885ad9feb3e39d45561d7c86b86b7acef824698e9c76b731.mp3": {
-      "phraseIds": [
-        "exercise-17960f11"
-      ],
-      "text": "Sit securely with your affected foot flat and your heel supported on the floor. We will practise lifting the front of your foot without lifting the heel.",
-      "bytes": 127521
-    },
-    "1da02d75a478a28fd620620438331232ae10350edca385093d07a97992bc99d1.mp3": {
-      "phraseIds": [
-        "exercise-ba616528"
-      ],
-      "text": "Move the phone back until I can see your hips, knees and feet. Keep the heel down and hold still.",
-      "bytes": 85725
-    },
-    "e892d3f34a62201b12c76018e6f1771818373c4daf5212b7149e5a570da0140b.mp3": {
-      "phraseIds": [
-        "exercise-1c2588c3"
-      ],
-      "text": "Keeping the heel down, gently lift your toes and the front of your foot. Hold for a comfortable moment.",
-      "bytes": 97010
-    },
-    "a353d1da6038f2aa327b46be2102c95f234513ff8590d679f48ecb8293ba4968.mp3": {
-      "phraseIds": [
-        "exercise-3300396f"
-      ],
-      "text": "Lift your toes and forefoot, and hold.",
+      "text": "No problem, we will skip this one for today.",
       "bytes": 41004
     },
-    "347ade1abd02ff1badccb1dcb8d8d531bb0883296ec808dc07ef4ddc78df2cc0.mp3": {
+    "684a1d0870d195e65eb498223678039da8df35a8375f3b49ed9f6c1f5247b5eb.mp3": {
       "phraseIds": [
-        "exercise-1e8006dc"
+        "reach-34faa918"
       ],
-      "text": "Lower the front of your foot slowly until it rests on the floor.",
-      "bytes": 56886
-    },
-    "af0cb8630821e93a8270cfa5757bf0e71c3d497218e00dd2424d4890fbaae654.mp3": {
-      "phraseIds": [
-        "exercise-d34a153c"
-      ],
-      "text": "Your knee lifted with the foot. Keep the knee quiet while the ankle moves.",
-      "bytes": 68589
-    },
-    "7deae918678b2e22595e07158c32cd4faf5eab591a90104f94c781e496e801cd.mp3": {
-      "phraseIds": [
-        "exercise-63965f9a"
-      ],
-      "text": "Nearly there. Keep the heel planted and aim for a slightly higher toe lift.",
-      "bytes": 69425
-    },
-    "fc07af53983d227864f182409c2d585e52ee5a3a77c47af9b7560a0f03645fb5.mp3": {
-      "phraseIds": [
-        "exercise-ca374f2b"
-      ],
-      "text": "Great effort. Keep the heel planted and the lift smooth.",
-      "bytes": 54378
-    },
-    "f2b8f38802c0222295d6e770f5badd92845616c470c673466287b4c54a6cf22a.mp3": {
-      "phraseIds": [
-        "exercise-72a64920"
-      ],
-      "text": "Straighten your elbow a little more as you reach toward the circle.",
-      "bytes": 55214
-    },
-    "15dce7bf07d6affdc86cc8d1df2058ec2bfc36c2627c51c9506feb2605ccb434.mp3": {
-      "phraseIds": [
-        "exercise-8153bff8"
-      ],
-      "text": "Lift your arm a little more from your shoulder, keeping your chest upright.",
-      "bytes": 65663
-    },
-    "83711d7ccf88f526552bf7af0c83828dbbdc2530cfff93e28362d36787d46b72.mp3": {
-      "phraseIds": [
-        "exercise-2ca32714"
-      ],
-      "text": "The next target will be a little closer.",
-      "bytes": 33062
-    },
-    "a8e8f995a3c651af390fe3e1fd0d2fac5f17b51db3593eddcc80b5d474eb19fe.mp3": {
-      "phraseIds": [
-        "exercise-26cf3be9"
-      ],
-      "text": "Keep your face and both shoulders in view so I can check your posture.",
-      "bytes": 59812
-    },
-    "d948a61c9358b22291c13df87b09412fb4b0415575d588de426b4c520e14a6ab.mp3": {
-      "phraseIds": [
-        "exercise-2b74ff8e"
-      ],
-      "text": "You reached the movement targets with a smooth movement.",
-      "bytes": 53960
-    },
-    "5513a60365dd82f9b7d67fe6bedc4fae3e33b9bbefbec3a1e2eb912735499b58.mp3": {
-      "phraseIds": [
-        "exercise-48426155"
-      ],
-      "text": "Keep your face and both shoulders in view so I can check your posture on the next repetition.",
-      "bytes": 86561
-    },
-    "765926bcf3ee128eda888f1280cdfcb09768c96f958f3c56c37180cd5664345a.mp3": {
-      "phraseIds": [
-        "exercise-be7f61af"
-      ],
-      "text": "You reached the movement targets. Keep the same smooth movement on your next repetition.",
-      "bytes": 91577
-    },
-    "86c73b69e8a970437b12f48f2f4cd53b443457986153d4cdc3b458e93a7a9934.mp3": {
-      "phraseIds": [
-        "exercise-b68a0a05"
-      ],
-      "text": "Move a little further through shoulder reach.",
-      "bytes": 35988
-    },
-    "ca6091ece5dc2b1d7088751634a225349fa34d350a67145e718c2a79c101c9eb.mp3": {
-      "phraseIds": [
-        "exercise-9e224411"
-      ],
-      "text": "Move a little further through shoulder reach on your next repetition.",
-      "bytes": 59812
-    },
-    "023cb2476699128225b3513062ab696a4edc7380d3cbfb7c89ff139e5450e15a.mp3": {
-      "phraseIds": [
-        "exercise-a47debac"
-      ],
-      "text": "Move a little further through elbow extension.",
-      "bytes": 41004
-    },
-    "79b89adbb4fba4629d6347901f57986aac0b147a66a08d0f1e095ae5c38909e4.mp3": {
-      "phraseIds": [
-        "exercise-00f3b6b8"
-      ],
-      "text": "Move a little further through elbow extension on your next repetition.",
-      "bytes": 63573
-    },
-    "224adf19ee0ae0b25600be9b2aece67ce05087b827e571706bc0db732d037358.mp3": {
-      "phraseIds": [
-        "exercise-aea38cdf"
-      ],
-      "text": "I noticed your back leaned forward. Try keeping your spine tall and let your arm do the work.",
-      "bytes": 84889
-    },
-    "b901213ee3b5bda86073b1548d65046b29ce6616192ccef0fc5d54864f4efcf0.mp3": {
-      "phraseIds": [
-        "exercise-2e4dba2c"
-      ],
-      "text": "Your shoulder lifted up toward your ear. Try keeping your shoulder relaxed and dropped down.",
-      "bytes": 91577
-    },
-    "b1ebca4b352ec19351537700f57f8592ca9ad7dc9948f458dffdff8cdaa9066a.mp3": {
-      "phraseIds": [
-        "exercise-11e04c18"
-      ],
-      "text": "Move a little further through elbow bend.",
-      "bytes": 35152
-    },
-    "18c1011ac182b3af5b86dec901e63a8c3f579ce2d7f24e691df01c3fbfb6a7a0.mp3": {
-      "phraseIds": [
-        "exercise-d56f9c8c"
-      ],
-      "text": "Move a little further through elbow bend on your next repetition.",
-      "bytes": 56050
-    },
-    "ecf910fbf1130a658525aaa56da80c3d31f0caf351db8757e7649eaf233e4be3.mp3": {
-      "phraseIds": [
-        "exercise-16de0c6f"
-      ],
-      "text": "Move a little further through shoulder lift.",
-      "bytes": 35152
-    },
-    "a25fc421833d1833625a2bf0a6e232b0b447f4e7ba0b5e81b27b2cef518f4dd4.mp3": {
-      "phraseIds": [
-        "exercise-92cf8c7b"
-      ],
-      "text": "Move a little further through shoulder lift on your next repetition.",
-      "bytes": 54378
-    },
-    "e9f350abd61adff5ffcad912a2e01b8e6fa52bfebded18967a47b4abd1957c6d.mp3": {
-      "phraseIds": [
-        "exercise-e7a93e31"
-      ],
-      "text": "Move a little further through supported arm elevation.",
-      "bytes": 52288
-    },
-    "f7700732f648e68f8dcd011e6ce289c35fb2fe4d93c247fdd920123f29db31ff.mp3": {
-      "phraseIds": [
-        "exercise-1b1c21a5"
-      ],
-      "text": "Move a little further through supported arm elevation on your next repetition.",
-      "bytes": 72351
-    },
-    "a31089c9f93c7a48fff409d5f9719981aa0c855eb48830da07bc96d4dbb72e36.mp3": {
-      "phraseIds": [
-        "exercise-e1656dc2"
-      ],
-      "text": "Move a little further through supported elbow position.",
-      "bytes": 49363
-    },
-    "bace35ccf5155f097a998eccc59f46e2ba7f3edbbf016aa8c5fd78efd8184ab2.mp3": {
-      "phraseIds": [
-        "exercise-b52250d6"
-      ],
-      "text": "Move a little further through supported elbow position on your next repetition.",
-      "bytes": 72351
-    },
-    "1f6330d916990b23a4204e6af85f04028526f2f7134f98dc047f8422bda24867.mp3": {
-      "phraseIds": [
-        "exercise-6084a0bd"
-      ],
-      "text": "I noticed you leaned to one side. Try to stay tall and centered.",
-      "bytes": 62737
-    },
-    "fdc939585997c7c445528846e326b012366cee9f4176fccef9bfd0df2d2ea234.mp3": {
-      "phraseIds": [
-        "exercise-c7a49303"
-      ],
-      "text": "Move a little further through finger opening.",
-      "bytes": 37660
-    },
-    "be838fa81f0e7f33647eacbaf13872f4d9dd4e07b3f1b1052cbe4ec7039004cf.mp3": {
-      "phraseIds": [
-        "exercise-dd3a4f97"
-      ],
-      "text": "Move a little further through finger opening on your next repetition.",
-      "bytes": 61066
-    },
-    "c659ea236481e4b5c66eed85bc3b29886cc4c9c736018181ae3814b77c69c449.mp3": {
-      "phraseIds": [
-        "exercise-4ae04006"
-      ],
-      "text": "Move a little further through elbow extension at the cup.",
-      "bytes": 54378
-    },
-    "397fc28c3d20f846b0d3229c9580d65e85b3f86f8d30b67731f9f11645aa8420.mp3": {
-      "phraseIds": [
-        "exercise-e4116112"
-      ],
-      "text": "Move a little further through elbow extension at the cup on your next repetition.",
-      "bytes": 74440
-    },
-    "2b5bee78b0afe6b576eca23fcbfe322d49fd16618275623f1c1bccbcfb2a79f1.mp3": {
-      "phraseIds": [
-        "exercise-20b3ce6c"
-      ],
-      "text": "Move a little further through reach to the object.",
-      "bytes": 44347
-    },
-    "ddcf5591e9128be0a4bb90204d79813a18aaa7da9f15796bab9c8578df1d2eb6.mp3": {
-      "phraseIds": [
-        "exercise-4833b778"
-      ],
-      "text": "Move a little further through reach to the object on your next repetition.",
-      "bytes": 64409
-    },
-    "d0d514c669591555ea4a32963fb13dab4a5ef233f822fbc8af4e5532d040f6b9.mp3": {
-      "phraseIds": [
-        "exercise-c648b6f1"
-      ],
-      "text": "Move a little further through hand opening.",
-      "bytes": 36824
-    },
-    "4aa5659eefba1248eb72feb77f534c206137875be96afa6a69144745be14e6d4.mp3": {
-      "phraseIds": [
-        "exercise-7a413e65"
-      ],
-      "text": "Move a little further through hand opening on your next repetition.",
-      "bytes": 56050
-    },
-    "01862da2239404190dd06d37dd96a66481f2e02b5f70618f9b59acc83fc6a13f.mp3": {
-      "phraseIds": [
-        "exercise-4a6d4a6f"
-      ],
-      "text": "Move a little further through controlled transport.",
-      "bytes": 53960
-    },
-    "875148ce2ec18befd96c6c04f6fb03d1329465f9119c7b5cbbf84f3eee0b97a0.mp3": {
-      "phraseIds": [
-        "exercise-0778ca7b"
-      ],
-      "text": "Move a little further through controlled transport on your next repetition.",
-      "bytes": 64409
-    },
-    "6179342da7a752af0887491d67186edee091d82fc329868ccf2b78b1fbe6a9fd.mp3": {
-      "phraseIds": [
-        "exercise-2f830d9d"
-      ],
-      "text": "Move a little further through thumb and finger control.",
-      "bytes": 45601
-    },
-    "8ad8b515db8554569af523d4fdcaf9103bf1c7ea041081cfcbf9878e3c90d068.mp3": {
-      "phraseIds": [
-        "exercise-e24fb589"
-      ],
-      "text": "Move a little further through thumb and finger control on your next repetition.",
-      "bytes": 65663
-    },
-    "e03c21278e1115f87274e428a53664409e6a0c1074a246160fa36b1d3b1ec6b4.mp3": {
-      "phraseIds": [
-        "exercise-1908793a"
-      ],
-      "text": "Move a little further through knee extension.",
-      "bytes": 40586
-    },
-    "1d82902b767da1aa3accbce9dea4618fd9f7fbd01ff7a364afe753b1f7ca4d5f.mp3": {
-      "phraseIds": [
-        "exercise-d36c7aae"
-      ],
-      "text": "Move a little further through knee extension on your next repetition.",
-      "bytes": 61902
-    },
-    "d2af2d092d814c9c07374696e39a16f8253a7694c03a1a89aee63aea95872794.mp3": {
-      "phraseIds": [
-        "exercise-78bc93d7"
-      ],
-      "text": "Move a little further through ankle dorsiflexion.",
-      "bytes": 46437
-    },
-    "ddc3af50782a24dc030f699423446e08251ef02632a83b45cf792f8232522db7.mp3": {
-      "phraseIds": [
-        "exercise-9ac00443"
-      ],
-      "text": "Move a little further through ankle dorsiflexion on your next repetition.",
-      "bytes": 65663
+      "text": "Only redo this exercise if you have enough energy and do not feel fatigued. If you feel tired, rest for now.",
+      "bytes": 119162
     },
     "8f54ee0fc1bef3a1dab6ee863c3409fb883bc4b15ebe314fad3f0a99d73e255d.mp3": {
       "phraseIds": [
-        "exercise-f5ad0cb0"
+        "reach-f5ad0cb0"
       ],
       "text": "Repetition 1 complete.",
       "bytes": 28465
     },
     "0cc952bdd0306697a1957fd7f9c5eb530458557944544e244261f3c17c195a68.mp3": {
       "phraseIds": [
-        "exercise-f02028a4"
+        "reach-f02028a4"
       ],
       "text": "Good. Now one repetitions.",
       "bytes": 41839
     },
     "f1b925a6379346044e781c9faef9e0599b3858cbf8be794593bd12d40fb73593.mp3": {
       "phraseIds": [
-        "exercise-286b8d73"
+        "reach-286b8d73"
       ],
       "text": "Repetition 2 complete.",
       "bytes": 32226
     },
     "94a03ab1b99c90a35841779069df7490260187651c56d56b23ed72426d3b1533.mp3": {
       "phraseIds": [
-        "exercise-e0b3664c"
+        "reach-e0b3664c"
       ],
       "text": "Good. Now two repetitions.",
       "bytes": 36824
     },
     "15f2dfd0ca9467ae19cde30c80b0a1d4b677d002d343b3982d323e34feebbb99.mp3": {
       "phraseIds": [
-        "exercise-01edf1b2"
+        "reach-01edf1b2"
       ],
       "text": "Repetition 3 complete.",
       "bytes": 30973
     },
     "75a943f7b2668e78f70e6b3ffa9f074f57d2763c8c53f08624fdddf393d9eb8a.mp3": {
       "phraseIds": [
-        "exercise-5203cb4e"
+        "reach-5203cb4e"
       ],
       "text": "Good. Now three repetitions.",
       "bytes": 35152
     },
     "ab2de30895ea4feaf9df2b24c05c5621820dce1bd4a343bc2584efe9dba734b8.mp3": {
       "phraseIds": [
-        "exercise-01811675"
+        "reach-01811675"
       ],
       "text": "Repetition 4 complete.",
       "bytes": 29301
     },
     "836c7e04890d15ffbd038c75b33e5e60afb5308ee3080e0652d19b33c389172d.mp3": {
       "phraseIds": [
-        "exercise-c5af42ae"
+        "reach-c5af42ae"
       ],
       "text": "Good. Now four repetitions.",
       "bytes": 35152
     },
     "bac47fca4f10db1f9934307c2ba2355365a15edc7fbd646f0ea5cb6a82f3e8ac.mp3": {
       "phraseIds": [
-        "exercise-db037ab4"
+        "reach-db037ab4"
       ],
       "text": "Repetition 5 complete.",
       "bytes": 31391
     },
     "6355056eb0187186901bac2a7a1457ac72e4d715be31b7dacdc7ad2dd24084fd.mp3": {
       "phraseIds": [
-        "exercise-86e7065c"
+        "reach-86e7065c"
       ],
       "text": "Good. Now five repetitions.",
       "bytes": 39750
     },
     "dd9a07647c00137af06b8b1b2b9801cb176df14e4b81bacadfa0b6bceec722d1.mp3": {
       "phraseIds": [
-        "exercise-0dc1fb77"
+        "reach-0dc1fb77"
       ],
       "text": "Repetition 6 complete.",
       "bytes": 32226
     },
     "692fd738f33c8b3edf56ffaada0d1cd8b8fcbc3aa1361e8a6c1f1289bab52ade.mp3": {
       "phraseIds": [
-        "exercise-a6bad402"
+        "reach-a6bad402"
       ],
       "text": "Good. Now six repetitions.",
       "bytes": 33062
     },
     "86c77479d706b92c8512acb2d8ca1342caaa209335f20998c1b7da4a24512453.mp3": {
       "phraseIds": [
-        "exercise-e7445fb6"
+        "reach-e7445fb6"
       ],
       "text": "Repetition 7 complete.",
       "bytes": 33062
     },
     "cda4ae7fc67c735938b3204d0a76d75f7d6c07e64665d5824e55e8d62787cba6.mp3": {
       "phraseIds": [
-        "exercise-b500c30b"
+        "reach-b500c30b"
       ],
       "text": "Good. Now seven repetitions.",
       "bytes": 34316
     },
     "85bcc5fb07f93183bcfdee55e1578bc935173eb54867d3019b3e72205cffebc1.mp3": {
       "phraseIds": [
-        "exercise-51754879"
+        "reach-51754879"
       ],
       "text": "Repetition 8 complete.",
       "bytes": 28465
     },
     "ef0ab06d28391e60396a3949caeadd626e22dca0e38d8d2d125290b0da2436e7.mp3": {
       "phraseIds": [
-        "exercise-08fb9377"
+        "reach-08fb9377"
       ],
       "text": "Good. Now eight repetitions.",
       "bytes": 47691
     },
     "db084007deb765a4df5334d2bec80b3f12a2bc3a9ef9bd3a0b987d9452fb1315.mp3": {
       "phraseIds": [
-        "exercise-2af7acb8"
+        "reach-2af7acb8"
       ],
       "text": "Repetition 9 complete.",
       "bytes": 27211
     },
     "8547b64856401707b9f54f81452144d76891230323dca16523f0577b458021eb.mp3": {
       "phraseIds": [
-        "exercise-f2f6ae4c"
+        "reach-f2f6ae4c"
       ],
       "text": "Good. Now nine repetitions.",
       "bytes": 42675
     },
     "ba4ba3f1212f61ca4b48c08482701d3c161b871e403c58b8a8ad94fd8e575ec0.mp3": {
       "phraseIds": [
-        "exercise-2d881460"
+        "reach-2d881460"
       ],
       "text": "Repetition 10 complete.",
       "bytes": 30973
     },
     "36342ecde906431043823dbcd20aef51f9821f3930c61de8fce4f623a21c9ae4.mp3": {
       "phraseIds": [
-        "exercise-2d10db3f"
+        "reach-2d10db3f"
       ],
       "text": "Good. Now ten repetitions.",
       "bytes": 44765
     },
     "a1fd87f7632f5251987bcb8bf8ac7dce717c717e622d2376a5e4ceba9bac1911.mp3": {
       "phraseIds": [
-        "exercise-605af221"
+        "reach-605af221"
       ],
       "text": "Repetition 11 complete.",
       "bytes": 30973
     },
     "2d60b63f9ffa130e216eec04a4ba76fd25d561f6789ceb10b09db26f1bcd21ea.mp3": {
       "phraseIds": [
-        "exercise-678afc60"
+        "reach-678afc60"
       ],
       "text": "Good. Now 11 repetitions.",
       "bytes": 37660
     },
     "096ae6a7b0e2c7c5a91a6fa7820b76999c677dc6bc5306356c980a490a8c6970.mp3": {
       "phraseIds": [
-        "exercise-4da93b62"
+        "reach-4da93b62"
       ],
       "text": "Repetition 12 complete.",
       "bytes": 33062
     },
     "e2ad57f5ac5450413a5eb1562eeb0b4883fedd0327431b0a66dac63ade8a6052.mp3": {
       "phraseIds": [
-        "exercise-45fc7f03"
+        "reach-45fc7f03"
       ],
       "text": "Good. Now 12 repetitions.",
       "bytes": 35152
     },
     "688d16510c7c8fea72a6a8f30848566f40209d412755f00f861f81aa982f0cb3.mp3": {
       "phraseIds": [
-        "exercise-807c1923"
+        "reach-807c1923"
       ],
       "text": "Repetition 13 complete.",
       "bytes": 36824
     },
     "9abe4527a408b69eed4c4228d2effd275bce6d2be22d4edf3e50edc8c88b970d.mp3": {
       "phraseIds": [
-        "exercise-27917f22"
+        "reach-27917f22"
       ],
       "text": "Good. Now 13 repetitions.",
       "bytes": 44765
     },
     "2e308e379e379052d58dbb53d53dd641968921f7c73922a8075c7a0e30264baf.mp3": {
       "phraseIds": [
-        "exercise-12de8264"
+        "reach-12de8264"
       ],
       "text": "Repetition 14 complete.",
       "bytes": 35152
     },
     "e610c36ef3cd20dba0c7247e9ba8480b0192e1a997c1215d48eddc4f9ec15c8a.mp3": {
       "phraseIds": [
-        "exercise-6f60dac5"
+        "reach-6f60dac5"
       ],
       "text": "Good. Now 14 repetitions.",
       "bytes": 48527
     },
     "25910f90c4b21c45b5d994793f66740a25059ab5289549add5d88fe712caa233.mp3": {
       "phraseIds": [
-        "exercise-45b16025"
+        "reach-45b16025"
       ],
       "text": "Repetition 15 complete.",
       "bytes": 32226
     },
     "9f2ae61e19da69121ae9a441be30f6dea8addd8be6f6d38038c64b44c5b8a971.mp3": {
       "phraseIds": [
-        "exercise-50f5dae4"
+        "reach-50f5dae4"
       ],
       "text": "Good. Now 15 repetitions.",
       "bytes": 46437
     },
     "494644a4b397f11bab278d4dc37e21dbdac3b1e2a5f66177d48097dd1bf26a4d.mp3": {
       "phraseIds": [
-        "exercise-9d14ff4e"
+        "reach-9d14ff4e"
       ],
       "text": "Your score is 0 out of 100.",
       "bytes": 41004
     },
     "0cb666b5d640bc1960c610ce0105acf1c175906a6435bc5cd88c5b4bf3b238e9.mp3": {
       "phraseIds": [
-        "exercise-cf971f4f"
+        "reach-cf971f4f"
       ],
       "text": "Your score is 1 out of 100.",
       "bytes": 33898
     },
     "f01420c260679fb62dcf5bd51e4a1c30412fc0196fff391972000493846a5d4e.mp3": {
       "phraseIds": [
-        "exercise-c3e9b0cc"
+        "reach-c3e9b0cc"
       ],
       "text": "Your score is 2 out of 100.",
       "bytes": 33898
     },
     "567b78e4ce12748cf389701cba259b49810c3310c70137f8a57851802228969d.mp3": {
       "phraseIds": [
-        "exercise-f66bd0cd"
+        "reach-f66bd0cd"
       ],
       "text": "Your score is 3 out of 100.",
       "bytes": 38914
     },
     "b79ce8bd67fed7d46b247782ef07f34485863e502f393a85d1dc33cd53872dcd.mp3": {
       "phraseIds": [
-        "exercise-b8e4e14a"
+        "reach-b8e4e14a"
       ],
       "text": "Your score is 4 out of 100.",
       "bytes": 38078
     },
     "6cfc902f4888d040bb500f634b3a0b6fb770e96ac7789bd41d234dabdb20e119.mp3": {
       "phraseIds": [
-        "exercise-eb67014b"
+        "reach-eb67014b"
       ],
       "text": "Your score is 5 out of 100.",
       "bytes": 40586
     },
     "ba870d15844587a2c28c8d794b2df7aa0c2a147fdf045f32dd22ab9cd024133f.mp3": {
       "phraseIds": [
-        "exercise-dfb992c8"
+        "reach-dfb992c8"
       ],
       "text": "Your score is 6 out of 100.",
       "bytes": 36824
     },
     "13155c907ee239ee832bfed86ef35822d522d8d235150ba4c94e81072f920fdb.mp3": {
       "phraseIds": [
-        "exercise-123bb2c9"
+        "reach-123bb2c9"
       ],
       "text": "Your score is 7 out of 100.",
       "bytes": 36824
     },
     "789f05f95b1164c041069d2e0643777eea5752f2d3dddc19d95c41bee0317954.mp3": {
       "phraseIds": [
-        "exercise-91e5c346"
+        "reach-91e5c346"
       ],
       "text": "Your score is 8 out of 100.",
       "bytes": 37660
     },
     "d65af3e2b8b4f857e3d6c860d10f56c067e824865f544420b232d81ccaae6d75.mp3": {
       "phraseIds": [
-        "exercise-c467e347"
+        "reach-c467e347"
       ],
       "text": "Your score is 9 out of 100.",
       "bytes": 37660
     },
     "a3ded4a61a2fc7a076b7e1ec989b715572f03dbf07d0fa4eb5131cfd3c3eec6e.mp3": {
       "phraseIds": [
-        "exercise-a0a8a59f"
+        "reach-a0a8a59f"
       ],
       "text": "Your score is 10 out of 100.",
       "bytes": 35988
     },
     "207e979a7aa45985b2bb181e51d3ce374950d9e2ed1ced9a489222aadf62c006.mp3": {
       "phraseIds": [
-        "exercise-ebf2459e"
+        "reach-ebf2459e"
       ],
       "text": "Your score is 11 out of 100.",
       "bytes": 36824
     },
     "6b6457ef8ccaa4b1c92c1e1b92ae6802ac2cac69cecbd5dfec18e6fc925ffd6d.mp3": {
       "phraseIds": [
-        "exercise-1214d71d"
+        "reach-1214d71d"
       ],
       "text": "Your score is 12 out of 100.",
       "bytes": 34316
     },
     "c5a3e7c43fdded85fa03655da3bfaa156fefad32775de6ca057a9a7bbd0af2eb.mp3": {
       "phraseIds": [
-        "exercise-5d5e771c"
+        "reach-5d5e771c"
       ],
       "text": "Your score is 13 out of 100.",
       "bytes": 40586
     },
     "097887bb4323c772347ee0a67b1493a08493602d94ea0bf2b8c0c460f4864ce8.mp3": {
       "phraseIds": [
-        "exercise-bc78879b"
+        "reach-bc78879b"
       ],
       "text": "Your score is 14 out of 100.",
       "bytes": 35988
     },
     "00c5c50a8f6802efb6f69b7cea7ccc1c5d143b47f8e586f2358ecede5f749eb0.mp3": {
       "phraseIds": [
-        "exercise-07c2279a"
+        "reach-07c2279a"
       ],
       "text": "Your score is 15 out of 100.",
       "bytes": 40586
     },
     "474161f80c0e49f00ae242d166e2ba3e345848ba425d17954c188af9885b80c9.mp3": {
       "phraseIds": [
-        "exercise-2de4b919"
+        "reach-2de4b919"
       ],
       "text": "Your score is 16 out of 100.",
       "bytes": 41004
     },
     "9926f8cb1a2493956787ca4268be101917c7a10997435cb38fc0819815579d00.mp3": {
       "phraseIds": [
-        "exercise-792e5918"
+        "reach-792e5918"
       ],
       "text": "Your score is 17 out of 100.",
       "bytes": 41839
     },
     "ac72778f7355ab522b798eb10d5e309cc03c49600d0b855954b40e7bed051971.mp3": {
       "phraseIds": [
-        "exercise-95796997"
+        "reach-95796997"
       ],
       "text": "Your score is 18 out of 100.",
       "bytes": 36824
     },
     "64bb31506215aaf6a4fadfe95b726e011126393a2351ea139db97af11c265b17.mp3": {
       "phraseIds": [
-        "exercise-e0c30996"
+        "reach-e0c30996"
       ],
       "text": "Your score is 19 out of 100.",
       "bytes": 43511
     },
     "816019feccd803c60eaac084d57b175b8804c3b1857f9dde0ba6531147ecb321.mp3": {
       "phraseIds": [
-        "exercise-2b15467c"
+        "reach-2b15467c"
       ],
       "text": "Your score is 20 out of 100.",
       "bytes": 34316
     },
     "ba9c004426d6cd4815300e01fd7e720395334ddee0fb39e33f25de60afe4d60f.mp3": {
       "phraseIds": [
-        "exercise-8dfec87d"
+        "reach-8dfec87d"
       ],
       "text": "Your score is 21 out of 100.",
       "bytes": 38914
     },
     "d13e57110a14c81fce928e984e26892e9a557d5b787f699e421d9010e460d637.mp3": {
       "phraseIds": [
-        "exercise-0ed1b5fe"
+        "reach-0ed1b5fe"
       ],
       "text": "Your score is 22 out of 100.",
       "bytes": 44347
     },
     "a57bbca72d92c9bb2e5ea39cd49d1e4e7982640c534d49727707aff3d0046186.mp3": {
       "phraseIds": [
-        "exercise-120175ff"
+        "reach-120175ff"
       ],
       "text": "Your score is 23 out of 100.",
       "bytes": 41004
     },
     "747551857d53b13496b5bfa73730206228063d881d9c7dabca24f01281950090.mp3": {
       "phraseIds": [
-        "exercise-46e52878"
+        "reach-46e52878"
       ],
       "text": "Your score is 24 out of 100.",
       "bytes": 42675
     },
     "3869480629941e6bafb9befec86b6b44bbe60403b268707d7a31afffa43583b7.mp3": {
       "phraseIds": [
-        "exercise-a9ceaa79"
+        "reach-a9ceaa79"
       ],
       "text": "Your score is 25 out of 100.",
       "bytes": 40586
     },
     "4db84ef0b4d51fa03f70c245490f5fb6ada4bffd89e247308b193697bd439df2.mp3": {
       "phraseIds": [
-        "exercise-2aa197fa"
+        "reach-2aa197fa"
       ],
       "text": "Your score is 26 out of 100.",
       "bytes": 38914
     },
     "60074edcb9d67d0783842f40cb144a2c89aa0c508ed5893ab1ec51dbc7002ea0.mp3": {
       "phraseIds": [
-        "exercise-2dd157fb"
+        "reach-2dd157fb"
       ],
       "text": "Your score is 27 out of 100.",
       "bytes": 37660
     },
     "d8c49a78b399f9cb443a940b022dff33763290dec6f79ede88c32a7756fb5a14.mp3": {
       "phraseIds": [
-        "exercise-1fe60a74"
+        "reach-1fe60a74"
       ],
       "text": "Your score is 28 out of 100.",
       "bytes": 41004
     },
     "91c0f8c57ccf4ac54c6751911eacfd9262c342422508624205ad4809c802f874.mp3": {
       "phraseIds": [
-        "exercise-82cf8c75"
+        "reach-82cf8c75"
       ],
       "text": "Your score is 29 out of 100.",
       "bytes": 38914
     },
     "1fa18c09d8f6b2046785108fbc5da22c4f766b50f7df1f17f943a0d757225019.mp3": {
       "phraseIds": [
-        "exercise-0247375d"
+        "reach-0247375d"
       ],
       "text": "Your score is 30 out of 100.",
       "bytes": 38914
     },
     "51aa48a5730ca14ac3cc6a5d8cc5baf91ae1d285bb6eb117232841f294747bdf.mp3": {
       "phraseIds": [
-        "exercise-cfc5175c"
+        "reach-cfc5175c"
       ],
       "text": "Your score is 31 out of 100.",
       "bytes": 45601
     },
     "efd64e4283ed9bd697b694c14d4c1f6fcde9c9b8ae2b050d1f608067c92496bc.mp3": {
       "phraseIds": [
-        "exercise-db7285df"
+        "reach-db7285df"
       ],
       "text": "Your score is 32 out of 100.",
       "bytes": 41004
     },
     "5c2c5b244bd004b179bc75cb3ede07db343657b648446bcb0a31ea7c0004b9dc.mp3": {
       "phraseIds": [
-        "exercise-a8f065de"
+        "reach-a8f065de"
       ],
       "text": "Your score is 33 out of 100.",
       "bytes": 45601
     },
     "631be53cfc0f070a538fae5ae9b09e488cc931c940ed7daafa6855c4ccbee0d4.mp3": {
       "phraseIds": [
-        "exercise-1e171959"
+        "reach-1e171959"
       ],
       "text": "Your score is 34 out of 100.",
       "bytes": 44765
     },
     "427fe9486492bfe97025d73d49e12511c4bbfac14e5b35ec912779787a6ea474.mp3": {
       "phraseIds": [
-        "exercise-eb94f958"
+        "reach-eb94f958"
       ],
       "text": "Your score is 35 out of 100.",
       "bytes": 44347
     },
     "2f0eb9d6fd0d2481514e3a08eea8fbe847c835a60246e25081f13049867140e9.mp3": {
       "phraseIds": [
-        "exercise-f74267db"
+        "reach-f74267db"
       ],
       "text": "Your score is 36 out of 100.",
       "bytes": 44347
     },
     "f152b8cf63950c5499686dd005d7940b03314d771a8bcb5de9446c50f78b9c95.mp3": {
       "phraseIds": [
-        "exercise-c4c047da"
+        "reach-c4c047da"
       ],
       "text": "Your score is 37 out of 100.",
       "bytes": 41004
     },
     "2ba21c7b99ac46832b8ee5ee34f2770a80a4f46afa5b8a61934759154e503b14.mp3": {
       "phraseIds": [
-        "exercise-f717fb55"
+        "reach-f717fb55"
       ],
       "text": "Your score is 38 out of 100.",
       "bytes": 44347
     },
     "79063c07b4e3ade640793b7bafbb26b2adb162d2ee73a01051e96a5e4dfeb259.mp3": {
       "phraseIds": [
-        "exercise-c495db54"
+        "reach-c495db54"
       ],
       "text": "Your score is 39 out of 100.",
       "bytes": 43511
     },
     "655a40095808693e9768c245ee2714eb1e06e0d65f7fe8cd10141df1b7b4e92f.mp3": {
       "phraseIds": [
-        "exercise-35c1d63a"
+        "reach-35c1d63a"
       ],
       "text": "Your score is 40 out of 100.",
       "bytes": 40586
     },
     "ffcafe481375feb2850c199455fd6ce80630fd89c5f746edeaa51fcb717d25b2.mp3": {
       "phraseIds": [
-        "exercise-1677183b"
+        "reach-1677183b"
       ],
       "text": "Your score is 41 out of 100.",
       "bytes": 39750
     },
     "581ab61930146c9fe5817bd3ebbe2cba53a91a2c76db9d5979f24637cb3a939c.mp3": {
       "phraseIds": [
-        "exercise-b1bf28b8"
+        "reach-b1bf28b8"
       ],
       "text": "Your score is 42 out of 100.",
       "bytes": 42675
     },
     "38b0579f5da3257771499ed24622dbc14e7ff69040e2fbea903322f5bb03b159.mp3": {
       "phraseIds": [
-        "exercise-32baa8b9"
+        "reach-32baa8b9"
       ],
       "text": "Your score is 43 out of 100.",
       "bytes": 44765
     },
     "8fc4307ba016f5771beb7fb6b866ffa4f06a692445afd2c32295b41c7276af06.mp3": {
       "phraseIds": [
-        "exercise-19f1f43e"
+        "reach-19f1f43e"
       ],
       "text": "Your score is 44 out of 100.",
       "bytes": 44347
     },
     "5f3b249e8630d2d0e1851163407789c60f45dd6ef3ab268995b8c4f1c4787a6b.mp3": {
       "phraseIds": [
-        "exercise-faa7363f"
+        "reach-faa7363f"
       ],
       "text": "Your score is 45 out of 100.",
       "bytes": 35988
     },
     "939fe7ee347955cd9c0d38ad7c7445691719d9060bfcc121ac5299a776257f1d.mp3": {
       "phraseIds": [
-        "exercise-95ef46bc"
+        "reach-95ef46bc"
       ],
       "text": "Your score is 46 out of 100.",
       "bytes": 45601
     },
     "89f3fa6bfaab6ed62d342a0745d55ba0eacc370b393e29d93bdeea380b025d14.mp3": {
       "phraseIds": [
-        "exercise-16eac6bd"
+        "reach-16eac6bd"
       ],
       "text": "Your score is 47 out of 100.",
       "bytes": 44347
     },
     "6a48db15eb4ddfdbec7c92ab19bea3dfa8f6ef495b2a764a15b8f1b347af7650.mp3": {
       "phraseIds": [
-        "exercise-2a929a32"
+        "reach-2a929a32"
       ],
       "text": "Your score is 48 out of 100.",
       "bytes": 41004
     },
     "dbf396902a5da2f6780ccdccf3816e4b99395461a9860e5e80e561e5464518ca.mp3": {
       "phraseIds": [
-        "exercise-0b47dc33"
+        "reach-0b47dc33"
       ],
       "text": "Your score is 49 out of 100.",
       "bytes": 44765
     },
     "5785ef25e632ec2c99480ffd1e3a1f04f207816a35659537ec703c7dfd07fdbf.mp3": {
       "phraseIds": [
-        "exercise-0cf3c71b"
+        "reach-0cf3c71b"
       ],
       "text": "Your score is 50 out of 100.",
       "bytes": 41004
     },
     "49a7d368289f7ba797e4d1532286bdf0b4432561a7206194223f43f756f0234d.mp3": {
       "phraseIds": [
-        "exercise-583d671a"
+        "reach-583d671a"
       ],
       "text": "Your score is 51 out of 100.",
       "bytes": 41004
     },
     "e3960de61fcf6d24ad83674cca91d92bc04692b3c1f5a2f3f2db26b730a66fbb.mp3": {
       "phraseIds": [
-        "exercise-7e5ff899"
+        "reach-7e5ff899"
       ],
       "text": "Your score is 52 out of 100.",
       "bytes": 41839
     },
     "942974a0bd4db7142b64d409cfe1c40e81a464c3da222a492410718f9e6f8f87.mp3": {
       "phraseIds": [
-        "exercise-c9a99898"
+        "reach-c9a99898"
       ],
       "text": "Your score is 53 out of 100.",
       "bytes": 39750
     },
     "d2da5f5e6235eaded37506f937d88f1f39b390e516c1f22591ca6396805ed8f2.mp3": {
       "phraseIds": [
-        "exercise-f123e51f"
+        "reach-f123e51f"
       ],
       "text": "Your score is 54 out of 100.",
       "bytes": 41839
     },
     "1ddfb2cc6bfcf793abf197cd636b3da32dd02eba5f2deb6760a0edf554a2855d.mp3": {
       "phraseIds": [
-        "exercise-3c6d851e"
+        "reach-3c6d851e"
       ],
       "text": "Your score is 55 out of 100.",
       "bytes": 44765
     },
     "0f7934d4f655f49ec3b996f13b1cac3e66160454a5f13f4c384d7ef929676f60.mp3": {
       "phraseIds": [
-        "exercise-6290169d"
+        "reach-6290169d"
       ],
       "text": "Your score is 56 out of 100.",
       "bytes": 41004
     },
     "18d3f976ebf8eeca986254bae74af6bd1328d68709e7165ddd0449decb6cb078.mp3": {
       "phraseIds": [
-        "exercise-add9b69c"
+        "reach-add9b69c"
       ],
       "text": "Your score is 57 out of 100.",
       "bytes": 43511
     },
     "33cc7e3c8a2b19ea62488826b5211a7a650ff13b4f5346162c7a3a6d9473876a.mp3": {
       "phraseIds": [
-        "exercise-01c48b13"
+        "reach-01c48b13"
       ],
       "text": "Your score is 58 out of 100.",
       "bytes": 40586
     },
     "e97606e9450b62b94a221b8ccd348349e646800a5b88c38ca3659600d2ef5c13.mp3": {
       "phraseIds": [
-        "exercise-4d0e2b12"
+        "reach-4d0e2b12"
       ],
       "text": "Your score is 59 out of 100.",
       "bytes": 46437
     },
     "fec3195f60f2cea8bfeae9ba64ef87501e1077d159eb531a04639504632f6d15.mp3": {
       "phraseIds": [
-        "exercise-976067f8"
+        "reach-976067f8"
       ],
       "text": "Your score is 60 out of 100.",
       "bytes": 38078
     },
     "72572de7c594f2d2b56a512d966010033294d1cae39902adfac640daf001a027.mp3": {
       "phraseIds": [
-        "exercise-fa49e9f9"
+        "reach-fa49e9f9"
       ],
       "text": "Your score is 61 out of 100.",
       "bytes": 38914
     },
     "a93bf4992d8345c6b178623e9b4cbd8c0d2eeba8e1113f9ea0e843a5f58bc071.mp3": {
       "phraseIds": [
-        "exercise-7b1cd77a"
+        "reach-7b1cd77a"
       ],
       "text": "Your score is 62 out of 100.",
       "bytes": 42675
     },
     "5129c4d82a428a1f8ac4c21ad48672d00397dc0476b73e02f943dbe99cb8063c.mp3": {
       "phraseIds": [
-        "exercise-7e4c977b"
+        "reach-7e4c977b"
       ],
       "text": "Your score is 63 out of 100.",
       "bytes": 44347
     },
     "e485a0793feadac024245443a8ef9621b11736f9177e0994721faa1a15ac3f38.mp3": {
       "phraseIds": [
-        "exercise-7b9085fc"
+        "reach-7b9085fc"
       ],
       "text": "Your score is 64 out of 100.",
       "bytes": 48527
     },
     "a32723bfbbf9eb64dc1e33e01f322976786db91978056043145f490b90ca5680.mp3": {
       "phraseIds": [
-        "exercise-de7a07fd"
+        "reach-de7a07fd"
       ],
       "text": "Your score is 65 out of 100.",
       "bytes": 44347
     },
     "76be94d16c7b20abf70ba95f81793c38485c71ffa2d2d824d7514b279f5a79cd.mp3": {
       "phraseIds": [
-        "exercise-5f4cf57e"
+        "reach-5f4cf57e"
       ],
       "text": "Your score is 66 out of 100.",
       "bytes": 41004
     },
     "4a7d2990f3830dafe06e2d1a27fe55fe6718b8ac8c4969ab88ab07b73b1cde22.mp3": {
       "phraseIds": [
-        "exercise-627cb57f"
+        "reach-627cb57f"
       ],
       "text": "Your score is 67 out of 100.",
       "bytes": 43511
     },
     "a835594073b6cdf9e14dc803beca00c1dfce61b4de0877cdd17eddc98b016913.mp3": {
       "phraseIds": [
-        "exercise-8c312bf0"
+        "reach-8c312bf0"
       ],
       "text": "Your score is 68 out of 100.",
       "bytes": 44347
     },
     "9f5432562b168cf2edc0c7e873a12401db924b706acecc6ebb4eaf1b8592b086.mp3": {
       "phraseIds": [
-        "exercise-ef1aadf1"
+        "reach-ef1aadf1"
       ],
       "text": "Your score is 69 out of 100.",
       "bytes": 44765
     },
     "8022976ffbff143554da11419c7647e7f8f664b4d341f6c9d43e71c4326ba4ca.mp3": {
       "phraseIds": [
-        "exercise-6e9258d9"
+        "reach-6e9258d9"
       ],
       "text": "Your score is 70 out of 100.",
       "bytes": 39750
     },
     "6dcb4fc68e406f524deded85d1662cafa2f632b27ab161078970d3e2e24fcc3e.mp3": {
       "phraseIds": [
-        "exercise-3c1038d8"
+        "reach-3c1038d8"
       ],
       "text": "Your score is 71 out of 100.",
       "bytes": 38078
     },
     "de74f8c24842e28326e75410690befa1eaeb9f06bd267c208d669c1a4e2ea7f4.mp3": {
       "phraseIds": [
-        "exercise-47bda75b"
+        "reach-47bda75b"
       ],
       "text": "Your score is 72 out of 100.",
       "bytes": 39750
     },
     "9524352d987a054f70f80d54aefdcd868ea9a1a8175740ba5107fd947b9d9a32.mp3": {
       "phraseIds": [
-        "exercise-153b875a"
+        "reach-153b875a"
       ],
       "text": "Your score is 73 out of 100.",
       "bytes": 42675
     },
     "255c519e8ca8391d49c653ce7af99ec89382fb68fe5e5d1c702104c48362e6ff.mp3": {
       "phraseIds": [
-        "exercise-52c276dd"
+        "reach-52c276dd"
       ],
       "text": "Your score is 74 out of 100.",
       "bytes": 42675
     },
     "96f20dd7cbc3ed4fb9cbb479245f72c0eeb56bc459eedbb595b6f6f96f5a83f6.mp3": {
       "phraseIds": [
-        "exercise-204056dc"
+        "reach-204056dc"
       ],
       "text": "Your score is 75 out of 100.",
       "bytes": 47273
     },
     "4b4d6df04cfc3cb51e749c793464f92d6dce9cbb2728f079bae327a99c5393c7.mp3": {
       "phraseIds": [
-        "exercise-2bedc55f"
+        "reach-2bedc55f"
       ],
       "text": "Your score is 76 out of 100.",
       "bytes": 44765
     },
     "99ca31684302d3937dd3976dbb45546085113aff813f5341b204bde23354137f.mp3": {
       "phraseIds": [
-        "exercise-f96ba55e"
+        "reach-f96ba55e"
       ],
       "text": "Your score is 77 out of 100.",
       "bytes": 42675
     },
     "ff3ffd7d6c2b666cac9369da486134886946b61497ae3d0d6c83e3a4d0dc0bfe.mp3": {
       "phraseIds": [
-        "exercise-63631cd1"
+        "reach-63631cd1"
       ],
       "text": "Your score is 78 out of 100.",
       "bytes": 44765
     },
     "b01f9cec8e92c512175c74c93e10179ebeeddf41f3f201baf1e4972bab2ff367.mp3": {
       "phraseIds": [
-        "exercise-30e0fcd0"
+        "reach-30e0fcd0"
       ],
       "text": "Your score is 79 out of 100.",
       "bytes": 44765
     },
     "1fbd73253fd721e7617be64dcd742725147a12d65308596b9ebb22a8df519854.mp3": {
       "phraseIds": [
-        "exercise-1d50f9b6"
+        "reach-1d50f9b6"
       ],
       "text": "Your score is 80 out of 100.",
       "bytes": 41004
     },
     "0010baf594b0623cb18842f32dab40456d606176d8c738202a686bd53200d3d0.mp3": {
       "phraseIds": [
-        "exercise-fe063bb7"
+        "reach-fe063bb7"
       ],
       "text": "Your score is 81 out of 100.",
       "bytes": 41839
     },
     "2993cadda1aaa054edc5a64d402b0fc55eb73f79f73f2aa1265ca9b90ad2d9c0.mp3": {
       "phraseIds": [
-        "exercise-994e4c34"
+        "reach-994e4c34"
       ],
       "text": "Your score is 82 out of 100.",
       "bytes": 41839
     },
     "de95a764bf66b42fb08fc0693e86a63eea4adad46d6741bab932b7477b3738cc.mp3": {
       "phraseIds": [
-        "exercise-1a49cc35"
+        "reach-1a49cc35"
       ],
       "text": "Your score is 83 out of 100.",
       "bytes": 41839
     },
     "1069970dbbeca538954a6467c1f30375dbabe28304ecc5b7a30f7c7e410212c4.mp3": {
       "phraseIds": [
-        "exercise-3920dbb2"
+        "reach-3920dbb2"
       ],
       "text": "Your score is 84 out of 100.",
       "bytes": 43511
     },
     "d73a5c085390ffd121d194d54879a0eba2562497db6c593484ce5a0a93edc4d5.mp3": {
       "phraseIds": [
-        "exercise-19d61db3"
+        "reach-19d61db3"
       ],
       "text": "Your score is 85 out of 100.",
       "bytes": 41004
     },
     "8dc5a8cd88f1c155393fe3723ea988d51faf5b06e0c4914bf5c234e33754b787.mp3": {
       "phraseIds": [
-        "exercise-b51e2e30"
+        "reach-b51e2e30"
       ],
       "text": "Your score is 86 out of 100.",
       "bytes": 39750
     },
     "1d48ec8804f7b01e4bfd045b8b66d796383078ea572009990d0c5468e40af6af.mp3": {
       "phraseIds": [
-        "exercise-3619ae31"
+        "reach-3619ae31"
       ],
       "text": "Your score is 87 out of 100.",
       "bytes": 47273
     },
     "7ff7030b2422da705632d16141461683a7255a0ecf594ad62fc1655dd734bd8a.mp3": {
       "phraseIds": [
-        "exercise-288035be"
+        "reach-288035be"
       ],
       "text": "Your score is 88 out of 100.",
       "bytes": 35988
     },
     "db11f5090935d32fcc682fa482a2b4d8d01c240d3b5484d071c4f66d4658f031.mp3": {
       "phraseIds": [
-        "exercise-093577bf"
+        "reach-093577bf"
       ],
       "text": "Your score is 89 out of 100.",
       "bytes": 41839
     },
     "b67f912d916fe12aad4111d86f80f82e34c271a6b39c02744a896b6e5675fa16.mp3": {
       "phraseIds": [
-        "exercise-f482ea97"
+        "reach-f482ea97"
       ],
       "text": "Your score is 90 out of 100.",
       "bytes": 34316
     },
     "8010e5e9f7c028aced52d3e682dac0ce2604d90d569a340adafbe6c941c853ca.mp3": {
       "phraseIds": [
-        "exercise-3fcc8a96"
+        "reach-3fcc8a96"
       ],
       "text": "Your score is 91 out of 100.",
       "bytes": 44347
     },
     "4221104645dd6affb2a5d8ea2721bdc12173efd32c8a8d0e5b3a987e48e5010b.mp3": {
       "phraseIds": [
-        "exercise-65ef1c15"
+        "reach-65ef1c15"
       ],
       "text": "Your score is 92 out of 100.",
       "bytes": 44765
     },
     "981c49b810118df06486380a497a25625c3f5d5f5d9fdb2dc95f76a27801a8a7.mp3": {
       "phraseIds": [
-        "exercise-b138bc14"
+        "reach-b138bc14"
       ],
       "text": "Your score is 93 out of 100.",
       "bytes": 44765
     },
     "3fc323dd6905e6c55c760b5fb597e864a7c31e1c83c947f0d130dc010578d0cb.mp3": {
       "phraseIds": [
-        "exercise-1052cc93"
+        "reach-1052cc93"
       ],
       "text": "Your score is 94 out of 100.",
       "bytes": 47691
     },
     "363cb71af11bb37c6608cd92b7c46cebcf461f947ae1a14486a57050e64fc475.mp3": {
       "phraseIds": [
-        "exercise-5b9c6c92"
+        "reach-5b9c6c92"
       ],
       "text": "Your score is 95 out of 100.",
       "bytes": 44347
     },
     "dbaf769dbc1980fd27b1546e15e0b622fe6d8e7038b8e5a7f3c25ed6bc200010.mp3": {
       "phraseIds": [
-        "exercise-81befe11"
+        "reach-81befe11"
       ],
       "text": "Your score is 96 out of 100.",
       "bytes": 41839
     },
     "35a6a8fb09d7faebb30f2834586399542ec04d2ec0bfe39479b0189aa692d76c.mp3": {
       "phraseIds": [
-        "exercise-cd089e10"
+        "reach-cd089e10"
       ],
       "text": "Your score is 97 out of 100.",
       "bytes": 44765
     },
     "83d3f087a65fb02954cd7544cd2cf65b17ecdb837276b1b3bbf73ff4ebb65a7f.mp3": {
       "phraseIds": [
-        "exercise-ffb2269f"
+        "reach-ffb2269f"
       ],
       "text": "Your score is 98 out of 100.",
       "bytes": 41839
     },
     "9c1c7e2628808af6e63bcfff32d448aa6c1730bfc80cde032db1235cfc33000b.mp3": {
       "phraseIds": [
-        "exercise-4afbc69e"
+        "reach-4afbc69e"
       ],
       "text": "Your score is 99 out of 100.",
       "bytes": 37660
     },
     "fb728a91da87dc9669a6fb75562551091842d3c827b3f31b0cba4a88492f1703.mp3": {
       "phraseIds": [
-        "exercise-d8211acf"
+        "reach-d8211acf"
       ],
       "text": "Your score is 100 out of 100.",
       "bytes": 42675
     },
     "86ceef5f44ced6f09f8debae3b3d1a0441c91380203d8d5482ad7f592faad963.mp3": {
       "phraseIds": [
-        "exercise-7b3be0b3"
+        "reach-7b3be0b3"
       ],
       "text": "Zero of one good reps.",
       "bytes": 29301
     },
     "2629759d8fe19b623ee9b3737c1d312eccc2d21bcabc90d09a6b5e3d6f0e30e2.mp3": {
       "phraseIds": [
-        "exercise-0a405375"
+        "reach-0a405375"
       ],
       "text": "One of one good reps.",
       "bytes": 23449
     },
     "ff012045a5f57c3532b62997562ea70a529ffe36d30b9c0e7a32e015ec770959.mp3": {
       "phraseIds": [
-        "exercise-a1aa415b"
+        "reach-a1aa415b"
       ],
       "text": "Zero of two good reps.",
       "bytes": 35152
     },
     "5432c87bf75ff95013e3cde7157c99fccc3ae1852e5c8c89b55a03adc05c0792.mp3": {
       "phraseIds": [
-        "exercise-4206651d"
+        "reach-4206651d"
       ],
       "text": "One of two good reps.",
       "bytes": 25539
     },
     "512526993cb03cca1fc5f08502d17e2179f8e380b4ec009e88b336acbf2e1759.mp3": {
       "phraseIds": [
-        "exercise-9f721fb5"
+        "reach-9f721fb5"
       ],
       "text": "Two of two good reps.",
       "bytes": 27629
     },
     "d16c2787a209f1db4cac0c50ecd4c6c3d569dd7bb0455474da2fad44dacf8f3f.mp3": {
       "phraseIds": [
-        "exercise-fdbaecd9"
+        "reach-fdbaecd9"
       ],
       "text": "Zero of three good reps.",
       "bytes": 31391
     },
     "cf3c830977841b36488dacf2536d52f98e144fad4c75a3042a586110503edc55.mp3": {
       "phraseIds": [
-        "exercise-3796999f"
+        "reach-3796999f"
       ],
       "text": "One of three good reps.",
       "bytes": 23449
     },
     "13e460d754c8427b59c5c64719ee8b7f053dfd50c7a4510fef95255f7da686b6.mp3": {
       "phraseIds": [
-        "exercise-3d0c3c37"
+        "reach-3d0c3c37"
       ],
       "text": "Two of three good reps.",
       "bytes": 28465
     },
     "884af423ca233ff60dbe2a91fd2781d58dbffaee00ed6abc6ff44ec8ea73d76e.mp3": {
       "phraseIds": [
-        "exercise-cfe7f175"
+        "reach-cfe7f175"
       ],
       "text": "Three of three good reps.",
       "bytes": 30973
     },
     "58675cc95377033003612cf199f8f5588ffa117b56d8177678ef56c5a99e0b9f.mp3": {
       "phraseIds": [
-        "exercise-b0d32039"
+        "reach-b0d32039"
       ],
       "text": "Zero of four good reps.",
       "bytes": 29301
     },
     "78bcd8e3cd8af06dc96a4cb7670f8ede368b8b20f78d809b9a6adb7e1fd9e84a.mp3": {
       "phraseIds": [
-        "exercise-8f167e3f"
+        "reach-8f167e3f"
       ],
       "text": "One of four good reps.",
       "bytes": 29301
     },
     "52cd1e7a74a1334bfadac9377bcee29c558d45ff1d6df6f0eea742f59260f6ef.mp3": {
       "phraseIds": [
-        "exercise-236a5c97"
+        "reach-236a5c97"
       ],
       "text": "Two of four good reps.",
       "bytes": 28465
     },
     "f8ff1f959a5a49fc5df9a11714367b81227f800a881b0dffad195dc89da1eae4.mp3": {
       "phraseIds": [
-        "exercise-e453d415"
+        "reach-e453d415"
       ],
       "text": "Three of four good reps.",
       "bytes": 25539
     },
     "5c83c40c30c801d24fea72267df0959b2ca1d21362521ecfb92a0ec1aeb323f7.mp3": {
       "phraseIds": [
-        "exercise-13a66015"
+        "reach-13a66015"
       ],
       "text": "Four of four good reps.",
       "bytes": 30973
     },
     "6665616bf4a8fcc32a374b1ee157db848b6d2f21d17def23db727ecbdd746ab9.mp3": {
       "phraseIds": [
-        "exercise-bca00f4b"
+        "reach-bca00f4b"
       ],
       "text": "Zero of five good reps.",
       "bytes": 31391
     },
     "5364165453e94048f5318ebd5b8306c82eea2d334e25951733f2a38d18c5f92f.mp3": {
       "phraseIds": [
-        "exercise-8dd45a4d"
+        "reach-8dd45a4d"
       ],
       "text": "One of five good reps.",
       "bytes": 30973
     },
     "d1c574b9b0bb4f3cbff0f29033d2f6a393433a08b252b2435d71a358e19b4394.mp3": {
       "phraseIds": [
-        "exercise-4457ed25"
+        "reach-4457ed25"
       ],
       "text": "Two of five good reps.",
       "bytes": 29301
     },
     "5ca2cf2e03e87aed31425abf6ced8b840a84c0ea01b2ecbfa2e97a3ca690724c.mp3": {
       "phraseIds": [
-        "exercise-246774a7"
+        "reach-246774a7"
       ],
       "text": "Three of five good reps.",
       "bytes": 27211
     },
     "87b3f3319cee0c893989372e9ce253e98cdf477f162e451ff61972cf50b0eab0.mp3": {
       "phraseIds": [
-        "exercise-53ba00a7"
+        "reach-53ba00a7"
       ],
       "text": "Four of five good reps.",
       "bytes": 30973
     },
     "befd133ce3c89e6f86d2da8967fc87efd93906e01cbf93d40e43a8b6f479ecc8.mp3": {
       "phraseIds": [
-        "exercise-5c64ac95"
+        "reach-5c64ac95"
       ],
       "text": "Five of five good reps.",
       "bytes": 28465
     },
     "c3e0d9d888bc6f6855c6081eb096d213a9d6d44733c63c7d9b184db6d8835be9.mp3": {
       "phraseIds": [
-        "exercise-25f69715"
+        "reach-25f69715"
       ],
       "text": "Zero of six good reps.",
       "bytes": 31391
     },
     "cdf39d51aa927c59447f0d7a6ed86a716f09cb4fdb4e42674d5519636e665fd4.mp3": {
       "phraseIds": [
-        "exercise-97bd6ad3"
+        "reach-97bd6ad3"
       ],
       "text": "One of six good reps.",
       "bytes": 29301
     },
     "231299216aabcdabfd25fe7f90a9d76312abbf28b3e44e58583a028e03325bbb.mp3": {
       "phraseIds": [
-        "exercise-b695d47b"
+        "reach-b695d47b"
       ],
       "text": "Two of six good reps.",
       "bytes": 23449
     },
     "76f656b66c41824bdccf83d4f810e59989e01019b3435d97330d97d86df93b6c.mp3": {
       "phraseIds": [
-        "exercise-af0233b9"
+        "reach-af0233b9"
       ],
       "text": "Three of six good reps.",
       "bytes": 32226
     },
     "38fe7cc560ac430394ee8bb546744750731c6023d32e4692f6a420aab98209fd.mp3": {
       "phraseIds": [
-        "exercise-b8333fb9"
+        "reach-b8333fb9"
       ],
       "text": "Four of six good reps.",
       "bytes": 28465
     },
     "a2c3677530c42d537ee528c92c859e9fdbe4d95a22e12873a3b51d212caa8b23.mp3": {
       "phraseIds": [
-        "exercise-49a3ed8b"
+        "reach-49a3ed8b"
       ],
       "text": "Five of six good reps.",
       "bytes": 30973
     },
     "18e856d82f4baabe5f51bf11fbf372c2432976b8400821776668f6f444a07ca3.mp3": {
       "phraseIds": [
-        "exercise-9ce41a75"
+        "reach-9ce41a75"
       ],
       "text": "Six of six good reps.",
       "bytes": 31391
     },
     "afe8396654e686e8f9624e785216e0dfc9ab72dac6acc04884cf2b797ca6ef8b.mp3": {
       "phraseIds": [
-        "exercise-6ddc1e9c"
+        "reach-6ddc1e9c"
       ],
       "text": "Zero of seven good reps.",
       "bytes": 32226
     },
     "844495f683119610293fdfed5f37624ebf9b9d3c1fd4e2a025d967f931ca146f.mp3": {
       "phraseIds": [
-        "exercise-a47f095a"
+        "reach-a47f095a"
       ],
       "text": "One of seven good reps.",
       "bytes": 27211
     },
     "9e6ad7904043b301f4a4016eb0990134a724134ff02862f3aa26225ecdc74d73.mp3": {
       "phraseIds": [
-        "exercise-124f7372"
+        "reach-124f7372"
       ],
       "text": "Two of seven good reps.",
       "bytes": 29301
     },
     "0e3c867227d7f740d88b2f60c166b3465bead123e7f52672b72cfc8b1fb1c2bd.mp3": {
       "phraseIds": [
-        "exercise-72af28b0"
+        "reach-72af28b0"
       ],
       "text": "Three of seven good reps.",
       "bytes": 30137
     },
     "bc7d5ec5f2d52b12aafaa61f2e9c2f702d5f6fb749591044da4c8d55631279c6.mp3": {
       "phraseIds": [
-        "exercise-8c5334b0"
+        "reach-8c5334b0"
       ],
       "text": "Four of seven good reps.",
       "bytes": 28465
     },
     "9603de2f3da23f80f67768842f0ed561412e56e885f57333f0e2f68444a1da0a.mp3": {
       "phraseIds": [
-        "exercise-f0f6e002"
+        "reach-f0f6e002"
       ],
       "text": "Five of seven good reps.",
       "bytes": 32226
     },
     "278ce78c63f122bdf50c96f3f8475440850f2375f58ed97abdbbc1e48393d0fa.mp3": {
       "phraseIds": [
-        "exercise-5258b07c"
+        "reach-5258b07c"
       ],
       "text": "Six of seven good reps.",
       "bytes": 29301
     },
     "d824f672600e8674cfe2948a4d13adaff4dd9130467cd56ee48a2b6402b17e40.mp3": {
       "phraseIds": [
-        "exercise-e6cbeb55"
+        "reach-e6cbeb55"
       ],
       "text": "Seven of seven good reps.",
       "bytes": 30137
     },
     "2d7e56097db9d1ab87949595bd7d209f44c09f5d1a3d725aeaf25604e56dc117.mp3": {
       "phraseIds": [
-        "exercise-85c39960"
+        "reach-85c39960"
       ],
       "text": "Zero of eight good reps.",
       "bytes": 31391
     },
     "5604ffce8a84d4b140ddb1eef0d855c7ec1c1cfa10d215d904b61316cc535302.mp3": {
       "phraseIds": [
-        "exercise-bf9f4626"
+        "reach-bf9f4626"
       ],
       "text": "One of eight good reps.",
       "bytes": 24285
     },
     "f6f8e39af4df731ab35ab804a0f41b16eff10e86e84fc36fe2f7be3af1077f6f.mp3": {
       "phraseIds": [
-        "exercise-d60b11ce"
+        "reach-d60b11ce"
       ],
       "text": "Two of eight good reps.",
       "bytes": 27629
     },
     "81a49fcfec6e792c94856246356f74a4a9e7f4fc67b41f51552a5025967e78e9.mp3": {
       "phraseIds": [
-        "exercise-e51c090c"
+        "reach-e51c090c"
       ],
       "text": "Three of eight good reps.",
       "bytes": 31391
     },
     "1af8f020977b0de7cbc315c192e25fa88e630a0f7b2a9e8be553901dd13ef4f3.mp3": {
       "phraseIds": [
-        "exercise-fec0150c"
+        "reach-fec0150c"
       ],
       "text": "Four of eight good reps.",
       "bytes": 27629
     },
     "80cc882706138d7e373dd0035fc9cb3d5a528002e8d19ac9e367cbb0a4c534b6.mp3": {
       "phraseIds": [
-        "exercise-5a4164fe"
+        "reach-5a4164fe"
       ],
       "text": "Five of eight good reps.",
       "bytes": 28465
     },
     "73d4fd13032f1dc6d48e5236f19c19248ea0e224476d8ce5e7ce56eb0939fd22.mp3": {
       "phraseIds": [
-        "exercise-f495dbc0"
+        "reach-f495dbc0"
       ],
       "text": "Six of eight good reps.",
       "bytes": 29301
     },
     "959752ad4e4ec35b6b2b7df70d0fb0d9f592d1fb8bcc7958ca3e7f8b15b34be9.mp3": {
       "phraseIds": [
-        "exercise-3a849b69"
+        "reach-3a849b69"
       ],
       "text": "Seven of eight good reps.",
       "bytes": 26375
     },
     "199843b046427842a165f2f92e45d8cd0b0bf85661dd1a0af4198c2f8a630a65.mp3": {
       "phraseIds": [
-        "exercise-08cc6bd5"
+        "reach-08cc6bd5"
       ],
       "text": "Eight of eight good reps.",
       "bytes": 25539
     },
     "a72ee04e35cfb96ad27dd386c9e4712a9ef2fcd5da59c98e4854c7a6fdd84cdf.mp3": {
       "phraseIds": [
-        "exercise-e7c1e35b"
+        "reach-e7c1e35b"
       ],
       "text": "Zero of nine good reps.",
       "bytes": 34316
     },
     "9046aedfec2ca485a72a3e22a26c24017e769270f603753d9072706d8517e403.mp3": {
       "phraseIds": [
-        "exercise-b8f62e5d"
+        "reach-b8f62e5d"
       ],
       "text": "One of nine good reps.",
       "bytes": 23449
     },
     "b917947dabcd2736cbe485826bbeefd17ff34ad10ffd9c3a887886df1779401b.mp3": {
       "phraseIds": [
-        "exercise-31da0135"
+        "reach-31da0135"
       ],
       "text": "Two of nine good reps.",
       "bytes": 28465
     },
     "5ff2628f9b793bb86b7fdcfa0314b6a3262261bd54f81ac01e6568132d0f4449.mp3": {
       "phraseIds": [
-        "exercise-11e988b7"
+        "reach-11e988b7"
       ],
       "text": "Three of nine good reps.",
       "bytes": 24703
     },
     "d5e02ef686d2104e3e5e9d2e1d3879082dcaf272a89731000bd95303e4580bed.mp3": {
       "phraseIds": [
-        "exercise-413c14b7"
+        "reach-413c14b7"
       ],
       "text": "Four of nine good reps.",
       "bytes": 30137
     },
     "e791809c29b4682aadd69c10be95713ea906748a3594bfd876a222505e79075f.mp3": {
       "phraseIds": [
-        "exercise-3142d885"
+        "reach-3142d885"
       ],
       "text": "Five of nine good reps.",
       "bytes": 27629
     },
     "6f1639af6633a6efefe19acc919e955cdd9a34ebb6788eef8946aabccb24dd8c.mp3": {
       "phraseIds": [
-        "exercise-19533f7b"
+        "reach-19533f7b"
       ],
       "text": "Six of nine good reps.",
       "bytes": 29301
     },
     "3e2530ea5c50b532b94f113a513581836359570271f6f4f2d9c4d03f5c4b5c23.mp3": {
       "phraseIds": [
-        "exercise-fe1bffb2"
+        "reach-fe1bffb2"
       ],
       "text": "Seven of nine good reps.",
       "bytes": 26375
     },
     "ef23e4e18b7cd0f9afa71226e003c309b0aa68c97346781d5cb4ee142c6b4fca.mp3": {
       "phraseIds": [
-        "exercise-30399ece"
+        "reach-30399ece"
       ],
       "text": "Eight of nine good reps.",
       "bytes": 23449
     },
     "66c1978e1075a401b8afcfe513207733d734e923cfb8e1e0ca70d066582470a9.mp3": {
       "phraseIds": [
-        "exercise-c205dc95"
+        "reach-c205dc95"
       ],
       "text": "Nine of nine good reps.",
       "bytes": 25539
     },
     "c6f8278324fb822828d39b8c272a36a4d8399e6b23d627eab8caf9c966f7d882.mp3": {
       "phraseIds": [
-        "exercise-bdf7d8a8"
+        "reach-bdf7d8a8"
       ],
       "text": "Zero of ten good reps.",
       "bytes": 33062
     },
     "e0c01b54b34bf05023c147876379208d11f329b81fd2fcd1a98111beb26b40af.mp3": {
       "phraseIds": [
-        "exercise-5ed4de6e"
+        "reach-5ed4de6e"
       ],
       "text": "One of ten good reps.",
       "bytes": 24285
     },
     "01768f6dd1d1f1a740937040b671316f724dca31fca80a27b37647fd376e5a81.mp3": {
       "phraseIds": [
-        "exercise-fbcd7706"
+        "reach-fbcd7706"
       ],
       "text": "Two of ten good reps.",
       "bytes": 26375
     },
     "55a66da08c744626887084ae69de911f55959810bc61467c7e10f00d3dbb0d4f.mp3": {
       "phraseIds": [
-        "exercise-b8d3c544"
+        "reach-b8d3c544"
       ],
       "text": "Three of ten good reps.",
       "bytes": 33062
     },
     "156fcccb6c3df0de926636a4f979f67450a04425e50ed71fce8b6bbb8ebf4d5d.mp3": {
       "phraseIds": [
-        "exercise-c204d144"
+        "reach-c204d144"
       ],
       "text": "Four of ten good reps.",
       "bytes": 29301
     },
     "30958ab7f82a19991d3dc8ed7fa786ea6cb00b699ce10fdad1ad44abf0606640.mp3": {
       "phraseIds": [
-        "exercise-d0269c36"
+        "reach-d0269c36"
       ],
       "text": "Five of ten good reps.",
       "bytes": 28465
     },
     "94a997a3bc53526bd1485ce5fb215872fecb48c27ddc03f98dc8b2523ff8688d.mp3": {
       "phraseIds": [
-        "exercise-081b3c08"
+        "reach-081b3c08"
       ],
       "text": "Six of ten good reps.",
       "bytes": 27629
     },
     "7bb0a50e1f61e7f7e58046c8651c9c6803818e23a8a443afdfc8df1a556465ec.mp3": {
       "phraseIds": [
-        "exercise-9398ad21"
+        "reach-9398ad21"
       ],
       "text": "Seven of ten good reps.",
       "bytes": 27629
     },
     "2b5f5765b27bb3244479274884b1b2c17669858700f4e93f09ca758f220e862e.mp3": {
       "phraseIds": [
-        "exercise-32e0929d"
+        "reach-32e0929d"
       ],
       "text": "Eight of ten good reps.",
       "bytes": 32226
     },
     "e02c4d48fcf3a856507d48c06db5883e1fe8645cb921572fba07293521a59c31.mp3": {
       "phraseIds": [
-        "exercise-59447e26"
+        "reach-59447e26"
       ],
       "text": "Nine of ten good reps.",
       "bytes": 27629
     },
     "10c6cbc362d90b460cabf202ef7c6db90b03564b6cfb8490be39a7657cfffb3f.mp3": {
       "phraseIds": [
-        "exercise-dee261d5"
+        "reach-dee261d5"
       ],
       "text": "Ten of ten good reps.",
       "bytes": 24703
     },
     "7fce934d09a4b99dc410324d0425a2a91e12fe5f7b217c7e0e4265012254b70c.mp3": {
       "phraseIds": [
-        "exercise-a5fe38f7"
+        "reach-a5fe38f7"
       ],
       "text": "Zero of 11 good reps.",
       "bytes": 33898
+    },
+    "d0f51ea5e03e75a42452fef7b1183b71649e53a96b8256a7c7d54613c29dd345.mp3": {
+      "phraseIds": [
+        "reach-4d740c71"
+      ],
+      "text": "One of 11 good reps.",
+      "bytes": 26375
+    },
+    "5aa49766defb431da94352cf7bb6e9f2d9e564488bda5954c0696e13a15d6c66.mp3": {
+      "phraseIds": [
+        "reach-1241f859"
+      ],
+      "text": "Two of 11 good reps.",
+      "bytes": 26375
+    },
+    "8bf78b74c8283d1e16cafcecea8051b7f3ac999a5e232751d0369d8674b6c2c8.mp3": {
+      "phraseIds": [
+        "reach-ca63e95b"
+      ],
+      "text": "Three of 11 good reps.",
+      "bytes": 28465
+    },
+    "6599c8d53a74d8dd7025415707191de4558056c77e7823fb6cc3f3a4e096009d.mp3": {
+      "phraseIds": [
+        "reach-aba3755b"
+      ],
+      "text": "Four of 11 good reps.",
+      "bytes": 32226
+    },
+    "6a25ae6483262902cb217b7490cfcd8ca17648344372b3acecbece2cb0d2b55f.mp3": {
+      "phraseIds": [
+        "reach-acf689a9"
+      ],
+      "text": "Five of 11 good reps.",
+      "bytes": 31391
+    },
+    "1b2ebdfc152beb8fd326664bf7918679acbc0fabf5d1ce94ded6a373fb8ecfd8.mp3": {
+      "phraseIds": [
+        "reach-558f7617"
+      ],
+      "text": "Six of 11 good reps.",
+      "bytes": 29301
+    },
+    "491a00016ea6d5533b379f0c31f156397f1920d210602eeb55146ad4f284fd98.mp3": {
+      "phraseIds": [
+        "reach-7e66679e"
+      ],
+      "text": "Seven of 11 good reps.",
+      "bytes": 30137
+    },
+    "f9a027d7165d38ab41c608b0a8490f214293ae4b2dd8e283ca2fb3a61639a936.mp3": {
+      "phraseIds": [
+        "reach-1d3e1f22"
+      ],
+      "text": "Eight of 11 good reps.",
+      "bytes": 31391
+    },
+    "da4d64d845bb9663b5cd14255e311f688bc6bca79488414b4703aeb032e03d4c.mp3": {
+      "phraseIds": [
+        "reach-bbd055b9"
+      ],
+      "text": "Nine of 11 good reps.",
+      "bytes": 30137
+    },
+    "633fb64d731a6cb67eb44bf71af6bf00f2c1931db5630c1eb56a9e26c1886fc4.mp3": {
+      "phraseIds": [
+        "reach-c2b646ea"
+      ],
+      "text": "Ten of 11 good reps.",
+      "bytes": 27211
+    },
+    "22f168591f661eb84f7c52fb48129571961af63cc79eb3829a97e89d2add1b68.mp3": {
+      "phraseIds": [
+        "reach-be58cb75"
+      ],
+      "text": "11 of 11 good reps.",
+      "bytes": 27211
+    },
+    "6eeec4bff1d6c213fbcdd442ec308790bf0822c47c9c87f0f187e5afaa2f71f7.mp3": {
+      "phraseIds": [
+        "reach-c4bb9e94"
+      ],
+      "text": "Zero of 12 good reps.",
+      "bytes": 27211
+    },
+    "18b748b59f5f07817725dd6b168b168bdc8119e1e1d632b0684658de96abcb2c.mp3": {
+      "phraseIds": [
+        "reach-0fae9f92"
+      ],
+      "text": "One of 12 good reps.",
+      "bytes": 23449
+    },
+    "b016a1fb76861279d4bfb9942feb943cce886de1a02cbd23d194e29b0bdafc68.mp3": {
+      "phraseIds": [
+        "reach-5adbce7a"
+      ],
+      "text": "Two of 12 good reps.",
+      "bytes": 27211
+    },
+    "6aec3debddb50c83c0ab613b892a97755ddd8b44a4760a6510658d1dd5a1626c.mp3": {
+      "phraseIds": [
+        "reach-eabdcbf8"
+      ],
+      "text": "Three of 12 good reps.",
+      "bytes": 29301
+    },
+    "cd3ff165ab23db985b7e5d88c94798a6506d840356230dee3f5fe9dc071c1e9b.mp3": {
+      "phraseIds": [
+        "reach-cbfd57f8"
+      ],
+      "text": "Four of 12 good reps.",
+      "bytes": 30973
+    },
+    "7cfadc0d941d86054a6f6610267843d2e2b9cf2145ee806ed4933a25f76c5e2f.mp3": {
+      "phraseIds": [
+        "reach-4cf8fdca"
+      ],
+      "text": "Five of 12 good reps.",
+      "bytes": 30973
+    },
+    "fada688ee40002cc9d2d1568c4ea6f20898af8a521ca40598fd54184c2a1d96c.mp3": {
+      "phraseIds": [
+        "reach-b84abbb4"
+      ],
+      "text": "Six of 12 good reps.",
+      "bytes": 27211
+    },
+    "0e3703f70a58053c147d5856a576725761cd60c1dad188b0fa57af9095a36680.mp3": {
+      "phraseIds": [
+        "reach-bc2bd47d"
+      ],
+      "text": "Seven of 12 good reps.",
+      "bytes": 31391
+    },
+    "944b20055688b74765f7959abd56db58a7528d11966d843019ef8dda36c3cfab.mp3": {
+      "phraseIds": [
+        "reach-1705ac01"
+      ],
+      "text": "Eight of 12 good reps.",
+      "bytes": 28465
+    },
+    "dda54629a2932129c3fecf308530779712d696ba5f48c773c5369abca3476a8a.mp3": {
+      "phraseIds": [
+        "reach-5bd2c9da"
+      ],
+      "text": "Nine of 12 good reps.",
+      "bytes": 28465
+    },
+    "bcc909ff0455e35d934a8fab9b4553feaafdf9af447ca387dc469ab160028322.mp3": {
+      "phraseIds": [
+        "reach-7a1c70c9"
+      ],
+      "text": "Ten of 12 good reps.",
+      "bytes": 27211
+    },
+    "73aeac462020d42a277550f65b749a7d46535c6e004b68b673fa4db6e80eaa28.mp3": {
+      "phraseIds": [
+        "reach-80935e96"
+      ],
+      "text": "11 of 12 good reps.",
+      "bytes": 31391
+    },
+    "a84f91d0c0d2235f21f1a535fd6e8c3a35e963dfc9f8a55ae2ca4b9618b3cbc8.mp3": {
+      "phraseIds": [
+        "reach-dafad8b5"
+      ],
+      "text": "12 of 12 good reps.",
+      "bytes": 28465
+    },
+    "df9229862d6829654237b9b9dc9502c54ce336e8d680b264deaef37d301eee43.mp3": {
+      "phraseIds": [
+        "reach-e55bb1b5"
+      ],
+      "text": "Zero of 13 good reps.",
+      "bytes": 35152
+    },
+    "d1deecfa31c2331643c0169bf34902588e53ab2797d95ddc77d2ac7cb34e1720.mp3": {
+      "phraseIds": [
+        "reach-72b015b3"
+      ],
+      "text": "One of 13 good reps.",
+      "bytes": 30973
+    },
+    "5cac4f9239204ed2212c2088fb9f1e1aed1e878cea63807c7340409fe2788e20.mp3": {
+      "phraseIds": [
+        "reach-bb08bf9b"
+      ],
+      "text": "Two of 13 good reps.",
+      "bytes": 28465
+    },
+    "ca86fa3db7d011c4e352c7b9df6b6a71295127eeb0c06c81e35fb61718142800.mp3": {
+      "phraseIds": [
+        "reach-8d4c2019"
+      ],
+      "text": "Three of 13 good reps.",
+      "bytes": 31391
+    },
+    "e6d2669504110cf07d6a6187e59df28f0eb3092869c5016d340301d33ac25850.mp3": {
+      "phraseIds": [
+        "reach-6e8bac19"
+      ],
+      "text": "Four of 13 good reps.",
+      "bytes": 32226
+    },
+    "4c7203d44d695bee1b83e35f7bbf3593760043ba65c2281b30eb69f70e8cad8d.mp3": {
+      "phraseIds": [
+        "reach-6d9910eb"
+      ],
+      "text": "Five of 13 good reps.",
+      "bytes": 31391
+    },
+    "aa3d078f082e1c3988f0a9256ce198b7b21babd2415c2f838e3670a3324fe646.mp3": {
+      "phraseIds": [
+        "reach-acc8aed5"
+      ],
+      "text": "Six of 13 good reps.",
+      "bytes": 33898
+    },
+    "f4d924fd18a6e20fd426087c46aee55d8dc315572f0f46279e717a39a0854e2d.mp3": {
+      "phraseIds": [
+        "reach-592a5e5c"
+      ],
+      "text": "Seven of 13 good reps.",
+      "bytes": 32226
+    },
+    "27534393a9d460dc28831e1c1f4484fd97f09c4d8b6423b13718a103612152d4.mp3": {
+      "phraseIds": [
+        "reach-747757e0"
+      ],
+      "text": "Eight of 13 good reps.",
+      "bytes": 26375
+    },
+    "346e322bd542afca79b426ff3eb40d0074322102b084e7d03eee084cd1defb92.mp3": {
+      "phraseIds": [
+        "reach-7c72dcfb"
+      ],
+      "text": "Nine of 13 good reps.",
+      "bytes": 33898
+    },
+    "401673cad10a2ff7bc9371db9d68ded4c863bb1bd5e4ca4672e4d967833a1e1e.mp3": {
+      "phraseIds": [
+        "reach-859e7da8"
+      ],
+      "text": "Ten of 13 good reps.",
+      "bytes": 30137
+    },
+    "8deee3731b08133cdc625d28a04d009bf1c38da7e80cda922c2ec9082429e71f.mp3": {
+      "phraseIds": [
+        "reach-e394d4b7"
+      ],
+      "text": "11 of 13 good reps.",
+      "bytes": 33898
+    },
+    "2f4ae8804201a02af83867cbde042d860dc793f5c91504740dff7c55ba8dbdf1.mp3": {
+      "phraseIds": [
+        "reach-ba5ac594"
+      ],
+      "text": "12 of 13 good reps.",
+      "bytes": 33898
+    },
+    "ad40a39d55b188be8c62766e837d80e2a391bf2274cfc94b5027cb2a634d13c3.mp3": {
+      "phraseIds": [
+        "reach-f13093f5"
+      ],
+      "text": "13 of 13 good reps.",
+      "bytes": 33898
+    },
+    "bde082f73da0728172d9f7cdda5f955f51c44abe2721fa89b606bc08bc4089c1.mp3": {
+      "phraseIds": [
+        "reach-3842d552"
+      ],
+      "text": "Zero of 14 good reps.",
+      "bytes": 35988
+    },
+    "d5a2c9882f6e855247a4fc6e5d223a51ba388b919238338d095b3c40841bf3ab.mp3": {
+      "phraseIds": [
+        "reach-378de6d4"
+      ],
+      "text": "One of 14 good reps.",
+      "bytes": 27211
+    },
+    "3b48d8ef43628c26f93188a29f425fa45272b7676330e539ecbe54b7189d6f6e.mp3": {
+      "phraseIds": [
+        "reach-6adf55bc"
+      ],
+      "text": "Two of 14 good reps.",
+      "bytes": 28465
+    },
+    "eb120c0513858e2810b888d75c4179a937fe6c175cd003ebe78d8804faa7674d.mp3": {
+      "phraseIds": [
+        "reach-e09fe3be"
+      ],
+      "text": "Three of 14 good reps.",
+      "bytes": 33062
+    },
+    "ad42b3311f41da896b2c1ae0cdb52da8d88576ed17f3d17c26c21fd03fc115d0.mp3": {
+      "phraseIds": [
+        "reach-c1df6fbe"
+      ],
+      "text": "Four of 14 good reps.",
+      "bytes": 30973
+    },
+    "0c4f91abea76c200bde950ab0ad859e560961151f658f03ded6d76bc421af203.mp3": {
+      "phraseIds": [
+        "reach-d971c70c"
+      ],
+      "text": "Five of 14 good reps.",
+      "bytes": 35152
+    },
+    "07c468c696406ad3c21ee728ca7743e136b99b969332a7390d5c7cc45d6b6923.mp3": {
+      "phraseIds": [
+        "reach-a8473472"
+      ],
+      "text": "Six of 14 good reps.",
+      "bytes": 33898
+    },
+    "e5077bbe8d954d2014f23c7582fcdc10e7f747cc3bb69217917b0ea1edda68c9.mp3": {
+      "phraseIds": [
+        "reach-944c8d3b"
+      ],
+      "text": "Seven of 14 good reps.",
+      "bytes": 32226
+    },
+    "098f0e285c2f710063be65cffc416b6812e8a7d1c576371e0c59cc36a703ac74.mp3": {
+      "phraseIds": [
+        "reach-a138c5c7"
+      ],
+      "text": "Eight of 14 good reps.",
+      "bytes": 30137
+    },
+    "3837917266473cccecb2867d82ac3ec24cbc651c608efe52beae899d4d67143c.mp3": {
+      "phraseIds": [
+        "reach-e84b931c"
+      ],
+      "text": "Nine of 14 good reps.",
+      "bytes": 30137
+    },
+    "bd94a8bff2ed31241864d3133101ea84450b5761d51e2653a82ed9bde1732bf1.mp3": {
+      "phraseIds": [
+        "reach-6ffe888f"
+      ],
+      "text": "Ten of 14 good reps.",
+      "bytes": 29301
+    },
+    "c044ff15f6f25caf436acd6bb96b067a57fe28a529e6e1a96c7dc6dd64110063.mp3": {
+      "phraseIds": [
+        "reach-0e3c04d0"
+      ],
+      "text": "11 of 14 good reps.",
+      "bytes": 36824
+    },
+    "76ca6c2de886302d0b11edb3b5cca4d31f464ceaa742dc6d0c134214d28eb991.mp3": {
+      "phraseIds": [
+        "reach-4e820f73"
+      ],
+      "text": "12 of 14 good reps.",
+      "bytes": 34316
+    },
+    "1928bb90ffcaddc15626334602ce9074837efdab7a641dadb7a363186ec249dd.mp3": {
+      "phraseIds": [
+        "reach-664fd692"
+      ],
+      "text": "13 of 14 good reps.",
+      "bytes": 31391
+    },
+    "5f7f2251ed27b1078e04aa67531f4844f39c46f38d7a0133e55b0a70c9476ddf.mp3": {
+      "phraseIds": [
+        "reach-b397fd35"
+      ],
+      "text": "14 of 14 good reps.",
+      "bytes": 32226
+    },
+    "c1146b03cd3826d1feea0ef9b55344fad0a70656b5205bb970fd04ed4555ef6c.mp3": {
+      "phraseIds": [
+        "reach-58e2e873"
+      ],
+      "text": "Zero of 15 good reps.",
+      "bytes": 33898
+    },
+    "18e64ee3548f806ca5a8680392615a6507e3ec012c104fbd74b4f7722ee63a34.mp3": {
+      "phraseIds": [
+        "reach-9a8f5cf5"
+      ],
+      "text": "One of 15 good reps.",
+      "bytes": 30137
+    },
+    "a2fcd84e2da29edb053f006305984b7ce8792972d1b63e80cbea6b64e1e0cbb6.mp3": {
+      "phraseIds": [
+        "reach-5f5d48dd"
+      ],
+      "text": "Two of 15 good reps.",
+      "bytes": 30973
+    },
+    "320bc3ced85c2bd52030f4711d68a9bd95cfda464be6747b6f6c042a8ad9a46e.mp3": {
+      "phraseIds": [
+        "reach-177f39df"
+      ],
+      "text": "Three of 15 good reps.",
+      "bytes": 31391
+    },
+    "5f7997d7708da9d71a4c977523ffec5a083a74afbcf8c624781f453d15a8b55e.mp3": {
+      "phraseIds": [
+        "reach-f8bec5df"
+      ],
+      "text": "Four of 15 good reps.",
+      "bytes": 30973
+    },
+    "c13cf610df874b12f9c02c2dcb3f3032deb4005479cf7e45683d4b88a4463f50.mp3": {
+      "phraseIds": [
+        "reach-fa11da2d"
+      ],
+      "text": "Five of 15 good reps.",
+      "bytes": 33062
+    },
+    "9044a8e24d9641ae8d3625de4466e3fa55e06841ce23d12399b5f67acad0f4cf.mp3": {
+      "phraseIds": [
+        "reach-08742593"
+      ],
+      "text": "Six of 15 good reps.",
+      "bytes": 29301
+    },
+    "76073e3b1a493a589e55848b42827363aac5bb430ec0a25f5799f6d3476ea27b.mp3": {
+      "phraseIds": [
+        "reach-314b171a"
+      ],
+      "text": "Seven of 15 good reps.",
+      "bytes": 34316
+    },
+    "fa231ce4b65576f3dcc1390e0bd7080d09f3cc6912f400511a7636cdf50601ac.mp3": {
+      "phraseIds": [
+        "reach-6a596fa6"
+      ],
+      "text": "Eight of 15 good reps.",
+      "bytes": 29301
+    },
+    "e141d851b5224b28c7a547ee15faa2b7eb9b10c542f58a73882be71d62c18067.mp3": {
+      "phraseIds": [
+        "reach-08eba63d"
+      ],
+      "text": "Nine of 15 good reps.",
+      "bytes": 29301
+    },
+    "bedc1441a8b504b3b3af9b4137b0c4f301a61a7a8f4fb201852bfe25cf5c855c.mp3": {
+      "phraseIds": [
+        "reach-0fd1976e"
+      ],
+      "text": "Ten of 15 good reps.",
+      "bytes": 30137
+    },
+    "51f111ac701b0d56e7ca890fb959022dd5880a79282ebeeffc3eb7bbf96f465b.mp3": {
+      "phraseIds": [
+        "reach-713d7af1"
+      ],
+      "text": "11 of 15 good reps.",
+      "bytes": 33062
+    },
+    "cf474e67366033200f12c1fdf827c13c8d40fdba585b9cdb1d908f406658ee6a.mp3": {
+      "phraseIds": [
+        "reach-2de1fc52"
+      ],
+      "text": "12 of 15 good reps.",
+      "bytes": 34316
+    },
+    "e3b980c56feead2adeba7b299859aa17d139fcc963c20efaf8f3b808bf002897.mp3": {
+      "phraseIds": [
+        "reach-c9514cb3"
+      ],
+      "text": "13 of 15 good reps.",
+      "bytes": 34316
+    },
+    "473447994fcc28b9fe8875efb48f9d8cfb37d6d0b3e0c22128f41bd916fbe91a.mp3": {
+      "phraseIds": [
+        "reach-92f7ea14"
+      ],
+      "text": "14 of 15 good reps.",
+      "bytes": 30973
+    },
+    "a26fe4f52b3dcc900b29b87f903856adb0c3a9157dfaf3295f76a2480cb3fee6.mp3": {
+      "phraseIds": [
+        "reach-113b7975"
+      ],
+      "text": "15 of 15 good reps.",
+      "bytes": 33062
+    },
+    "b04c88f97a9c79326a27cee68a1dd26d84aac2610b48bb5789ad519630bcbea2.mp3": {
+      "phraseIds": [
+        "reach-3c776fd2"
+      ],
+      "text": "You finished at level 1 of 3.",
+      "bytes": 33062
+    },
+    "2dfac2a5cc60ce5e1ee67f2f94542d8fc77c014f3fb77fc78304e3b55ebd993e.mp3": {
+      "phraseIds": [
+        "reach-84c63b11"
+      ],
+      "text": "You finished at level 2 of 3.",
+      "bytes": 30973
+    },
+    "de7e06b6a48d2eebe1833f800772fdbf78d040e6bb2fa265bfd1245ee1ff9339.mp3": {
+      "phraseIds": [
+        "reach-a282f6d0"
+      ],
+      "text": "You finished at level 3 of 3.",
+      "bytes": 34316
+    },
+    "f2b8f38802c0222295d6e770f5badd92845616c470c673466287b4c54a6cf22a.mp3": {
+      "phraseIds": [
+        "reach-72a64920"
+      ],
+      "text": "Straighten your elbow a little more as you reach toward the circle.",
+      "bytes": 55214
+    },
+    "15dce7bf07d6affdc86cc8d1df2058ec2bfc36c2627c51c9506feb2605ccb434.mp3": {
+      "phraseIds": [
+        "reach-8153bff8"
+      ],
+      "text": "Lift your arm a little more from your shoulder, keeping your chest upright.",
+      "bytes": 65663
+    },
+    "83711d7ccf88f526552bf7af0c83828dbbdc2530cfff93e28362d36787d46b72.mp3": {
+      "phraseIds": [
+        "reach-2ca32714"
+      ],
+      "text": "The next target will be a little closer.",
+      "bytes": 33062
+    },
+    "a8e8f995a3c651af390fe3e1fd0d2fac5f17b51db3593eddcc80b5d474eb19fe.mp3": {
+      "phraseIds": [
+        "reach-26cf3be9"
+      ],
+      "text": "Keep your face and both shoulders in view so I can check your posture.",
+      "bytes": 59812
+    },
+    "d948a61c9358b22291c13df87b09412fb4b0415575d588de426b4c520e14a6ab.mp3": {
+      "phraseIds": [
+        "reach-2b74ff8e"
+      ],
+      "text": "You reached the movement targets with a smooth movement.",
+      "bytes": 53960
+    },
+    "5513a60365dd82f9b7d67fe6bedc4fae3e33b9bbefbec3a1e2eb912735499b58.mp3": {
+      "phraseIds": [
+        "reach-48426155"
+      ],
+      "text": "Keep your face and both shoulders in view so I can check your posture on the next repetition.",
+      "bytes": 86561
+    },
+    "765926bcf3ee128eda888f1280cdfcb09768c96f958f3c56c37180cd5664345a.mp3": {
+      "phraseIds": [
+        "reach-be7f61af"
+      ],
+      "text": "You reached the movement targets. Keep the same smooth movement on your next repetition.",
+      "bytes": 91577
+    },
+    "86c73b69e8a970437b12f48f2f4cd53b443457986153d4cdc3b458e93a7a9934.mp3": {
+      "phraseIds": [
+        "reach-b68a0a05"
+      ],
+      "text": "Move a little further through shoulder reach.",
+      "bytes": 35988
+    },
+    "ca6091ece5dc2b1d7088751634a225349fa34d350a67145e718c2a79c101c9eb.mp3": {
+      "phraseIds": [
+        "reach-9e224411"
+      ],
+      "text": "Move a little further through shoulder reach on your next repetition.",
+      "bytes": 59812
+    },
+    "023cb2476699128225b3513062ab696a4edc7380d3cbfb7c89ff139e5450e15a.mp3": {
+      "phraseIds": [
+        "reach-a47debac"
+      ],
+      "text": "Move a little further through elbow extension.",
+      "bytes": 41004
+    },
+    "79b89adbb4fba4629d6347901f57986aac0b147a66a08d0f1e095ae5c38909e4.mp3": {
+      "phraseIds": [
+        "reach-00f3b6b8"
+      ],
+      "text": "Move a little further through elbow extension on your next repetition.",
+      "bytes": 63573
+    },
+    "224adf19ee0ae0b25600be9b2aece67ce05087b827e571706bc0db732d037358.mp3": {
+      "phraseIds": [
+        "reach-aea38cdf"
+      ],
+      "text": "I noticed your back leaned forward. Try keeping your spine tall and let your arm do the work.",
+      "bytes": 84889
+    },
+    "b901213ee3b5bda86073b1548d65046b29ce6616192ccef0fc5d54864f4efcf0.mp3": {
+      "phraseIds": [
+        "reach-2e4dba2c"
+      ],
+      "text": "Your shoulder lifted up toward your ear. Try keeping your shoulder relaxed and dropped down.",
+      "bytes": 91577
     },
     "33dbc5d8929fc122e249a226cb8ed888a47566f7af5f3918c285c0ebeaa57c26.mp3": {
       "phraseIds": [

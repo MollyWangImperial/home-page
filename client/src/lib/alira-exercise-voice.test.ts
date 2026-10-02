@@ -46,7 +46,7 @@ describe("Alira's voice in the exercises and the FAST check", () => {
       for (const step of exercise.cycle) expect(lines.has(step.voice)).toBe(true);
     }
     expect(lines.has("Face. Please smile and hold while I compare both sides.")).toBe(true);
-    expect(Object.keys(aliraSpokenLines).every(id => /^(exercise|fast)-[0-9a-f]{8}$/.test(id))).toBe(true);
+    expect(Object.keys(aliraSpokenLines).every(id => /^(exercise|reach|warmup|fast)-[0-9a-f]{8}$/.test(id))).toBe(true);
   });
 
   it("plays a recorded line from the voice pack without calling ElevenLabs", async () => {

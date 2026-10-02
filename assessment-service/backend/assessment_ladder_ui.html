@@ -1,0 +1,15 @@
+<style>
+  #ladderChoice[hidden]{display:none!important}
+  #ladderChoice button{font:inherit;font-weight:650;border:1px solid #b2cebf66;border-radius:18px;padding:14px 20px;min-height:48px;background:#183c30;color:#f8fff9;cursor:pointer}
+  #ladderChoice{position:absolute;inset:0;z-index:180;display:grid;place-items:center;background:#07140dd9;padding:24px;color:#f7fff9;text-align:center}
+  .ladderChoiceCard{width:min(100%,580px);padding:28px;border-radius:24px;background:#173328;border:1px solid #a5d2b84d}
+  #ladderChoiceTitle{font-size:clamp(25px,4vw,36px);line-height:1.2;margin:0 0 18px}
+  #ladderChoiceCopy{font-size:18px;line-height:1.55;color:#dae8df}
+  #ladderChoiceActions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:24px}
+  #ladderChoice button:focus-visible{outline:3px solid #b7f0cb;outline-offset:4px}
+  body.function-ladder #bottom{bottom:20px;pointer-events:none;padding:10px 16px;width:fit-content;max-width:calc(100% - 36px);left:50%;transform:translateX(-50%)}
+  body.function-ladder #skipBtn,body.function-ladder #stepTitle,body.function-ladder #voiceStatus{display:none!important}
+</style>
+<section id="ladderChoice" hidden role="dialog" aria-modal="true" aria-labelledby="ladderChoiceTitle">
+  <div class="ladderChoiceCard"><h2 id="ladderChoiceTitle" tabindex="-1"></h2><p id="ladderChoiceCopy"></p><div id="ladderChoiceActions"></div></div>
+</section>
