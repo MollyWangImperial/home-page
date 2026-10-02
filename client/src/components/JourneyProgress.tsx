@@ -589,7 +589,7 @@ function DemoStrip({ model, onChange }: { model: JourneyModel; onChange: () => v
   };
   return (
     <div className="jp-demo" role="region" aria-label="Local testing controls">
-      <div className="jp-demo-intro"><FlaskConical size={14} aria-hidden="true" /><b>TESTING ONLY, WILL REMOVE ONCE LAUNCH</b><span>Not part of the patient UI. Set today’s scores, complete, then move to the next day.</span></div>
+      <div className="jp-demo-intro"><FlaskConical size={14} aria-hidden="true" /><b>TESTING ONLY, WILL REMOVE ONCE LAUNCH</b></div>
       <div className="jp-demo-fields">
         {launchable.map(exercise => (
           <label key={exercise.id}>{exercise.name}

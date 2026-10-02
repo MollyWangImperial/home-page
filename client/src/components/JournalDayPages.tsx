@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
-import { ArrowRight, Check, ChevronLeft, ChevronRight, ChevronsRight, Mic, Pencil, Plus, RotateCcw, UsersRound, X } from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, ChevronRight, Mic, Pencil, Plus, RotateCcw, UsersRound, X } from "lucide-react";
 import AliraAvatar from "@/components/AliraAvatar";
 import { MoodFace, moodOptions } from "@/components/JournalMood";
 import { dayKey } from "@/lib/home-stage";
 import {
-  addDays, allParts, daysBetween, formatSeconds, freshStore, fromKey, isEmail, JOURNAL_QUESTIONS, joinNames, loadJournal,
+  addDays, allParts, daysBetween, formatSeconds, fromKey, isEmail, JOURNAL_QUESTIONS, joinNames, loadJournal,
   longDate, lookbackDay, MOOD_TONES, monthGrid, monthName, monthOf, PAGE_PLACEHOLDER, pickQuestion, recentDays, saveJournal,
   SHARE_PARTS, shortWeekday, type FamilyMember, type JournalMood, type JournalPage, type JournalStore, type SharePartKey,
 } from "@/lib/journal-days";
@@ -84,7 +84,6 @@ export default function JournalDayPages({ onDateLabel, animateEntrance = true }:
   const [gridRun, setGridRun] = useState(0);
   const [popKey, setPopKey] = useState<string | null>(null);
 
-  const [admin, setAdmin] = useState(false);
   const [dialog, setDialog] = useState<DialogStep>("");
   const [dialogFor, setDialogFor] = useState<"setup" | "one">("setup");
   const [askKey, setAskKey] = useState<string | null>(null);
@@ -165,7 +164,7 @@ export default function JournalDayPages({ onDateLabel, animateEntrance = true }:
   };
 
   const prevOff = daysBetween(store.startKey, viewKey) <= 0;
-  const nextOff = viewKey >= todayKey && !admin;
+  const nextOff = viewKey >= todayKey;
   const goPrev = () => { if (!prevOff) openDay(addDays(viewKey, -1)); };
   const goNext = () => { if (!nextOff) openDay(addDays(viewKey, 1), viewKey >= todayKey); };
 
@@ -251,16 +250,6 @@ export default function JournalDayPages({ onDateLabel, animateEntrance = true }:
     setCustom((c) => { const next = { ...c }; delete next[viewKey]; return next; });
     setSpin((n) => n + 1);
     startTyping(false);
-  };
-
-  const resetAll = () => {
-    const fresh = withQuestion(freshStore(), dayKey(new Date()));
-    setStore(fresh);
-    setViewKey(fresh.startKey);
-    setMood(-1); setText(""); setVoice(0); setSaved(false); setRecording(false); setRecSeconds(0);
-    setCustom({}); setSeen({}); setShownMonth(null); setGridRun((g) => g + 1); setTurn({ n: 0, dir: "next" });
-    closeDialog(); setToast(null);
-    startTyping(true);
   };
 
   // Month grid for the page being viewed; every day starts blank and fills in once its page is kept.
@@ -354,15 +343,6 @@ export default function JournalDayPages({ onDateLabel, animateEntrance = true }:
           </section>
         )}
 
-        <div className="dp-admin">
-          <div>
-            <button type="button" aria-pressed={admin} className={`dp-admin-toggle ${admin ? "is-on" : ""}`} onClick={() => setAdmin((a) => !a)}>
-              <ChevronsRight size={15} aria-hidden="true" />Administrative control<i><em /></i>
-            </button>
-            {admin && <button type="button" className="dp-admin-reset" onClick={resetAll}><RotateCcw size={14} />Start again</button>}
-          </div>
-          {admin && <p>Test mode. The right arrow on the page now steps into future days, so you can keep pages ahead of time.</p>}
-        </div>
       </div>
 
       <div className="dp-column">

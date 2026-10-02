@@ -479,7 +479,6 @@ export default function ExerciseRunner() {
         </div>
       </nav>}
       {!preview && !englishAvailable && !muted && <p className="xe-note" role="status">{base.id === EVERYDAY_EXERCISE_ID ? "Alira’s audio could not play. Follow the instructions below." : "An English voice is unavailable in this browser. Instructions are shown in English below."}</p>}
-      {!preview && debugError && <p className="xe-note" role="status">Debug video: {debugError}</p>}
 
       {runView && snap && !done && (
         <ol className="xe-beats" aria-label="Session beats">
