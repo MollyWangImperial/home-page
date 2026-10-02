@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { Server } from "node:http";
-import { createAliraAgentRouter, readAgentConfig, type AgentConfig, type SendToClaude } from "../../../server/alira-agent";
+import { agentRequest, createAliraAgentRouter, readAgentConfig, type AgentConfig, type SendToClaude } from "../../../server/alira-agent";
 import { ALIRA_AGENT, aliraAgentTools } from "../../../shared/alira-agent";
 
 const config: AgentConfig = { apiKey: "test-secret-do-not-expose" };
@@ -34,6 +34,23 @@ afterEach(async () => {
 });
 
 describe("Alira's thinking on the server", () => {
+  it("keeps every capability within Claude's strict-tool limit without relaxing any action inputs", () => {
+    const tools = agentRequest(conversation).tools!;
+    expect(tools.map(tool => ("name" in tool ? tool.name : ""))).toEqual(aliraAgentTools.map(tool => tool.name));
+    const readers = ["get_survey_answers", "get_recovery_status", "get_plan_changes", "get_medals"];
+    expect(tools.filter(tool => "strict" in tool && tool.strict === true).length).toBeLessThanOrEqual(20);
+    for (const tool of tools) {
+      expect("name" in tool).toBe(true);
+      if (!("name" in tool)) continue;
+      if (readers.includes(tool.name)) {
+        expect(tool).not.toHaveProperty("strict");
+        expect(tool.input_schema).toEqual({ type: "object", properties: {}, required: [], additionalProperties: false });
+      } else {
+        expect(tool).toHaveProperty("strict", true);
+      }
+    }
+  });
+
   it("says whether it is connected without revealing the key", async () => {
     const connected = await fixture();
     const status = await (await fetch(`${connected.url}/status`)).json();

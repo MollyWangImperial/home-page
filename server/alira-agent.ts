@@ -42,6 +42,11 @@ export function readAgentConfig(root: string): AgentConfig {
 
 const systemPrompt = buildAliraSystemPrompt({ patientName: PATIENT_NAME, faq: [...starterSets.flat(), concernStarter] });
 
+// Claude accepts at most 20 strict tools per request. These context readers take no arguments
+// and cannot change app state; keep them available with their ordinary empty-object schemas.
+// Every action still uses strict inputs, and no capability needs to be removed from Alira.
+const contextReaders = new Set(["get_survey_answers", "get_recovery_status", "get_plan_changes", "get_medals"]);
+
 /** The request for Alira's next step. Only the conversation comes from the browser. */
 export function agentRequest(messages: AgentMessage[]): Anthropic.Beta.Messages.MessageCreateParamsNonStreaming {
   return {
@@ -49,7 +54,14 @@ export function agentRequest(messages: AgentMessage[]): Anthropic.Beta.Messages.
     max_tokens: ALIRA_AGENT.maxTokens,
     // The instructions and tools are the same for every request, so they are cached together.
     system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
-    tools: aliraAgentTools.map(tool => ({ ...tool, input_schema: { ...tool.input_schema } })),
+    tools: aliraAgentTools.map(tool => {
+      const { strict, ...definition } = tool;
+      return {
+        ...definition,
+        ...(!contextReaders.has(tool.name) ? { strict } : {}),
+        input_schema: { ...tool.input_schema },
+      };
+    }),
     tool_choice: { type: "auto" },
     output_config: { effort: ALIRA_AGENT.effort },
     betas: [ALIRA_AGENT.fallbackBeta],
