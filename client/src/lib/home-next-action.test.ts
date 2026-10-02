@@ -54,21 +54,20 @@ describe("Home's next step", () => {
     expect(action.days).toBe(0);
   });
 
-  it("respects a blocked plan instead of encouraging exercise or a new camera check", () => {
+  it("offers the ready reach for a candidate plan while retaining assessment and plan preparation steps", () => {
     const blocked = { ...assessment, report: { ...assessment.report, clinical_review_gate: { rehab_access: "blocked" } } };
-    const action = nextHomeAction(completed({ assessment: blocked, now: new Date(2026, 9, 30) }), 0);
-    expect(action.kind).toBe("review");
+    const action = nextHomeAction(snapshot({ assessment: blocked }), 0);
+    expect(action.kind).toBe("exercises");
     expect(action.href).toContain("section=exercises");
     expect(nextHomeAction(snapshot({ assessment: { ...blocked, planChatCompleted: false } }), 0).href).toBe("/alira");
-    expect(nextHomeAction(snapshot({ assessment: { ...blocked, report: { ...blocked.report, metrics: undefined } } }), 0).href).toBe("/alira");
+    expect(nextHomeAction(snapshot({ assessment: { ...blocked, report: { ...blocked.report, metrics: undefined } } }), 0).href).toBe("/assessment");
   });
 
   it("opens the exercise section and identifies the next unfinished movement", () => {
-    const action = nextHomeAction(snapshot({ sessions: { [dayKey(now)]: { ex_reach: scored() } } }), 0.999);
+    const action = nextHomeAction(snapshot({ sessions: { [dayKey(now)]: { ex_h2m: scored() } } }), 0.999);
     expect(action.kind).toBe("exercises");
     expect(action.href).toBe("/journey?tab=progress&section=exercises");
-    expect(action.text).toContain("1 of today’s 2");
-    expect(action.text).toContain("Hand to mouth is next");
+    expect(nextHomeAction(snapshot({ sessions: { [dayKey(now)]: { ex_reach: scored() } } }), 0).kind).toBe("journal");
   });
 
   it("uses actual completion, including a score of zero, rather than the legacy done marker", () => {
@@ -80,9 +79,9 @@ describe("Home's next step", () => {
     expect(nextHomeAction(completed({ now: new Date(2026, 9, 2, 0, 1) }), 0.99).kind).toBe("exercises");
   });
 
-  it.each([{ rehab_plan: [] }, { rehab_plan: [{ id: "supported_only", name: "Supported movement", description: "With a carer", sets: 1, reps: 5, frequency: "daily" }] }])("reviews an empty or supported plan instead of marking it complete", ({ rehab_plan }) => {
+  it.each([{ rehab_plan: [] }, { rehab_plan: [{ id: "supported_only", name: "Supported movement", description: "With a carer", sets: 1, reps: 5, frequency: "daily" }] }])("offers the everyday reach for an empty or supported prepared plan", ({ rehab_plan }) => {
     const action = nextHomeAction(snapshot({ assessment: { ...assessment, report: { ...assessment.report, rehab_plan } } }), 0.99);
-    expect(action.kind).toBe("review");
+    expect(action.kind).toBe("exercises");
     expect(action.href).toContain("section=exercises");
   });
 
@@ -118,8 +117,8 @@ describe("Home's next step", () => {
     journal.pages["2026-10-02"] = { mood: 3, text: "Kept on the journal test day" };
     const saved = new Map([
       [ASSESSMENT_RESULT_KEY, JSON.stringify(assessment)],
-      [EXERCISES_DONE_KEY, dayKey(now)], // A stale completion marker must not skip the second movement.
-      [JOURNEY_SESSIONS_KEY, JSON.stringify({ [dayKey(now)]: { ex_reach: scored() } })],
+      [EXERCISES_DONE_KEY, dayKey(now)], // A stale completion marker must not skip the ready reach.
+      [JOURNEY_SESSIONS_KEY, JSON.stringify({ [dayKey(now)]: { ex_h2m: scored() } })],
       [JOURNAL_STORAGE_KEY, JSON.stringify(journal)],
     ]);
     const setItem = vi.fn();

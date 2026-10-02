@@ -21,7 +21,7 @@ export const MAX_LEVEL = 3;
 
 export type Level = 1 | 2 | 3;
 /** One exercise in the plan as the review sees it. */
-export type PlanItem = { id: string; name: string; baseLevel: Level; fixedLevel: boolean };
+export type PlanItem = { id: string; name: string; baseLevel: Level; fixedLevel: boolean; locked?: boolean };
 /** Where an exercise stands after earlier reviews. */
 export type ExerciseState = { level: Level; restingThrough: string | null };
 export type ExerciseStates = Record<string, ExerciseState>;
@@ -85,7 +85,8 @@ export function daysBetween(from: string, to: string): string[] {
 export const asLevel = (value: number): Level => (Math.max(MIN_LEVEL, Math.min(MAX_LEVEL, Math.round(value))) as Level);
 
 export function stateFor(item: PlanItem, states: ExerciseStates): ExerciseState {
-  return states[item.id] ?? { level: item.baseLevel, restingThrough: null };
+  const state = states[item.id] ?? { level: item.baseLevel, restingThrough: null };
+  return item.locked ? { ...state, level: item.baseLevel } : state;
 }
 
 /** Whether an exercise rests on a day, on its own or because the whole plan rests. */
@@ -179,6 +180,8 @@ export function reviewDay({
   const easierOnly = safetyFrom(reports, day).easierOnly || rehabBlocked;
   const effectiveDay = nextDay(day);
   for (const item of plan) {
+    // The everyday exercise stays as designed. Warning-sign rests are handled separately.
+    if (item.locked) continue;
     const state = stateFor(item, states);
     if (state.restingThrough && state.restingThrough >= day) continue;
     const dayReports = reports.filter(r => r.day === day && r.source === "exercise" && r.exerciseId === item.id);

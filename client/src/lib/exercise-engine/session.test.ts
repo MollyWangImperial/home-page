@@ -53,7 +53,7 @@ describe("six-beat session (simulated patient)", () => {
   });
 
   it("rescue: two misses in a row drop one rung for the remaining reps", () => {
-    const { session, said } = run("ex_reach", 3, rep => ({ level: rep <= 2 ? 0.55 : 1, compensations: [] }), { reps: 5 });
+    const { session, said } = run("ex_wallslide", 3, rep => ({ level: rep <= 2 ? 0.55 : 1, compensations: [] }), { reps: 5 });
     const record = session.snapshot().record!;
     expect(record.rung_start).toBe(3);
     expect(record.rung_end).toBe(2);
@@ -73,7 +73,8 @@ describe("six-beat session (simulated patient)", () => {
     const record = session.snapshot().record!;
     expect(record.not_attempted).toBe(true);
     expect(record.score).toBeNull();
-    expect(record.rung_start).toBe(2);
+    // Old higher-rung reach links now run at the everyday level, even when skipped.
+    expect(record.rung_start).toBe(1);
   });
 
   it("stopping early scores the planned reps not attempted as zero", () => {

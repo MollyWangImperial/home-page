@@ -91,7 +91,7 @@ export function createExerciseVoiceRouter(generate = generateLocalEnglishAudio, 
     if (!speakAlira || !allowAlira(req)) { res.status(503).json({ error: "Alira's voice is unavailable. English subtitles are shown." }); return; }
     try {
       const { audio, source } = await speakAlira(text.trim());
-      res.set({ "Content-Type": "audio/mpeg", "X-Exercise-Voice": "Alira", "X-Exercise-Language": "en-GB", "X-Exercise-Voice-Source": source, "Cache-Control": "private, max-age=86400" }).send(audio);
+      res.set({ "Content-Type": "audio/mpeg", "X-Exercise-Voice": "Alira", "X-Exercise-Voice-Provider": "elevenlabs", "X-Exercise-Language": "en-GB", "X-Exercise-Voice-Source": source, "Cache-Control": "private, max-age=86400" }).send(audio);
     } catch {
       res.status(503).json({ error: "Alira's voice is unavailable. English subtitles are shown." });
     }

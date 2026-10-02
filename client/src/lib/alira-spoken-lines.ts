@@ -1,14 +1,15 @@
 import { EXERCISES } from "./exercise-engine/config";
+import { POSE_NEEDS } from "./exercise-engine/metrics";
 import { WARM_REP_LINES } from "./warm-rep-lines";
 import {
-  CLOSER_TARGET_LINE, ELBOW_ADVICE, finalRepAdvice, finishedLevelLine, goodRepsLine, keepInViewLine, MAX_SPOKEN_REPS,
+  bestLine, CLOSER_TARGET_LINE, ELBOW_ADVICE, finalRepAdvice, finishedLevelLine, goodRepsLine, keepInViewLine, MAX_SPOKEN_REPS,
   moveFurtherLine, reachedTargetsLine, repCompleteLine, repsAheadLine, repScoreLine, SHOULDER_ADVICE,
 } from "./exercise-engine/spoken";
 
 // Fixed lines Alira says outside her own page: the daily exercises, the warm-up repetition and the
 // emergency FAST check. They join her registered phrases so `pnpm voice:bake` records them in her
 // voice. Sentences built from numbers (rep counts, scores, levels) are listed in every version, so
-// they are recorded too; only "your best reach was 58 degrees" is spoken live.
+// they are recorded too. Forward reach also records every rounded best-angle result in advance.
 
 const sessionLines = [
   "The next repetition starts in three seconds.",
@@ -55,6 +56,24 @@ const exerciseLines = Object.values(EXERCISES).flatMap(linesOf);
 const reach = EXERCISES.ex_reach;
 const reachLines = [
   ...linesOf(reach),
+  ...POSE_NEEDS.upper.map(need => need.say),
+  "I can't see you yet. Sit in front of the camera.",
+  "Sit in front of the camera so I can see you.",
+  "Bring your affected hand back into view.",
+  "Move so both shoulders are in view.",
+  "Adjust the camera so your shoulders and the top of your thigh are clearly visible.",
+  "Keep your hand in the circle and your whole arm in view while I learn your movement.",
+  "Lower your affected hand and rest it on your lap.",
+  ...["left", "right"].flatMap(side => [
+    `Bring your ${side} hand into view and rest it on your lap.`,
+    `Move the camera back a little so I can see the top of your ${side} thigh.`,
+    `Lower your ${side} hand and rest it on the visible top of your ${side} thigh.`,
+    `Bring your ${side} hand onto the visible top of your ${side} thigh.`,
+    `Rest your ${side} hand on your ${side} thigh, closer to your body.`,
+    `Rest your ${side} hand on the visible top of your ${side} thigh.`,
+  ]),
+  // Shoulder angles are bounded to 0–180 degrees; every possible rounded result is reusable.
+  ...range(0, 180).map(degrees => bestLine(reach.bestLabel, degrees)),
   ...sessionLines,
   ...numberLines,
   ELBOW_ADVICE,

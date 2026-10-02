@@ -18,10 +18,10 @@ export function pickEnglishVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesi
 
 /**
  * Always assign an explicit English voice; never fall back to the computer's default voice.
- * `alira: true` asks for Alira's ElevenLabs voice first. The warm-up uses it; the exercises keep
- * the device's English voice until Alira's exercise voice is switched on (see ALIRA_VOICE.md).
+ * `alira: true` asks for Alira's ElevenLabs voice first. `aliraOnly` keeps that voice throughout
+ * Graded Forward Reach; captions remain visible if its saved audio cannot play.
  */
-export function createVoice(options: { alira?: boolean } = {}): RunnerVoice {
+export function createVoice(options: { alira?: boolean; aliraOnly?: boolean } = {}): RunnerVoice {
   const synth = typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis : null;
   let muted = false;
   let busyUntil = 0;
@@ -32,7 +32,7 @@ export function createVoice(options: { alira?: boolean } = {}): RunnerVoice {
   let queue: string[] = [];
   let triedBrowserVoices = false;
   let cancelAudio: (() => void) | null = null;
-  const aliraUnavailable = !options.alira || typeof fetch !== "function";
+  const aliraUnavailable = !(options.alira || options.aliraOnly) || typeof fetch !== "function";
   const requests = new Set<AbortController>();
 
   // Prepare the next instruction while the current one plays; the server caches repeated lines.
@@ -42,6 +42,7 @@ export function createVoice(options: { alira?: boolean } = {}): RunnerVoice {
     try {
       const response = await fetch("/api/exercise-voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(provider ? { text, provider } : { text }), signal: controller.signal });
       if (!response.ok || !/^en(?:-|$)/i.test(response.headers.get("X-Exercise-Language") ?? "")) throw new Error("English audio unavailable.");
+      if (provider === "alira" && (response.headers.get("X-Exercise-Voice") !== "Alira" || response.headers.get("X-Exercise-Voice-Provider") !== "elevenlabs")) throw new Error("Alira audio unavailable.");
       return response.blob();
     } finally { requests.delete(controller); }
   }));
@@ -64,9 +65,8 @@ export function createVoice(options: { alira?: boolean } = {}): RunnerVoice {
 
   const localAudio = async (lines: string[], run: number) => playClips(await fetchClips(lines), run);
 
-  // Alira speaks every instruction in her own voice, the same as on her page and in the
-  // assessment. Only when her voice can't answer (no recording, no credits, offline) does a
-  // device English voice take over, so a patient is never left without spoken guidance.
+  // Reach uses saved Alira audio throughout. Optional Alira callers can fall back to an English
+  // device voice; aliraOnly callers keep captions when a clip is unavailable.
   const flush = async () => {
     if (loading || muted) return;
     loading = true;
@@ -79,12 +79,24 @@ export function createVoice(options: { alira?: boolean } = {}): RunnerVoice {
       try { clips = await fetchClips(lines, "alira"); } catch { clips = null; }
       if (run !== generation) return;
       if (clips) {
-        try { await playClips(clips, run); } catch { /* the caption stays on screen */ }
+        try { await playClips(clips, run); } catch { if (run === generation) api.onAvailability(false); }
         if (run === generation) { busyUntil = performance.now(); loading = false; if (queue.length) void flush(); }
         return;
       }
-      // Lines her voice couldn't speak go to the device voice, in order, ahead of anything newer.
+      if (options.aliraOnly) {
+        api.onAvailability(false);
+        loading = false;
+        if (queue.length) void flush();
+        return;
+      }
+      // Optional Alira speech (for example, the warm-up) can still use an English device voice.
       queue = [...lines, ...queue];
+    }
+    if (options.aliraOnly) {
+      queue = [];
+      loading = false;
+      api.onAvailability(false);
+      return;
     }
     void deviceFlush(run);
   };

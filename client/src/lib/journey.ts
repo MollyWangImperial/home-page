@@ -6,8 +6,8 @@
 // designed the exercise plan from them. Everything after that counts from "day one", the day
 // of that first assessment, and nothing is dropped when a new week or a re-assessment starts.
 import { noteLead, patientLine, previousDay } from "@shared/plan-review";
-import { loadRememberedAssessment, type PlanExercise, type StoredAssessment } from "./assessment";
-import { DOMAIN_LABEL, EXERCISES, usesSeatedTargets } from "./exercise-engine/config";
+import { withEverydayExercise, loadRememberedAssessment, type PlanExercise, type StoredAssessment } from "./assessment";
+import { DOMAIN_LABEL, EVERYDAY_EXERCISE_ID, EXERCISES, patientExerciseReady, usesSeatedTargets } from "./exercise-engine/config";
 import { dayKey, markExercisesDoneToday, PATIENT_NAME, REASSESSMENT_CYCLE_DAYS } from "./home-stage";
 import { adjustedLevel, changesFromDay, loadPlanReview, resetPlanReview, restingOn, type PlanReviewState } from "./plan-review-store";
 import { administrativeControlsEnabled } from "./administrative-controls";
@@ -197,18 +197,19 @@ export function loadSessionStore(): SessionStore {
   return store && typeof store === "object" && !Array.isArray(store) ? (store as SessionStore) : {};
 }
 
-/** The plan's exercises that the companion can run itself (and so can score). */
+/** All engine exercises in the prepared plan, including those still being developed for patients. */
 export function companionPlan(assessment: StoredAssessment | null | undefined): PlanExercise[] {
-  return (assessment?.report?.rehab_plan ?? []).filter(exercise => Object.hasOwn(EXERCISES, exercise.id));
+  if (!Array.isArray(assessment?.report?.rehab_plan)) return [];
+  return withEverydayExercise(assessment.report.rehab_plan, assessment.report.clinical_review_gate).filter(exercise => Object.hasOwn(EXERCISES, exercise.id));
 }
 
 /**
- * Today's exercises: the companion's, less any resting after a warning sign (see the daily plan
+ * Today's ready patient exercises, less any resting after a warning sign (see the daily plan
  * review, lib/plan-review.ts). "Done for today" and "what's next" count only these.
  */
 export function launchablePlan(assessment: StoredAssessment | null | undefined, day = dayKey(journeyNow())): PlanExercise[] {
   const review = loadPlanReview();
-  return companionPlan(assessment).filter(exercise => !restingOn(exercise.id, day, assessment?.id, review));
+  return companionPlan(assessment).filter(exercise => patientExerciseReady(exercise.id) && !restingOn(exercise.id, day, assessment?.id, review));
 }
 
 /**
@@ -372,7 +373,8 @@ export function areaOfExercise(exercise: PlanExercise): AreaKey {
 }
 
 export function journeyExercises(assessment: StoredAssessment | null | undefined): JourneyExercise[] {
-  return (assessment?.report?.rehab_plan ?? []).map(plan => {
+  if (!Array.isArray(assessment?.report?.rehab_plan)) return [];
+  return withEverydayExercise(assessment.report.rehab_plan, assessment.report.clinical_review_gate).map(plan => {
     const area = areaOfExercise(plan);
     return {
       id: plan.id,
@@ -380,7 +382,7 @@ export function journeyExercises(assessment: StoredAssessment | null | undefined
       area,
       areaLabel: DOMAIN_LABEL[area] ?? AREA_LABEL[area],
       dose: `${plan.sets} ${plan.sets === 1 ? "set" : "sets"} × ${plan.reps}`,
-      launchable: Object.hasOwn(EXERCISES, plan.id),
+      launchable: patientExerciseReady(plan.id),
       plan,
     };
   });
@@ -539,10 +541,10 @@ export function buildJourney({ assessment, start, assessments, store, now, range
   const planRows: PlanRow[] = exercises.map(exercise => {
     const result = todayResults[exercise.id];
     const base = usesSeatedTargets(exercise.id) ? 1 : rungFor(exercise.plan);
-    const changed = fromYesterday.find(change => change.exerciseId === exercise.id && (change.kind === "easier" || change.kind === "harder"));
+    const changed = exercise.id === EVERYDAY_EXERCISE_ID ? undefined : fromYesterday.find(change => change.exerciseId === exercise.id && (change.kind === "easier" || change.kind === "harder"));
     return {
       exercise, doneToday: typeof result?.score === "number", score: typeof result?.score === "number" ? result.score : null,
-      rung: planReview ? adjustedLevel(exercise.id, base, assessment.id, planReview) : rungFor(exercise.plan),
+      rung: planReview ? adjustedLevel(exercise.id, base, assessment.id, planReview) : base,
       resting: restingToday(exercise),
       levelChange: changed?.kind === "easier" || changed?.kind === "harder" ? changed.kind : null,
     };
@@ -574,7 +576,7 @@ export function buildJourney({ assessment, start, assessments, store, now, range
   const lower = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
   let alira: AliraNote;
   if (n === 0) {
-    const count = exercises.length;
+    const count = launchable.length;
     alira = { kind: "note", label: "A note from Alira", tips: [], text: day === 0
       ? `${name}, your starting point is set. The plan starts small on purpose: ${count === 1 ? "one exercise" : `${count} exercises`}, a few minutes each. Show up today and we’ll build from there.`
       : `${name}, no session yet — that’s alright. A few minutes today is enough to begin.` };

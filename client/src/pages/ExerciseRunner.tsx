@@ -346,7 +346,7 @@ export default function ExerciseRunner() {
     bodyLastT.current = 0;
     setBodyChecks(cameraBodyChecks({ cfg }, { pose: null, hands: [] } as unknown as Detection, opts.side).map(check => ({ ...check, progress: 0 })));
     // The everyday exercise speaks in Alira's voice; the others keep the device voice while in development.
-    const voice = createVoice({ alira: base.id === EVERYDAY_EXERCISE_ID });
+    const voice = createVoice({ alira: base.id === EVERYDAY_EXERCISE_ID, aliraOnly: base.id === EVERYDAY_EXERCISE_ID });
     voice.stop();
     voice.setMuted(muted);
     voice.onSay = setSaid;
@@ -478,7 +478,7 @@ export default function ExerciseRunner() {
           <button className="xe-back" onClick={() => selectPreview(null)}>Exit preview</button>
         </div>
       </nav>}
-      {!preview && !englishAvailable && !muted && <p className="xe-note" role="status">An English voice is unavailable in this browser. Instructions are shown in English below.</p>}
+      {!preview && !englishAvailable && !muted && <p className="xe-note" role="status">{base.id === EVERYDAY_EXERCISE_ID ? "Alira’s audio could not play. Follow the instructions below." : "An English voice is unavailable in this browser. Instructions are shown in English below."}</p>}
       {!preview && debugError && <p className="xe-note" role="status">Debug video: {debugError}</p>}
 
       {runView && snap && !done && (

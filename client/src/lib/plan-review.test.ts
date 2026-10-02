@@ -190,7 +190,8 @@ describe("the review in the app", () => {
     expect(state.states.ex_handopen).toEqual({ level: 1, restingThrough: "2026-10-02" });
     expect(state.outbox.map(item => item.alert.id)).toEqual(["warning:2026-10-01:ex_handopen:rest"]);
     expect(launchablePlan(assessment, "2026-10-01").map(e => e.id)).toEqual(["ex_reach"]);
-    expect(launchablePlan(assessment, "2026-10-03").map(e => e.id)).toEqual(["ex_reach", "ex_handopen"]);
+    expect(launchablePlan(assessment, "2026-10-03").map(e => e.id)).toEqual(["ex_reach"]);
+    expect(planItems(assessment).map(e => e.id)).toEqual(["ex_reach", "ex_handopen"]);
     expect(unseenChanges()).toHaveLength(1);
     markChangesSeen();
     expect(unseenChanges()).toHaveLength(0);
@@ -232,8 +233,8 @@ describe("the review in the app", () => {
     expect(attempts).toEqual([{ exerciseId: "ex_handopen", day: "2026-09-28", level: null, score: 40, repsPlanned: null, repsDone: null, eased: false }]);
     expect(planItems(withPlan())).toEqual([
       // The everyday exercise comes first, at level 1, and never changes level.
-      { id: "ex_reach", name: expect.any(String), baseLevel: 1, fixedLevel: true },
-      { id: "ex_handopen", name: expect.any(String), baseLevel: 2, fixedLevel: false },
+      { id: "ex_reach", name: expect.any(String), baseLevel: 1, fixedLevel: true, locked: true },
+      { id: "ex_handopen", name: expect.any(String), baseLevel: 2, fixedLevel: false, locked: false },
     ]);
   });
 
@@ -264,7 +265,8 @@ describe("the review in the app", () => {
     const rows = Object.fromEntries(model.planRows.map(row => [row.exercise.id, row]));
     expect(rows.ex_handopen).toMatchObject({ rung: 1, resting: false, levelChange: "easier" });
     expect(rows.ex_reach).toMatchObject({ resting: true });
-    expect(model.nextExercise?.id).toBe("ex_handopen");
+    expect(model.nextExercise).toBeNull();
+    expect(model.planTitle).toBe("Today is a rest day");
     expect(model.alira.changesLead).toBe("Zak, I've adjusted today's plan:");
     expect(model.alira.changes).toEqual([
       "Active Hand Opening is one level easier, because it felt much harder yesterday.",

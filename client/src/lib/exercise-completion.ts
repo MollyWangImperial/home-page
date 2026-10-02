@@ -28,7 +28,7 @@ export function loadExerciseCompletion(search: string, assessment: StoredAssessm
 }
 
 export function exerciseCompletionMessages(completion: ExerciseCompletion, name: string) {
-  const finished = completion.allDone ? "today’s exercises" : completion.exerciseName ?? "your exercise";
+  const finished = completion.exerciseName ?? (completion.allDone ? "today’s exercises" : "your exercise");
   return [
     `Congratulations, ${name}. You’ve completed ${finished}! Thank you for the effort you put in today. Settle into a good rest; you’ve earned a quiet moment.`,
     "Before the day slips by, tuck a little note into your journal: a small win, a tricky moment, or simply how you feel. A few words are enough. Or visit My Time for a gentle game of Pairs or a quiet moment by the koi pond. What would feel good now?",

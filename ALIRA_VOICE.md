@@ -6,7 +6,7 @@ On this site that covers four places:
 
 - **The Alira page and the welcome conversation**: `/api/alira/voice` for her fixed lines, `/api/alira/speak` for everything else she writes.
 - **The warm-up repetition**: `createVoice({ alira: true })` asks `/api/exercise-voice` with `provider: "alira"`.
-- **The daily exercises**: not yet. They still use the device's English voice; switch them on the same way and record their lines with `pnpm voice:bake --exercises` first.
+- **Graded Forward Reach**: always uses Alira, with saved instructions, corrections, scores and all rounded best-reach results (0–180 degrees) in `server/voice-pack`. These are included in `pnpm voice:bake` by default. It never switches to a different speaker; English captions stay visible if audio is unavailable. Other daily exercises keep their existing voice path; record their lines with `pnpm voice:bake --exercises` before switching them on.
 - **The emergency FAST check**: `/api/tts/generate`.
 - **The copied assessment service** (`assessment-service/`): `local_app.py` turns on Alira's voice for every line (`INSTRUCTION_TTS_PROVIDER=elevenlabs`, `ELEVENLABS_VOICE_SCOPE=all`) and reads the key from this site's `.env.local`, however the service is started. Its recorded lines are in `assessment-service/frontend/public/audio/prepared`.
 

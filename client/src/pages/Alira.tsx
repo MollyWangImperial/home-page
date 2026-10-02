@@ -60,6 +60,7 @@ import RecoverySeedling from "@/components/RecoverySeedling";
 import { loadAliraVisit, rememberAliraVisit } from "@/lib/alira-visit";
 import { companionTaskPlan, loadRememberedAssessment, rememberAssessment, rememberAssessmentPlan } from "@/lib/assessment";
 import { journeyLockReason, journeyNow, journeyUnlocked } from "@/lib/journey";
+import { patientExerciseReady } from "@/lib/exercise-engine/config";
 import { ASSESSMENT_PLAN_READY_MESSAGE, assessmentCongratulations, EXERCISES_PATH, pauseAssessmentChat, randomAssessment, randomAssessmentEnabled, requestAssessmentPlan, runAssessmentConversation } from "@/lib/assessment-plan";
 import { getDisplayPrefs, setDisplayPrefs } from "@/lib/display-prefs";
 import { dayKey, daysToReassessment, loadLastExerciseDay } from "@/lib/home-stage";
@@ -671,15 +672,16 @@ export default function Alira() {
       case "open_exercise": {
         const exercise = AGENT_EXERCISES.find(e => e.id === input.exercise_id);
         if (!exercise) return refuse("That exercise isn't available.");
+        if (!patientExerciseReady(exercise.id)) {
+          return refuse(`${exercise.name} is under development. Offer Graded Forward Reach instead.`, `${exercise.name} is under development. Graded Forward Reach is ready for you to try.`);
+        }
         // The daily plan review may rest an exercise after a warning sign, or set today's level.
         const assessment = loadRememberedAssessment();
         const review = loadPlanReview();
         if (restingOn(exercise.id, learningToday(), assessment?.id, review)) {
           return refuse(`${exercise.name} is resting today after a warning sign (a lot of pain, or stopping because of feeling unwell). It comes back tomorrow at the earliest. Suggest another exercise or a rest.`);
         }
-        const planned = planItems(assessment).find(item => item.id === exercise.id);
-        const rung = input.level === "hard" ? 3 : input.level === "medium" ? 2 : input.level === "easy" ? 1
-          : planned ? adjustedLevel(planned.id, planned.baseLevel, assessment?.id, review) : 1;
+        const rung = 1;
         const affected = cur.answers.side_affected;
         const side = input.side === "left" || input.side === "right" ? input.side : affected === "left" || affected === "right" ? affected : null;
         return {

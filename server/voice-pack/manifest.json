@@ -13,8 +13,8 @@
       "speed": 0.95
     }
   },
-  "ready": 410,
-  "total": 410,
+  "ready": 616,
+  "total": 616,
   "clips": {
     "9267c8099078927d73806efc790ab3dbea4432876205dd196f0b7f1ea02809ae.mp3": {
       "phraseIds": [
@@ -837,6 +837,1448 @@
       ],
       "text": "Beautiful repetition. Keep that smooth, steady motion from start to finish.",
       "bytes": 84471
+    },
+    "99423f4a8d17c0d66f27f42b3033554b91ceb9bc85b3657c6d5f64748abd976d.mp3": {
+      "phraseIds": [
+        "reach-51a34b1a"
+      ],
+      "text": "Lower the phone a little so I can see your face.",
+      "bytes": 44347
+    },
+    "daa132f08a5f695d90cc0058b9c65547065638f9ec3e616b95d0b6a26a8d4761.mp3": {
+      "phraseIds": [
+        "reach-dbed1d71"
+      ],
+      "text": "Lift the phone a little so I can see your shoulder.",
+      "bytes": 44765
+    },
+    "65ec1e4420b6ce0e90700e45abba6e214cdfd0b15b1361d749a02debc5d367f0.mp3": {
+      "phraseIds": [
+        "reach-8ab96a5e"
+      ],
+      "text": "Move so both of your shoulders are in view.",
+      "bytes": 41004
+    },
+    "c233236771e337de9c17f230a03df108ba6a305e44f8eb8d98f4c829bedb14e7.mp3": {
+      "phraseIds": [
+        "reach-5f90b2ff"
+      ],
+      "text": "Sit back a little so I can see your whole arm.",
+      "bytes": 43511
+    },
+    "18bee5a88b09393c1167b3ee1e16e8e47758ca86493fd1553ed64ba3faee79dc.mp3": {
+      "phraseIds": [
+        "reach-ed2a3378"
+      ],
+      "text": "Bring your hand into view.",
+      "bytes": 27211
+    },
+    "6f6d9e96bda232bc02124b3f846370a6f51a8c590676df795eec67f3a8ab8b13.mp3": {
+      "phraseIds": [
+        "reach-e50d1863"
+      ],
+      "text": "Move the phone back a little so I can see the top of your thigh.",
+      "bytes": 53124
+    },
+    "a097ddefe9582d00dc79f7870b85e710c1f4fbea3a47fe647543d2a6a629fb39.mp3": {
+      "phraseIds": [
+        "reach-4044c36a"
+      ],
+      "text": "I can't see you yet. Sit in front of the camera.",
+      "bytes": 48527
+    },
+    "c184f26dfd8b4a0d1f93a94aa85153eb1af5b3630597af66572b296d691ac9ed.mp3": {
+      "phraseIds": [
+        "reach-76a80f83"
+      ],
+      "text": "Sit in front of the camera so I can see you.",
+      "bytes": 39750
+    },
+    "55f067b8f11ba784023b6e2eb733d4fa8b1f3d7a470b7e1dcfcf960a0b008b12.mp3": {
+      "phraseIds": [
+        "reach-9d132e61"
+      ],
+      "text": "Bring your affected hand back into view.",
+      "bytes": 38914
+    },
+    "983cc32df68d090a2ae8b825f115b38dd313191535eea3ca2dd0286f75b28a64.mp3": {
+      "phraseIds": [
+        "reach-c432c246"
+      ],
+      "text": "Move so both shoulders are in view.",
+      "bytes": 36824
+    },
+    "a83717d1eaca3d231e05221fd1c74bc31c4e5b8fdc7410b88697605250cf4204.mp3": {
+      "phraseIds": [
+        "reach-7a5117d9"
+      ],
+      "text": "Adjust the camera so your shoulders and the top of your thigh are clearly visible.",
+      "bytes": 71515
+    },
+    "ad5f329ea1b9445a988ae750439fbd85ffd521a12a08aea062ae47d388619db7.mp3": {
+      "phraseIds": [
+        "reach-df3bddc9"
+      ],
+      "text": "Keep your hand in the circle and your whole arm in view while I learn your movement.",
+      "bytes": 81128
+    },
+    "1a74ee614d92860ce0d73aa3254d01ff886c4670aada67f07c423fe2f8f37413.mp3": {
+      "phraseIds": [
+        "reach-ba463583"
+      ],
+      "text": "Lower your affected hand and rest it on your lap.",
+      "bytes": 49363
+    },
+    "f5891664ed7f2d7227a1b39bea7676bf2df5a242590b0a7383c3738d3ede0a69.mp3": {
+      "phraseIds": [
+        "reach-e7f62b48"
+      ],
+      "text": "Bring your left hand into view and rest it on your lap.",
+      "bytes": 45601
+    },
+    "39087aacd5a28ad2e515aaad9eeb9066716281c142ccb481870016af8a9de421.mp3": {
+      "phraseIds": [
+        "reach-b8e5d47d"
+      ],
+      "text": "Move the camera back a little so I can see the top of your left thigh.",
+      "bytes": 61902
+    },
+    "a23a84fab668cffa9ccc803f7312a9fd61cd0c6ec05187aa1617bae69b131763.mp3": {
+      "phraseIds": [
+        "reach-e9a73623"
+      ],
+      "text": "Lower your left hand and rest it on the visible top of your left thigh.",
+      "bytes": 62737
+    },
+    "8d9931bd7fb4d1f8e01d854142466e554554ba8b7e21e538a08e7b2fa6b25cc9.mp3": {
+      "phraseIds": [
+        "reach-54d4df6d"
+      ],
+      "text": "Bring your left hand onto the visible top of your left thigh.",
+      "bytes": 58140
+    },
+    "3437139252ba585f2f31db5fd870dbffcaeca06ae8cf91985975ed037a86256f.mp3": {
+      "phraseIds": [
+        "reach-a2e76ef1"
+      ],
+      "text": "Rest your left hand on your left thigh, closer to your body.",
+      "bytes": 58140
+    },
+    "04a8efb0b09e6a6dbe11ab9a8ef0704696d101b77d7b02648433d3c37b35fd66.mp3": {
+      "phraseIds": [
+        "reach-f4380b16"
+      ],
+      "text": "Rest your left hand on the visible top of your left thigh.",
+      "bytes": 56050
+    },
+    "55440bfebfd292f159703b03b4bae59d487b42297b08f5f59ad3cc3937045efc.mp3": {
+      "phraseIds": [
+        "reach-e09a7953"
+      ],
+      "text": "Bring your right hand into view and rest it on your lap.",
+      "bytes": 51035
+    },
+    "6bf970d9e2e37fe4c390a0465ecdd72c35843c245257267e311bdd773888ffd4.mp3": {
+      "phraseIds": [
+        "reach-9c6f53c6"
+      ],
+      "text": "Move the camera back a little so I can see the top of your right thigh.",
+      "bytes": 64409
+    },
+    "99f6b4836b4b66e76e291f7dd4d1834558ea675f15188c770584cf4d2895081f.mp3": {
+      "phraseIds": [
+        "reach-b95bc9c3"
+      ],
+      "text": "Lower your right hand and rest it on the visible top of your right thigh.",
+      "bytes": 66499
+    },
+    "d77044d1ae67f434148d56b65f5c53f36a7cc9d877e6256cae2c47d9169b1e9c.mp3": {
+      "phraseIds": [
+        "reach-bc0c542d"
+      ],
+      "text": "Bring your right hand onto the visible top of your right thigh.",
+      "bytes": 58976
+    },
+    "9eddca6aefd94d727370b9997685dd69316c00f949ee144e3d77020fe71e9984.mp3": {
+      "phraseIds": [
+        "reach-68d6dd51"
+      ],
+      "text": "Rest your right hand on your right thigh, closer to your body.",
+      "bytes": 56886
+    },
+    "1ac34eb4ebd0fae19060a461b699d1b7bd1659a84a456f53a45b072995cb798f.mp3": {
+      "phraseIds": [
+        "reach-50980636"
+      ],
+      "text": "Rest your right hand on the visible top of your right thigh.",
+      "bytes": 53960
+    },
+    "b912d16c65823982e462eff691e6ff01507c2ec3ac8a752821164f38919a6ee3.mp3": {
+      "phraseIds": [
+        "reach-1ddebdd5"
+      ],
+      "text": "Your best reach was 0 degrees.",
+      "bytes": 33898
+    },
+    "60ca71f27ca0e8089eafe7269779868d2f0361923d1db54f112d0b467867a12c.mp3": {
+      "phraseIds": [
+        "reach-5dc5d5f4"
+      ],
+      "text": "Your best reach was 1 degrees.",
+      "bytes": 35988
+    },
+    "3bad8b8b507573106ee4b7059f1193f83f4d274c80847f305da071576738d646.mp3": {
+      "phraseIds": [
+        "reach-a3101f97"
+      ],
+      "text": "Your best reach was 2 degrees.",
+      "bytes": 32226
+    },
+    "517569af633229c2ab933d37a2ccf6f30b0f333787ed25284fc4962527ee925f.mp3": {
+      "phraseIds": [
+        "reach-e2f737b6"
+      ],
+      "text": "Your best reach was 3 degrees.",
+      "bytes": 33898
+    },
+    "9af1d134e445b33e54b7d6efaafe25b6a4552e299be98bb91337a7c75f25215c.mp3": {
+      "phraseIds": [
+        "reach-1a963e51"
+      ],
+      "text": "Your best reach was 4 degrees.",
+      "bytes": 35152
+    },
+    "fd2043cd40150ca49d1734ef8f2b71ec18f7a8efb509a294cff834caa304ef40.mp3": {
+      "phraseIds": [
+        "reach-5a7d5670"
+      ],
+      "text": "Your best reach was 5 degrees.",
+      "bytes": 35988
+    },
+    "36cb0b2bd3097a4a11dc4508e6ef241d7b8743f13efea2c98ee953e5286a1fee.mp3": {
+      "phraseIds": [
+        "reach-9fc7a013"
+      ],
+      "text": "Your best reach was 6 degrees.",
+      "bytes": 35152
+    },
+    "4a76c06a7aa33971fd275f47f95f71d4697c163950e450ce86f178b97ebfd219.mp3": {
+      "phraseIds": [
+        "reach-dfaeb832"
+      ],
+      "text": "Your best reach was 7 degrees.",
+      "bytes": 34316
+    },
+    "8c958d471044651268f36877c08b4452d323d0310562f42f4f99ea0932973ca1.mp3": {
+      "phraseIds": [
+        "reach-fd8a34dd"
+      ],
+      "text": "Your best reach was 8 degrees.",
+      "bytes": 36824
+    },
+    "7e0daa8f256f8301bbe1a6881f9c6ac667f5f33718070ddab0f2a7f8ce8065e5.mp3": {
+      "phraseIds": [
+        "reach-3d714cfc"
+      ],
+      "text": "Your best reach was 9 degrees.",
+      "bytes": 35988
+    },
+    "2dedaacdbfcfac093cb2956725e5806c48bab7f02ba65e03c39085eec9f877e5.mp3": {
+      "phraseIds": [
+        "reach-feeb0364"
+      ],
+      "text": "Your best reach was 10 degrees.",
+      "bytes": 30137
+    },
+    "de717cea8536ed5fc58ba9ce7fe2bb9708f94b3f3ad730bbf24adefbcbb87c2d.mp3": {
+      "phraseIds": [
+        "reach-bf03eb45"
+      ],
+      "text": "Your best reach was 11 degrees.",
+      "bytes": 31391
+    },
+    "fa081821f0004029793ad45ba125ceca364b4a19e91ba4359f4921cfeed23f49.mp3": {
+      "phraseIds": [
+        "reach-841c6526"
+      ],
+      "text": "Your best reach was 12 degrees.",
+      "bytes": 33062
+    },
+    "2497ba9d9ec1d417e632db3d70db0e11a2685ad2b7365c01cadee2d266326916.mp3": {
+      "phraseIds": [
+        "reach-44354d07"
+      ],
+      "text": "Your best reach was 13 degrees.",
+      "bytes": 35152
+    },
+    "082384b62ebb58043f9e6af6d2a84899bd778a1e44e4897bcd8684697dcb16b5.mp3": {
+      "phraseIds": [
+        "reach-fba283e0"
+      ],
+      "text": "Your best reach was 14 degrees.",
+      "bytes": 38914
+    },
+    "8a525f010f9ab6e7d3611cdcd16a2b72df0ce3217739a5d8bd11b6fe268cbc28.mp3": {
+      "phraseIds": [
+        "reach-bbbb6bc1"
+      ],
+      "text": "Your best reach was 15 degrees.",
+      "bytes": 35988
+    },
+    "2237a6f9299c414b9bfddfc3e72eab200af8a0e7a9722c135058e1e25fbf6448.mp3": {
+      "phraseIds": [
+        "reach-80d3e5a2"
+      ],
+      "text": "Your best reach was 16 degrees.",
+      "bytes": 38914
+    },
+    "9bc1751ece21f6874cc044c0305e516461efc64fd7a14127cabd51009f174275.mp3": {
+      "phraseIds": [
+        "reach-40eccd83"
+      ],
+      "text": "Your best reach was 17 degrees.",
+      "bytes": 39750
+    },
+    "c9df4c98407c42cd9e87d1e4c4bf767b3111c7d130d38943299e8b052dee3f55.mp3": {
+      "phraseIds": [
+        "reach-de967a6c"
+      ],
+      "text": "Your best reach was 18 degrees.",
+      "bytes": 41004
+    },
+    "11b1565270e743a2cd1adb86fa411a953a1007303ca41cb2bd5500fedf886d95.mp3": {
+      "phraseIds": [
+        "reach-9eaf624d"
+      ],
+      "text": "Your best reach was 19 degrees.",
+      "bytes": 35152
+    },
+    "8bb43625d9013eb967195e532051ead337faa0fc6904174d4f4015fe94d9d9a9.mp3": {
+      "phraseIds": [
+        "reach-4c06b927"
+      ],
+      "text": "Your best reach was 20 degrees.",
+      "bytes": 37660
+    },
+    "7c05aa36a90dba2e2f2c4c5254ca4546d0e42c9b08a72361caa14377d220b693.mp3": {
+      "phraseIds": [
+        "reach-b24a9146"
+      ],
+      "text": "Your best reach was 21 degrees.",
+      "bytes": 38078
+    },
+    "e5511f7c82e78029682df8f7022131ecbe9f2a28b0067a49960019b426e4bf66.mp3": {
+      "phraseIds": [
+        "reach-c10dd765"
+      ],
+      "text": "Your best reach was 22 degrees.",
+      "bytes": 38914
+    },
+    "8a03bbd9e196370e4c507c7770e159ff5dc2b62f441c37828477fee651b73507.mp3": {
+      "phraseIds": [
+        "reach-3f31b084"
+      ],
+      "text": "Your best reach was 23 degrees.",
+      "bytes": 38914
+    },
+    "e525be4e00dda638fffc1d2fea0fb8db6e93f410d7f203d0c094375c09f88fa5.mp3": {
+      "phraseIds": [
+        "reach-48be39a3"
+      ],
+      "text": "Your best reach was 24 degrees.",
+      "bytes": 40586
+    },
+    "e0c277445bbfd7423e7722ee73ec037e7ae7f2ec66ae890464de2b3622f7e8aa.mp3": {
+      "phraseIds": [
+        "reach-af0211c2"
+      ],
+      "text": "Your best reach was 25 degrees.",
+      "bytes": 41004
+    },
+    "c79a5f6918d2ea72d6239586208dd72978ea66de16ccd1032c4049bd4a04c6d4.mp3": {
+      "phraseIds": [
+        "reach-bdc557e1"
+      ],
+      "text": "Your best reach was 26 degrees.",
+      "bytes": 37660
+    },
+    "a6f60dac75b91dcecfad779948dccff3df9ba932257ba5c5b56ff4fdd5f105fd.mp3": {
+      "phraseIds": [
+        "reach-3be93100"
+      ],
+      "text": "Your best reach was 27 degrees.",
+      "bytes": 41839
+    },
+    "5f631ce02907eb5cb233b63e0a67a2510b82393371c6a34b664096101fbf622d.mp3": {
+      "phraseIds": [
+        "reach-2bb2302f"
+      ],
+      "text": "Your best reach was 28 degrees.",
+      "bytes": 41839
+    },
+    "f61d1b014521579da61cb35306d9417d6a8a06d992ab8418bc47ecb90f713198.mp3": {
+      "phraseIds": [
+        "reach-91f6084e"
+      ],
+      "text": "Your best reach was 29 degrees.",
+      "bytes": 42675
+    },
+    "78ca6f950c438f81d55585f886946f08ac920dbc25b35988a77ceddab56bc78f.mp3": {
+      "phraseIds": [
+        "reach-b55face6"
+      ],
+      "text": "Your best reach was 30 degrees.",
+      "bytes": 36824
+    },
+    "1698cfb933cea0683a4d4bace5b5a0834ba1c0ee172540e3a8f0a92e2de22735.mp3": {
+      "phraseIds": [
+        "reach-ca14d4c7"
+      ],
+      "text": "Your best reach was 31 degrees.",
+      "bytes": 39750
+    },
+    "871367f720ee1503a3ec9c244b058b70b69d7764d65bb8bd6bbcb4e5dfc5ba36.mp3": {
+      "phraseIds": [
+        "reach-3c7f4c24"
+      ],
+      "text": "Your best reach was 32 degrees.",
+      "bytes": 40586
+    },
+    "a3e712b3afdf6b54aafb1a3c1e7d9c9b4ed23fcb46a2ab07141448d2d93eb198.mp3": {
+      "phraseIds": [
+        "reach-51347405"
+      ],
+      "text": "Your best reach was 33 degrees.",
+      "bytes": 37660
+    },
+    "ef100c12cac62bdfae4c2f49339c3de81e2662c195634858c9cdf190991b40d0.mp3": {
+      "phraseIds": [
+        "reach-b2172d62"
+      ],
+      "text": "Your best reach was 34 degrees.",
+      "bytes": 43511
+    },
+    "543bfd05b4e7ec4ffa4857fc39bcf29bad41f1efc3cbef0e8434fff29110e83a.mp3": {
+      "phraseIds": [
+        "reach-c6cc5543"
+      ],
+      "text": "Your best reach was 35 degrees.",
+      "bytes": 42675
+    },
+    "57b28f1e57072d7ceb771a51cb0a5c3721e5575656e2d41374eacd68f1d3ab9e.mp3": {
+      "phraseIds": [
+        "reach-3936cca0"
+      ],
+      "text": "Your best reach was 36 degrees.",
+      "bytes": 35152
+    },
+    "6d89dddb69198107a4b6ada16628e266619fe5536ee0bcf14c96c93938ae5d20.mp3": {
+      "phraseIds": [
+        "reach-4debf481"
+      ],
+      "text": "Your best reach was 37 degrees.",
+      "bytes": 41839
+    },
+    "49ec781b792ebc84bfb922273549be914c7cfd803320ba9b422f2b087d937f54.mp3": {
+      "phraseIds": [
+        "reach-950b23ee"
+      ],
+      "text": "Your best reach was 38 degrees.",
+      "bytes": 42675
+    },
+    "d4329c435ae7144d84fda0e64e35064baceeb9758361846648f49474efed31d0.mp3": {
+      "phraseIds": [
+        "reach-a9c04bcf"
+      ],
+      "text": "Your best reach was 39 degrees.",
+      "bytes": 40586
+    },
+    "d054370677979f4fcc2371a74d27a3f702ad431aa77d25e3408c4bd712510214.mp3": {
+      "phraseIds": [
+        "reach-8d00ffa1"
+      ],
+      "text": "Your best reach was 40 degrees.",
+      "bytes": 33062
+    },
+    "1379f967aa0ef6138c408cb2d684ec36d8f34cfd6e7efcba24083b7b05c8cc78.mp3": {
+      "phraseIds": [
+        "reach-9ea897c0"
+      ],
+      "text": "Your best reach was 41 degrees.",
+      "bytes": 38914
+    },
+    "79321e3c2ed605e2bb3aa0edcb13c5f8c3aa8838f265477cc376ebec755ad9e2.mp3": {
+      "phraseIds": [
+        "reach-0019e063"
+      ],
+      "text": "Your best reach was 42 degrees.",
+      "bytes": 41004
+    },
+    "4e8ae5c79b80b93fb6dabbfdea94562c70a5e8ccc3567cb1e14b8368bcdecd10.mp3": {
+      "phraseIds": [
+        "reach-29a17982"
+      ],
+      "text": "Your best reach was 43 degrees.",
+      "bytes": 40586
+    },
+    "87057a97dff60b345a0cd669e1319ce12eb873899e8e0bde2caf26bf1006e84c.mp3": {
+      "phraseIds": [
+        "reach-90497f25"
+      ],
+      "text": "Your best reach was 44 degrees.",
+      "bytes": 35152
+    },
+    "f2d3db7fbbf7c558740829f708ec7be34beec19c2502a61aebf95c92933e05e1.mp3": {
+      "phraseIds": [
+        "reach-a1f11744"
+      ],
+      "text": "Your best reach was 45 degrees.",
+      "bytes": 41004
+    },
+    "3658d066f708009676f9f71579fd5b62e2a282448a84fe97ce4b41f7899a4384.mp3": {
+      "phraseIds": [
+        "reach-03625fe7"
+      ],
+      "text": "Your best reach was 46 degrees.",
+      "bytes": 41839
+    },
+    "d8e0d71e413c581d09fa77e53e35c465985a58ee1ce5d130575787082573a967.mp3": {
+      "phraseIds": [
+        "reach-2ce9f906"
+      ],
+      "text": "Your best reach was 47 degrees.",
+      "bytes": 41839
+    },
+    "05eb30dd3d5e8e9dcf99feea20ae31ccca95d1915257bec6ed3a847f6b8df928.mp3": {
+      "phraseIds": [
+        "reach-6cac76a9"
+      ],
+      "text": "Your best reach was 48 degrees.",
+      "bytes": 32226
+    },
+    "7e5f45d247050c0b1259ac93c98742d25a7a169608c4884f75fd1dd3ec686211.mp3": {
+      "phraseIds": [
+        "reach-7e540ec8"
+      ],
+      "text": "Your best reach was 49 degrees.",
+      "bytes": 40586
+    },
+    "57ca709e60b1b611e60aecfc745f8873ee427e76f5a3b3729efa309c8ceb2e69.mp3": {
+      "phraseIds": [
+        "reach-f659f360"
+      ],
+      "text": "Your best reach was 50 degrees.",
+      "bytes": 33062
+    },
+    "b0e790e81e1506ddca7732d0bc5190009331d7cdf2cc64022f5a9af2089b953a.mp3": {
+      "phraseIds": [
+        "reach-b672db41"
+      ],
+      "text": "Your best reach was 51 degrees.",
+      "bytes": 38078
+    },
+    "c5a379d3dad3f65a6885521f6b97782d4f1420ed8c9f92f042f6c8407d6df97c.mp3": {
+      "phraseIds": [
+        "reach-7b8b5522"
+      ],
+      "text": "Your best reach was 52 degrees.",
+      "bytes": 39750
+    },
+    "16983972ccc21fc3f720ca52fbec39c7b38dfd0d0fe60be8e120cdb8d82dcf79.mp3": {
+      "phraseIds": [
+        "reach-3ba43d03"
+      ],
+      "text": "Your best reach was 53 degrees.",
+      "bytes": 41839
+    },
+    "8bb5a256d7a4873d4299ad48823a9047e27a3e62556d38abe0d5e37b5a163233.mp3": {
+      "phraseIds": [
+        "reach-f9a272e4"
+      ],
+      "text": "Your best reach was 54 degrees.",
+      "bytes": 41004
+    },
+    "6508f7181f4077f59d6cd0ea228638c95e439705d17f4dee37a00ccbe8c8f74b.mp3": {
+      "phraseIds": [
+        "reach-b9bb5ac5"
+      ],
+      "text": "Your best reach was 55 degrees.",
+      "bytes": 43511
+    },
+    "5566580b53dcc17d76784fdc0c53e66689476c286e2ad18e3c7df6dad803a265.mp3": {
+      "phraseIds": [
+        "reach-7ed3d4a6"
+      ],
+      "text": "Your best reach was 56 degrees.",
+      "bytes": 43511
+    },
+    "af8ead420c445525f274450172d10e6896f2c83bc470d35408bf28543360bfa2.mp3": {
+      "phraseIds": [
+        "reach-3eecbc87"
+      ],
+      "text": "Your best reach was 57 degrees.",
+      "bytes": 38914
+    },
+    "5580129457b0498b94264147a94d8b4ccea98fe801be3ec3660c92f93a176d7a.mp3": {
+      "phraseIds": [
+        "reach-d6056a68"
+      ],
+      "text": "Your best reach was 58 degrees.",
+      "bytes": 41839
+    },
+    "261a2562361155cdf9b88a4b5f97302741f60d699e0ecbaf61654b73849da638.mp3": {
+      "phraseIds": [
+        "reach-961e5249"
+      ],
+      "text": "Your best reach was 59 degrees.",
+      "bytes": 41839
+    },
+    "09fb7bbc8cc11a7d2f2a1fd45b8c16fb9e062184d1196685d02bf704886e0aa3.mp3": {
+      "phraseIds": [
+        "reach-4375a923"
+      ],
+      "text": "Your best reach was 60 degrees.",
+      "bytes": 31391
+    },
+    "b30ed3615bd2aca5b113face4d2f3162f76c85c92c307785f9fc20520a833edf.mp3": {
+      "phraseIds": [
+        "reach-a9b98142"
+      ],
+      "text": "Your best reach was 61 degrees.",
+      "bytes": 39750
+    },
+    "e128319fe96dada885aab33cf71d6e0e9c577b1ace8a730541541c677ea9a476.mp3": {
+      "phraseIds": [
+        "reach-b87cc761"
+      ],
+      "text": "Your best reach was 62 degrees.",
+      "bytes": 36824
+    },
+    "aa000c895b66e0e7873b101b3260a4393440b560d6403c3dfa0ce0c15e94b6b7.mp3": {
+      "phraseIds": [
+        "reach-36a0a080"
+      ],
+      "text": "Your best reach was 63 degrees.",
+      "bytes": 40586
+    },
+    "a785000e4642ea5bd3ae125bb7aedbc75cdfcd5ac3184817455bde77bf9bad64.mp3": {
+      "phraseIds": [
+        "reach-46be28a7"
+      ],
+      "text": "Your best reach was 64 degrees.",
+      "bytes": 40586
+    },
+    "d924fcdb8026bd9b9fe1a7d3512b5fe9ddea0ae090e91c119860078e670acce3.mp3": {
+      "phraseIds": [
+        "reach-ad0200c6"
+      ],
+      "text": "Your best reach was 65 degrees.",
+      "bytes": 43511
+    },
+    "870095f52908ac04b1c9b24bfd1616f90dc6e651f7e930bbd88c374ce9385aab.mp3": {
+      "phraseIds": [
+        "reach-bbc546e5"
+      ],
+      "text": "Your best reach was 66 degrees.",
+      "bytes": 42675
+    },
+    "96402390af3e243e8a8b4f49a673862e69bfdd669c37243f057fbca338cb8c75.mp3": {
+      "phraseIds": [
+        "reach-39e92004"
+      ],
+      "text": "Your best reach was 67 degrees.",
+      "bytes": 39750
+    },
+    "c6c4d3d6089aeb168fedf0c41d9ea2ac6c5721c68d4bb5794e9096e3a448c70b.mp3": {
+      "phraseIds": [
+        "reach-2321202b"
+      ],
+      "text": "Your best reach was 68 degrees.",
+      "bytes": 35988
+    },
+    "9061f6ed13819c7617d0782df55c75eebc28474be09b62825cdf96064c571948.mp3": {
+      "phraseIds": [
+        "reach-8964f84a"
+      ],
+      "text": "Your best reach was 69 degrees.",
+      "bytes": 44347
+    },
+    "dac0d451f50508dd8379010c61ed774a6cab71fa9c4812721f2b85772339a630.mp3": {
+      "phraseIds": [
+        "reach-acce9ce2"
+      ],
+      "text": "Your best reach was 70 degrees.",
+      "bytes": 38914
+    },
+    "f60ed08beac0d8abccbaa615fddbd2cd9fe57f24ed33be40dbddc05721506bec.mp3": {
+      "phraseIds": [
+        "reach-c183c4c3"
+      ],
+      "text": "Your best reach was 71 degrees.",
+      "bytes": 41004
+    },
+    "53ec8fb875ff3eef2c6367654bf646fa6408deb8f4e4c2711e89caf43cd30367.mp3": {
+      "phraseIds": [
+        "reach-33ee3c20"
+      ],
+      "text": "Your best reach was 72 degrees.",
+      "bytes": 38914
+    },
+    "75ffacee39df49085d7e47cabb54df70090d136e4deda71da2933a2f967c9a3c.mp3": {
+      "phraseIds": [
+        "reach-48a36401"
+      ],
+      "text": "Your best reach was 73 degrees.",
+      "bytes": 38914
+    },
+    "7bee66441f341e30ee80a79bf7dce2e638c5f5d9df579dc16b741894b36ceef6.mp3": {
+      "phraseIds": [
+        "reach-b0171c66"
+      ],
+      "text": "Your best reach was 74 degrees.",
+      "bytes": 41004
+    },
+    "89eeaae51f87af9f77ff1ebe63b14472b3bde98234c2c0b35c42ff5e0217a464.mp3": {
+      "phraseIds": [
+        "reach-c4cc4447"
+      ],
+      "text": "Your best reach was 75 degrees.",
+      "bytes": 43511
+    },
+    "987b8ee009ba91915b75f0bac55824401edefcf2accb5c0e401f62b2a139312b.mp3": {
+      "phraseIds": [
+        "reach-3736bba4"
+      ],
+      "text": "Your best reach was 76 degrees.",
+      "bytes": 41839
+    },
+    "4ddc0136ebe55c619eec0d64d865059ff6857ba75fa0d918d64156805d2ef5e7.mp3": {
+      "phraseIds": [
+        "reach-4bebe385"
+      ],
+      "text": "Your best reach was 77 degrees.",
+      "bytes": 44765
+    },
+    "5030e0c5d2439e2c0bfe496f43bb89836a18425ed46d4318460e8d0be47036d4.mp3": {
+      "phraseIds": [
+        "reach-8c7a13ea"
+      ],
+      "text": "Your best reach was 78 degrees.",
+      "bytes": 43511
+    },
+    "3a11bf18fc2befb74c7c060f64e44dd67d5a130d1737f0df610dc6b1977e59ba.mp3": {
+      "phraseIds": [
+        "reach-a12f3bcb"
+      ],
+      "text": "Your best reach was 79 degrees.",
+      "bytes": 44347
+    },
+    "67513dc1f590bfd20d74820768708bb88d8de5a72c4bf2b021e638d77233749a.mp3": {
+      "phraseIds": [
+        "reach-6aac65ad"
+      ],
+      "text": "Your best reach was 80 degrees.",
+      "bytes": 35152
+    },
+    "c4680701fa307a2755c0b4cd82fc07615146865f2127681063560ef002bac7b9.mp3": {
+      "phraseIds": [
+        "reach-7c53fdcc"
+      ],
+      "text": "Your best reach was 81 degrees.",
+      "bytes": 43511
+    },
+    "6dc56ca058c69671049cf5a150159a3a3a8340607aaad087fc359c418d7bf1a3.mp3": {
+      "phraseIds": [
+        "reach-ddc5466f"
+      ],
+      "text": "Your best reach was 82 degrees.",
+      "bytes": 40586
+    },
+    "c1c9d36d0ecc2c20ee97deda3607c93639bd0b5627226274471dd6726026b43b.mp3": {
+      "phraseIds": [
+        "reach-074cdf8e"
+      ],
+      "text": "Your best reach was 83 degrees.",
+      "bytes": 39750
+    },
+    "de04eaaa4d5a864d845de07885a3e88fde3f73bb3c28dcad0cdae86e4f433f9a.mp3": {
+      "phraseIds": [
+        "reach-6763e629"
+      ],
+      "text": "Your best reach was 84 degrees.",
+      "bytes": 41839
+    },
+    "6fa7b01132caec1687e22c80558da4f55a6e15ef3b8c6e727f0163ae6152f58f.mp3": {
+      "phraseIds": [
+        "reach-790b7e48"
+      ],
+      "text": "Your best reach was 85 degrees.",
+      "bytes": 41839
+    },
+    "d18e1a36ccd70ccb97e0735bb9bad2678249958c4aa8245ab161b646f6b3315a.mp3": {
+      "phraseIds": [
+        "reach-da7cc6eb"
+      ],
+      "text": "Your best reach was 86 degrees.",
+      "bytes": 42675
+    },
+    "36bfba02f7b4e2fdb341f4d285ec633c00026642ee75103995ef71b04e2df8d8.mp3": {
+      "phraseIds": [
+        "reach-0404600a"
+      ],
+      "text": "Your best reach was 87 degrees.",
+      "bytes": 43511
+    },
+    "8e791443c82f9797c7db5ce9e2f4710bd81042f178cc0a48c0b573bce4b54ffb.mp3": {
+      "phraseIds": [
+        "reach-8b00eea5"
+      ],
+      "text": "Your best reach was 88 degrees.",
+      "bytes": 39750
+    },
+    "ad2df07b3bbd8dc32c4e9f31f24af7cd26268a1be8efebd47ee94e96f2bfe644.mp3": {
+      "phraseIds": [
+        "reach-9ca886c4"
+      ],
+      "text": "Your best reach was 89 degrees.",
+      "bytes": 40586
+    },
+    "91ff56c9f1060fe717d9322123865b4a7b34515ed193f9ccc2e02ff35eac0632.mp3": {
+      "phraseIds": [
+        "reach-d405596c"
+      ],
+      "text": "Your best reach was 90 degrees.",
+      "bytes": 40586
+    },
+    "97d9a70c1b3b4210d8a236b30378681feab484e6984ba99682f3854225dfd7e5.mp3": {
+      "phraseIds": [
+        "reach-941e414d"
+      ],
+      "text": "Your best reach was 91 degrees.",
+      "bytes": 41839
+    },
+    "50472663b5855284e575e404d000777c0e4465c4941d55e42233270d3a2fcf1d.mp3": {
+      "phraseIds": [
+        "reach-5936bb2e"
+      ],
+      "text": "Your best reach was 92 degrees.",
+      "bytes": 42675
+    },
+    "f2040e88a34749708c2d30b06ce18f102282012d7aad6aff2c9d89a236639db7.mp3": {
+      "phraseIds": [
+        "reach-194fa30f"
+      ],
+      "text": "Your best reach was 93 degrees.",
+      "bytes": 46437
+    },
+    "d660a18f119a473fee43ac6528e9ed512ae94b8608d159e32db7d0692512d7be.mp3": {
+      "phraseIds": [
+        "reach-d0bcd9e8"
+      ],
+      "text": "Your best reach was 94 degrees.",
+      "bytes": 41004
+    },
+    "cc6912f66d8affe40e1a81deec52ba94c12c4be3a842d14031b99f050db13f37.mp3": {
+      "phraseIds": [
+        "reach-90d5c1c9"
+      ],
+      "text": "Your best reach was 95 degrees.",
+      "bytes": 43511
+    },
+    "4567ee1f471acc643028ea63df1e053c272875467054749809c3f005ac1c9ebb.mp3": {
+      "phraseIds": [
+        "reach-55ee3baa"
+      ],
+      "text": "Your best reach was 96 degrees.",
+      "bytes": 40586
+    },
+    "a71f87659362d33d60666a720deac4cd9bd4aaffe0a04dcb82fc8fcbc5161e01.mp3": {
+      "phraseIds": [
+        "reach-1607238b"
+      ],
+      "text": "Your best reach was 97 degrees.",
+      "bytes": 41004
+    },
+    "4b2e74580f2615e58b2d0780d0597b408873625b34b45247f5cc636c7c62bc34.mp3": {
+      "phraseIds": [
+        "reach-f459e264"
+      ],
+      "text": "Your best reach was 98 degrees.",
+      "bytes": 41839
+    },
+    "9a4c87b4d563cacfa37f610b2a2b90dc7bfd93f198e4e4577307a30c60a62e2f.mp3": {
+      "phraseIds": [
+        "reach-b472ca45"
+      ],
+      "text": "Your best reach was 99 degrees.",
+      "bytes": 40586
+    },
+    "a840b833d99abffce8b59ba5fdbeac30f6b74c18a5537404474db9be4c7f2624.mp3": {
+      "phraseIds": [
+        "reach-f9206af4"
+      ],
+      "text": "Your best reach was 100 degrees.",
+      "bytes": 36824
+    },
+    "b173eec15cbf23bc4fb7db0b31a716f92fe693464b25ffc48f592e57c692cd08.mp3": {
+      "phraseIds": [
+        "reach-b93952d5"
+      ],
+      "text": "Your best reach was 101 degrees.",
+      "bytes": 41839
+    },
+    "223ab0b0d0db0410746fa04d017c65463f76d8191dad9d326525d3935b68734f.mp3": {
+      "phraseIds": [
+        "reach-7e51ccb6"
+      ],
+      "text": "Your best reach was 102 degrees.",
+      "bytes": 43511
+    },
+    "23914aa55b61c10b161bf427aeb98f1782b14e29a2dc9862732bb43be8e36fef.mp3": {
+      "phraseIds": [
+        "reach-3e6ab497"
+      ],
+      "text": "Your best reach was 103 degrees.",
+      "bytes": 42675
+    },
+    "de17d357de1f37d7b1493aff728d6b29d1296c84fb5358e5ba8715044de6e6f9.mp3": {
+      "phraseIds": [
+        "reach-f5d7eb70"
+      ],
+      "text": "Your best reach was 104 degrees.",
+      "bytes": 44347
+    },
+    "73d19f22dcffe6adb88732674d7d00f03ce6c8bd08b85130005bc544b183582d.mp3": {
+      "phraseIds": [
+        "reach-b5f0d351"
+      ],
+      "text": "Your best reach was 105 degrees.",
+      "bytes": 42675
+    },
+    "ae5c3755925e53cb72c803ffa17840656c4cd15d6c652230e622df6c76d5420a.mp3": {
+      "phraseIds": [
+        "reach-7b094d32"
+      ],
+      "text": "Your best reach was 106 degrees.",
+      "bytes": 44347
+    },
+    "7347d243827946b4ee36a556a87b710deaa716d828666b29ee42bd33e7b6e56a.mp3": {
+      "phraseIds": [
+        "reach-3b223513"
+      ],
+      "text": "Your best reach was 107 degrees.",
+      "bytes": 43511
+    },
+    "95131f1b0a8cca7e2a4cb48a4d0adf34a23c985098076722417f16f2dbfef008.mp3": {
+      "phraseIds": [
+        "reach-d8cbe1fc"
+      ],
+      "text": "Your best reach was 108 degrees.",
+      "bytes": 41004
+    },
+    "069539db6c4fff9a2ff4d7f7a8c0e21921ddcce7b2946c60899c3e0905782fcb.mp3": {
+      "phraseIds": [
+        "reach-98e4c9dd"
+      ],
+      "text": "Your best reach was 109 degrees.",
+      "bytes": 39750
+    },
+    "900d358c62ef132b7ce8a03cb20505ac7001972bdf987db755cab0e2bfa2827f.mp3": {
+      "phraseIds": [
+        "reach-8fc77735"
+      ],
+      "text": "Your best reach was 110 degrees.",
+      "bytes": 41839
+    },
+    "a3aa25c587c5977d199479b0c2ea2f24af210f6e6e746eecc70856d817fb51f9.mp3": {
+      "phraseIds": [
+        "reach-a16f0f54"
+      ],
+      "text": "Your best reach was 111 degrees.",
+      "bytes": 45601
+    },
+    "2f73c76cbd3cbf6e0e85717e786e66d80d68bf34496dc679d3a7068fcffb2cbd.mp3": {
+      "phraseIds": [
+        "reach-02e057f7"
+      ],
+      "text": "Your best reach was 112 degrees.",
+      "bytes": 44347
+    },
+    "526c045322154417c44eb67a94255d007341d34a6bb6fb49bd19467f0262aadc.mp3": {
+      "phraseIds": [
+        "reach-2c67f116"
+      ],
+      "text": "Your best reach was 113 degrees.",
+      "bytes": 47273
+    },
+    "9330599cb74ff4d0e082bd2db424021d804424d65f0289b679a84f64827e571a.mp3": {
+      "phraseIds": [
+        "reach-8c7ef7b1"
+      ],
+      "text": "Your best reach was 114 degrees.",
+      "bytes": 49363
+    },
+    "42a5170f8722c336566278b58abd982e5852b707455ba69fd11bb5bddcfdf984.mp3": {
+      "phraseIds": [
+        "reach-9e268fd0"
+      ],
+      "text": "Your best reach was 115 degrees.",
+      "bytes": 51035
+    },
+    "0f3334327b759688042c2b5ac063b704dfab69282080b7a95b5d7b5fd81168f4.mp3": {
+      "phraseIds": [
+        "reach-ff97d873"
+      ],
+      "text": "Your best reach was 116 degrees.",
+      "bytes": 47273
+    },
+    "62881715b7bc525dfd6b004ae35320885ff50735cb262f923ab3f4a6503402e6.mp3": {
+      "phraseIds": [
+        "reach-291f7192"
+      ],
+      "text": "Your best reach was 117 degrees.",
+      "bytes": 48527
+    },
+    "17c7404713140b01e4c569cd1c9e27a7d37c6e39315db25a416abc2696bd6776.mp3": {
+      "phraseIds": [
+        "reach-6f72ee3d"
+      ],
+      "text": "Your best reach was 118 degrees.",
+      "bytes": 47273
+    },
+    "9b0c1d3c66ef5b310b251b09d7b186d026ef97f0e4ea738b551d70ee9767cdae.mp3": {
+      "phraseIds": [
+        "reach-811a865c"
+      ],
+      "text": "Your best reach was 119 degrees.",
+      "bytes": 47273
+    },
+    "7c4e1c5b7a76ad4bf75be29dd0b21836af5a6334ef999a6265ed000b4753a388.mp3": {
+      "phraseIds": [
+        "reach-af951476"
+      ],
+      "text": "Your best reach was 120 degrees.",
+      "bytes": 43511
+    },
+    "f7a025025c14df1b306d05c91588df87e2b168009f63a16c1ce20b0429aff12c.mp3": {
+      "phraseIds": [
+        "reach-c44a3c57"
+      ],
+      "text": "Your best reach was 121 degrees.",
+      "bytes": 51035
+    },
+    "6e7e3eb9f5fa306321d1926950422e23836ef872769c5b7d322d2777689733e8.mp3": {
+      "phraseIds": [
+        "reach-36b4b3b4"
+      ],
+      "text": "Your best reach was 122 degrees.",
+      "bytes": 51453
+    },
+    "015bf94a3fc32d9c74806aa959d1bf2e8a76d2de15a321e190e3383c481f191c.mp3": {
+      "phraseIds": [
+        "reach-4b69db95"
+      ],
+      "text": "Your best reach was 123 degrees.",
+      "bytes": 47691
+    },
+    "5b7b1493c4616e3672d8a5e84b656201aae94575c2ba4a00c3837901c855aa4e.mp3": {
+      "phraseIds": [
+        "reach-ac4c94f2"
+      ],
+      "text": "Your best reach was 124 degrees.",
+      "bytes": 51035
+    },
+    "63531e2cc4cc418f6069346b1b76b0dd13ac7123139bcb8ed6b14ce9758393ab.mp3": {
+      "phraseIds": [
+        "reach-c101bcd3"
+      ],
+      "text": "Your best reach was 125 degrees.",
+      "bytes": 48527
+    },
+    "4280b8360d6c6b6a68e5fb96a2bc29f4ac85e2d48711d642c9a4ade37a4e0ec5.mp3": {
+      "phraseIds": [
+        "reach-336c3430"
+      ],
+      "text": "Your best reach was 126 degrees.",
+      "bytes": 46437
+    },
+    "dd187e5fe0dce367b67f365fe1510c58e7f14914a81686feea6a0634c5e76166.mp3": {
+      "phraseIds": [
+        "reach-48215c11"
+      ],
+      "text": "Your best reach was 127 degrees.",
+      "bytes": 47691
+    },
+    "a851e1d368166cb34b76f5a48fec0b42b22fd69d4506ee677ef404c0bfada476.mp3": {
+      "phraseIds": [
+        "reach-8f408b7e"
+      ],
+      "text": "Your best reach was 128 degrees.",
+      "bytes": 42675
+    },
+    "d2ff8b5e3852a8d126fbaa0bc24af6b5f89b13f822b48b5c5b20e5cdb46fb066.mp3": {
+      "phraseIds": [
+        "reach-a3f5b35f"
+      ],
+      "text": "Your best reach was 129 degrees.",
+      "bytes": 52288
+    },
+    "73958c5e48f6508182ecc7c1974d615dc9e67dfa89453ccc549a1e11a2f7d236.mp3": {
+      "phraseIds": [
+        "reach-463c20b7"
+      ],
+      "text": "Your best reach was 130 degrees.",
+      "bytes": 45601
+    },
+    "fccd6efe5565d72977baf83fb977077907eedae82f6a2c5d278afb67b173e03a.mp3": {
+      "phraseIds": [
+        "reach-ac7ff8d6"
+      ],
+      "text": "Your best reach was 131 degrees.",
+      "bytes": 49363
+    },
+    "28749127b400ee052ee551af85f2e69fc7dd760a2081bb33b9cf83a0d8075a4f.mp3": {
+      "phraseIds": [
+        "reach-bb433ef5"
+      ],
+      "text": "Your best reach was 132 degrees.",
+      "bytes": 46437
+    },
+    "91c28d1acb86cdeda80b564e3c6f41a33d365bac43584a65c1fb5375e1908ae0.mp3": {
+      "phraseIds": [
+        "reach-39671814"
+      ],
+      "text": "Your best reach was 133 degrees.",
+      "bytes": 51035
+    },
+    "77ffc9e13367c045bbf9eb0a422c4294268f0ca8148b387df37c390e35db28d4.mp3": {
+      "phraseIds": [
+        "reach-42f3a133"
+      ],
+      "text": "Your best reach was 134 degrees.",
+      "bytes": 48527
+    },
+    "be375dfb5c886d9b23f3bc41ecf32180e182b18f8be3de3eaf5b888d8aedb0f5.mp3": {
+      "phraseIds": [
+        "reach-a9377952"
+      ],
+      "text": "Your best reach was 135 degrees.",
+      "bytes": 51035
+    },
+    "71e05d9d7cff58e08544232a1a71265aac03c19bb40ddc646241850c83e7ab12.mp3": {
+      "phraseIds": [
+        "reach-b7fabf71"
+      ],
+      "text": "Your best reach was 136 degrees.",
+      "bytes": 50199
+    },
+    "0528a919f3a9fd11ba38262e0fda566cff687f4b39838be4d5c11193ea21d190.mp3": {
+      "phraseIds": [
+        "reach-361e9890"
+      ],
+      "text": "Your best reach was 137 degrees.",
+      "bytes": 51035
+    },
+    "9b5f0a756baf1af7fe12ca09e62bb2f1c8e775e7a02f33a7d4f5d52dfbdf2c65.mp3": {
+      "phraseIds": [
+        "reach-25e797bf"
+      ],
+      "text": "Your best reach was 138 degrees.",
+      "bytes": 49363
+    },
+    "ff61b9ac8eb6a58c2e6b5ab26f128c2ba795d2301c1819d00f50ae4c362eeef3.mp3": {
+      "phraseIds": [
+        "reach-8c2b6fde"
+      ],
+      "text": "Your best reach was 139 degrees.",
+      "bytes": 51453
+    },
+    "e1d9e439561031e7073c9221f36f800e3970d7912848abf5e7a4e21499e1c91f.mp3": {
+      "phraseIds": [
+        "reach-f08f5af0"
+      ],
+      "text": "Your best reach was 140 degrees.",
+      "bytes": 44765
+    },
+    "d0b9436b6ba985064ac2082918219a3e5812a38145576a82d2a3e18e59c20d36.mp3": {
+      "phraseIds": [
+        "reach-b0a842d1"
+      ],
+      "text": "Your best reach was 141 degrees.",
+      "bytes": 47691
+    },
+    "c6282f8432f2be904a61b6794d9fff8c87e43e94fc56971593b07adb5208cb45.mp3": {
+      "phraseIds": [
+        "reach-75c0bcb2"
+      ],
+      "text": "Your best reach was 142 degrees.",
+      "bytes": 49363
+    },
+    "0b41d09b7fb58b39df43ea9bc7b41a874b15df981c95c05e4f8626517f49b103.mp3": {
+      "phraseIds": [
+        "reach-35d9a493"
+      ],
+      "text": "Your best reach was 143 degrees.",
+      "bytes": 48527
+    },
+    "35b2a3e4ea28a3909978f8d0e9ffa1978993b242f7c4a5b84768eb9ed48d429d.mp3": {
+      "phraseIds": [
+        "reach-f3d7da74"
+      ],
+      "text": "Your best reach was 144 degrees.",
+      "bytes": 44765
+    },
+    "615a084bf007a282c45c7316ddba490ed0b468af4cd6d3966152efa96c02a079.mp3": {
+      "phraseIds": [
+        "reach-b3f0c255"
+      ],
+      "text": "Your best reach was 145 degrees.",
+      "bytes": 47691
+    },
+    "82b6ffc95695ed1674250246dfa2fa3b16464ed19fd454a756d95cd2e0c7da58.mp3": {
+      "phraseIds": [
+        "reach-79093c36"
+      ],
+      "text": "Your best reach was 146 degrees.",
+      "bytes": 47691
+    },
+    "66bc235d52a15219ce758e40cbd4c159969074d67766b3544a36f49bed7f4f82.mp3": {
+      "phraseIds": [
+        "reach-39222417"
+      ],
+      "text": "Your best reach was 147 degrees.",
+      "bytes": 50199
+    },
+    "648f85b8de46080e39ade5d6a26dab4083f6a3997d7b7eae7bf7dc308e8aad67.mp3": {
+      "phraseIds": [
+        "reach-d03ad1f8"
+      ],
+      "text": "Your best reach was 148 degrees.",
+      "bytes": 47273
+    },
+    "04446fe33c2fbf7c6714998b85aea7458c4c62f96890edfe3093450923572c72.mp3": {
+      "phraseIds": [
+        "reach-9053b9d9"
+      ],
+      "text": "Your best reach was 149 degrees.",
+      "bytes": 47691
+    },
+    "47c7b6d205ee7539fd5f604b40f9ca3bf9891fb41c6d66eade14f64dbf09983d.mp3": {
+      "phraseIds": [
+        "reach-87366731"
+      ],
+      "text": "Your best reach was 150 degrees.",
+      "bytes": 45601
+    },
+    "752856b93f31b45a1c2a3314e76d5b90e92f705a3d07d0c09141fe5cbbb75b9f.mp3": {
+      "phraseIds": [
+        "reach-98ddff50"
+      ],
+      "text": "Your best reach was 151 degrees.",
+      "bytes": 48527
+    },
+    "d9719c9e8dd38ca08538ccdc0e4b569bcc15d32c9a87150fe79219f241e10016.mp3": {
+      "phraseIds": [
+        "reach-fa4f47f3"
+      ],
+      "text": "Your best reach was 152 degrees.",
+      "bytes": 52288
+    },
+    "2b812392518015011808759d40420f13adfc62a452eb14f999941e90bd09e1eb.mp3": {
+      "phraseIds": [
+        "reach-23d6e112"
+      ],
+      "text": "Your best reach was 153 degrees.",
+      "bytes": 43511
+    },
+    "92cc3351fe690fe8107d658e30418828e6a9ff161b8c1a1f41ecf107233a1da7.mp3": {
+      "phraseIds": [
+        "reach-8a7ee6b5"
+      ],
+      "text": "Your best reach was 154 degrees.",
+      "bytes": 48527
+    },
+    "39c7e58c6be7b5b7dc7fcf840014b30517ec6a08f189e2094e6afe6134a50e77.mp3": {
+      "phraseIds": [
+        "reach-9c267ed4"
+      ],
+      "text": "Your best reach was 155 degrees.",
+      "bytes": 43511
+    },
+    "9e8592333c64e0a72fc3a913583a83bf36f3876eacddf63d458cb0737821003d.mp3": {
+      "phraseIds": [
+        "reach-fd97c777"
+      ],
+      "text": "Your best reach was 156 degrees.",
+      "bytes": 48527
+    },
+    "c4de0134ae0a6cba7420858251964a9748645e5cde704638f292a834a3e331c7.mp3": {
+      "phraseIds": [
+        "reach-271f6096"
+      ],
+      "text": "Your best reach was 157 degrees.",
+      "bytes": 47691
+    },
+    "7eb0aefb5914252de9fe5e1060457f1681879eb334c5213f34b79abec29cccb6.mp3": {
+      "phraseIds": [
+        "reach-66e1de39"
+      ],
+      "text": "Your best reach was 158 degrees.",
+      "bytes": 45601
+    },
+    "20a917e7ca3a448ccf7007adeeb011594e58f22ca3eaf35ce4ccd7164312869e.mp3": {
+      "phraseIds": [
+        "reach-78897658"
+      ],
+      "text": "Your best reach was 159 degrees.",
+      "bytes": 47273
+    },
+    "aeff032441ff9d16dd1bbb04ec56ae522e2845ada0ac9b28a87b8e1f83c13555.mp3": {
+      "phraseIds": [
+        "reach-a7040472"
+      ],
+      "text": "Your best reach was 160 degrees.",
+      "bytes": 41004
+    },
+    "62647f782a271a6a0791fb24cb5b86b20d7aaf2edb2bf4223ad8d9e09be97c62.mp3": {
+      "phraseIds": [
+        "reach-bbb92c53"
+      ],
+      "text": "Your best reach was 161 degrees.",
+      "bytes": 46437
+    },
+    "21331eb16fed5a1b514a112e6db1ffce28fc8dd95e1d38edc3855cd67f0c64b9.mp3": {
+      "phraseIds": [
+        "reach-2e23a3b0"
+      ],
+      "text": "Your best reach was 162 degrees.",
+      "bytes": 46437
+    },
+    "71472f5c13091aac6773905c6c47171c8218f904b8d92d174bb1d17a614c5111.mp3": {
+      "phraseIds": [
+        "reach-42d8cb91"
+      ],
+      "text": "Your best reach was 163 degrees.",
+      "bytes": 49363
+    },
+    "d8217e3b21e86a20ab4e3708a06e7a72fd6e8395dd6823baa9e6ae1b3b5e50b0.mp3": {
+      "phraseIds": [
+        "reach-aa4c83f6"
+      ],
+      "text": "Your best reach was 164 degrees.",
+      "bytes": 51035
+    },
+    "4ff1cba098e6dfc1700d937c841d40e62701cee22e04253d522e7bd334d5e7c3.mp3": {
+      "phraseIds": [
+        "reach-bf01abd7"
+      ],
+      "text": "Your best reach was 165 degrees.",
+      "bytes": 46437
+    },
+    "aef063fc65f832dcd084ee1601a4a2ebbc77de820a17ad501d2385c9388f744e.mp3": {
+      "phraseIds": [
+        "reach-316c2334"
+      ],
+      "text": "Your best reach was 166 degrees.",
+      "bytes": 49363
+    },
+    "e7a033cf0c772d68620274caca9a92bf1e48de09cbf07dce743c69ed8b938fce.mp3": {
+      "phraseIds": [
+        "reach-46214b15"
+      ],
+      "text": "Your best reach was 167 degrees.",
+      "bytes": 52288
+    },
+    "42ae6134c509065c232d7dd79a099f4ad12c69b10cd506457c88a02bc849c856.mp3": {
+      "phraseIds": [
+        "reach-86af7b7a"
+      ],
+      "text": "Your best reach was 168 degrees.",
+      "bytes": 43511
+    },
+    "98306c452c5b934a3112786426d7fde66d810554a3244422434848220a1f5d93.mp3": {
+      "phraseIds": [
+        "reach-9b64a35b"
+      ],
+      "text": "Your best reach was 169 degrees.",
+      "bytes": 48527
+    },
+    "79275988b4bb17f9036f0b26cf2db72c1a2afa9ff8444312454a62d504686eaf.mp3": {
+      "phraseIds": [
+        "reach-3dab10b3"
+      ],
+      "text": "Your best reach was 170 degrees.",
+      "bytes": 44765
+    },
+    "d3d6d182100a96831ce5137ac3aa28b59d6ab7b9f2504e7ed1dadc247447417b.mp3": {
+      "phraseIds": [
+        "reach-a3eee8d2"
+      ],
+      "text": "Your best reach was 171 degrees.",
+      "bytes": 48527
+    },
+    "243e4358018909474b749f5bc6d188d8c9b5889039a0ef5c9af4edc41778fca0.mp3": {
+      "phraseIds": [
+        "reach-b2b22ef1"
+      ],
+      "text": "Your best reach was 172 degrees.",
+      "bytes": 51453
+    },
+    "d0bf418c8dce6bb2b6c54f03e849d63d34d5357f6826aaf6cd7d64c749becc3c.mp3": {
+      "phraseIds": [
+        "reach-30d60810"
+      ],
+      "text": "Your best reach was 173 degrees.",
+      "bytes": 46437
+    },
+    "505b1a4b70e4ccb24157e854b921c854cc7fd7975532cf6ae193b0c02019f969.mp3": {
+      "phraseIds": [
+        "reach-40f39037"
+      ],
+      "text": "Your best reach was 174 degrees.",
+      "bytes": 51453
+    },
+    "fc170fc484fd459d89ce5e48ec083f430f0ecac15b5ded745b84295ff51ae7c9.mp3": {
+      "phraseIds": [
+        "reach-a7376856"
+      ],
+      "text": "Your best reach was 175 degrees.",
+      "bytes": 51453
+    },
+    "e849f61861827cd499ada9620498856ec4761b95fdbc9c96ad0fed8d1c8fe8bd.mp3": {
+      "phraseIds": [
+        "reach-b5faae75"
+      ],
+      "text": "Your best reach was 176 degrees.",
+      "bytes": 47691
+    },
+    "1e8092f39d901f63062c831079d814f5644e98b015a9acab4fea0436a66dee6f.mp3": {
+      "phraseIds": [
+        "reach-341e8794"
+      ],
+      "text": "Your best reach was 177 degrees.",
+      "bytes": 50199
+    },
+    "0f322ec158df3e7b5a274640602f644c7a7e6cce2e23ffc51c293e385705cd33.mp3": {
+      "phraseIds": [
+        "reach-1d5687bb"
+      ],
+      "text": "Your best reach was 178 degrees.",
+      "bytes": 49363
+    },
+    "a6f2f87a748aadd813fc1a56f88f7375581cdfc1eca72ba38b67839956ef1a76.mp3": {
+      "phraseIds": [
+        "reach-839a5fda"
+      ],
+      "text": "Your best reach was 179 degrees.",
+      "bytes": 51035
+    },
+    "669e76b8735e4749d94f95aea7c4174a83ac0f5d59d7483abb3f5cf055e44a5c.mp3": {
+      "phraseIds": [
+        "reach-ce3ac0fc"
+      ],
+      "text": "Your best reach was 180 degrees.",
+      "bytes": 44347
     },
     "86d3a5b3c524f468322011d2c745e626132381730624e797f69b9aeb1859d990.mp3": {
       "phraseIds": [

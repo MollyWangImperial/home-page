@@ -7,6 +7,8 @@ import {
   type AdminAlert, type ChangeKind, type ChangeReason, type ExerciseStates, type Level, type PlanChange,
 } from "@shared/plan-review";
 
+import { EVERYDAY_EXERCISE_ID } from "./exercise-engine/config";
+
 export const PLAN_REVIEW_KEY = "rehyn.plan.review.v1";
 const CHANGE_LIMIT = 60;
 const OUTBOX_LIMIT = 40;
@@ -173,6 +175,7 @@ export function savePlanReview(state: PlanReviewState): PlanReviewState {
 
 /** The level an exercise runs at: the review's, or the plan's own when nothing has changed it. */
 export function adjustedLevel(exerciseId: string, baseLevel: Level, assessmentId: string | null | undefined, state = loadPlanReview()): Level {
+  if (exerciseId === EVERYDAY_EXERCISE_ID) return 1;
   if (!assessmentId || state.assessmentId !== assessmentId) return baseLevel;
   return state.states[exerciseId]?.level ?? baseLevel;
 }

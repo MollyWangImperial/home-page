@@ -57,12 +57,12 @@ describe("the lock", () => {
 });
 
 describe("exercise results", () => {
-  it("keeps the best score of the day and marks the day done once the whole plan is scored", () => {
+  it("keeps the best score and completes the day when the ready exercise is scored", () => {
     rememberAssessmentPlan(rememberAssessment(report)!, report, true);
     const now = new Date(2026, 9, 1, 10, 0);
     recordExerciseResult("ex_reach", 70.4, now);
     recordExerciseResult("ex_reach", 64, now);
-    expect(values.get(EXERCISES_DONE_KEY)).toBeUndefined();
+    expect(values.get(EXERCISES_DONE_KEY)).toBe("2026-10-01");
     recordExerciseResult("ex_grasp", 55, now);
     const store = loadSessionStore();
     expect(store["2026-10-01"].ex_reach.score).toBe(70);
@@ -87,7 +87,7 @@ describe("the model", () => {
     expect(model.timeline[0]).toMatchObject({ n: 1, state: "today", weekLabel: "Week 1" });
     expect(model.timeline.find(day => day.reassessment)?.n).toBe(15);
     expect(model.planTitle).toBe("Your plan for week 1");
-    expect(model.planRows.map(row => row.exercise.launchable)).toEqual([true, true, false]);
+    expect(model.planRows.map(row => row.exercise.launchable)).toEqual([true, false, false]);
     expect(model.nextExercise?.id).toBe("ex_reach");
     expect(model.startingScores).toEqual({ upper_limb: 62, hand: 48, lower_limb: 71 });
     expect(model.assessments.map(column => column.label)).toEqual(["Starting point", "Next check"]);

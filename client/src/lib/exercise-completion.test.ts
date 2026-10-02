@@ -16,11 +16,11 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.useRealTimers(); });
 
 describe("exercise completion to Alira", () => {
-  it("celebrates the completed exercise without claiming the whole session is done", () => {
+  it("celebrates reach by name and counts the ready daily exercise as the full session", () => {
     const assessment = ready();
     recordExerciseResult("ex_reach", 75);
     const completion = loadExerciseCompletion("from=exercise&exercise=ex_reach", assessment);
-    expect(completion).toEqual({ exerciseName: "Graded Forward Reach", allDone: false });
+    expect(completion).toEqual({ exerciseName: "Graded Forward Reach", allDone: true });
     const messages = exerciseCompletionMessages(completion!, "Alex");
     expect(messages[0]).toContain("Congratulations, Alex");
     expect(messages[0]).toContain("Graded Forward Reach");
@@ -48,9 +48,9 @@ describe("exercise completion to Alira", () => {
     expect(loadExerciseCompletion("from=exercise&exercise=other", assessment)).toBeNull();
   });
 
-  it("does not announce a session from a stale done marker or a partial session", () => {
+  it("does not announce a session from a stale done marker or a score for a development exercise", () => {
     const assessment = ready();
-    recordExerciseResult("ex_reach", 70);
+    recordExerciseResult("ex_h2m", 70);
     values.set(EXERCISES_DONE_KEY, dayKey(now));
     expect(loadExerciseCompletion("", assessment)).toBeNull();
   });

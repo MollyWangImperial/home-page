@@ -38,8 +38,8 @@ function run(exerciseId: string, rung: Rung, profile: Profile, opts: RunOptions 
 }
 
 /** Camera-style contact frames on forward reach, as in session.test.ts: 100 ms per frame from the practice rep. */
-function contactSession(tuning?: ExerciseTuning) {
-  const session = new ExerciseSession({ exerciseId: "ex_reach", rung: 1, side: "right", tuning }, quiet());
+function contactSession(tuning?: ExerciseTuning, exerciseId = "ex_reach") {
+  const session = new ExerciseSession({ exerciseId, rung: 1, side: "right", tuning }, quiet());
   session.start(0); session.skipAhead(1); session.skipAhead(2);
   let t = 2;
   const push = (contact = true) => {
@@ -109,7 +109,7 @@ describe("default tuning changes nothing", () => {
         expect(other.said, id).toEqual(plain.said);
         expect({ ...other.record, finished_at: "" }, id).toEqual({ ...plain.record, finished_at: "" });
       }
-      expect(plain.record.reps_planned, id).toBe(REPS_BY_RUNG[rung]);
+      expect(plain.record.reps_planned, id).toBe(REPS_BY_RUNG[id === "ex_reach" ? 1 : rung]);
     }
   });
 
@@ -133,7 +133,7 @@ describe("hold time", () => {
   it("a hold factor of 0.8 makes the contact hold 1200 ms for the practice circle, the lap circle and a scored reach", () => {
     const tuning = tuned({ "exercise.hold_seconds": 1.2 });
     expect(tuning.holdFactor).toBe(0.8);
-    const { session, push, armed } = contactSession(tuning);
+    const { session, push, armed } = contactSession(tuning, "ex_h2m");
     // Practice (warm) reach.
     armed();
     for (let n = 0; n < 5; n++) push();
@@ -178,7 +178,7 @@ describe("hold time", () => {
 describe("planned repetitions", () => {
   it("scales the planned repetitions, never below three, and a quick test's override wins", () => {
     const plan = (rung: Rung, tuning?: ExerciseTuning, repsOverride?: number) =>
-      new ExerciseSession({ exerciseId: "ex_reach", rung, side: "right", tuning, repsOverride }, quiet()).snapshot().repsPlanned;
+      new ExerciseSession({ exerciseId: "ex_wallslide", rung, side: "right", tuning, repsOverride }, quiet()).snapshot().repsPlanned;
     const half = tuned({ "exercise.reps_scale": 0.5 });
     expect([plan(1), plan(2), plan(3)]).toEqual([6, 8, 10]);
     expect([plan(1, half), plan(2, half), plan(3, half)]).toEqual([3, 4, 5]);
@@ -197,7 +197,7 @@ describe("planned repetitions", () => {
   });
 
   it("keeps the tuned number of repetitions after a rescue lowers the level", () => {
-    const { record, said } = run("ex_reach", 3, rep => ({ level: rep <= 2 ? 0.55 : 1, compensations: [] }), { tuning: tuned({ "exercise.reps_scale": 0.5 }) });
+    const { record, said } = run("ex_wallslide", 3, rep => ({ level: rep <= 2 ? 0.55 : 1, compensations: [] }), { tuning: tuned({ "exercise.reps_scale": 0.5 }) });
     expect(said).toContain("Let's bring the target a little closer.");
     expect(record.rung_end).toBe(2);
     expect(record.reps_planned).toBe(5);
@@ -253,7 +253,7 @@ describe("grading", () => {
   it("one compensation scores the tuned points; two or more still score 15", () => {
     expect(repScore(1, "full", 1, 45)).toBe(45);
     expect(repScore(1, "full", 2, 45)).toBe(15);
-    const { record } = run("ex_reach", 2, rep => ({ level: 1, compensations: rep === 1 ? [] : rep === 2 ? ["trunk_lean"] : ["trunk_lean", "shoulder_hike"] }),
+    const { record } = run("ex_wallslide", 2, rep => ({ level: 1, compensations: rep === 1 ? [] : rep === 2 ? ["shoulder_hike"] : ["shoulder_hike", "side_lean"] }),
       { reps: 3, tuning: tuned({ "exercise.one_compensation_points": 45 }) });
     expect(record.repetition_scores).toEqual([100, 45, 15]);
     expect(record.score).toBe(53);
@@ -264,7 +264,7 @@ describe("grading", () => {
 describe("tuning is fixed for the session and recorded", () => {
   it("is a frozen copy taken at construction, unaffected by later changes to the object passed in", () => {
     const given = tuned({ "exercise.hold_seconds": 1.2 });
-    const { session, push, armed } = contactSession(given);
+    const { session, push, armed } = contactSession(given, "ex_h2m");
     given.holdFactor = 2;
     given.holdSeconds = 3;
     given.repsScale = 0.5;
@@ -298,7 +298,7 @@ describe("tuning is fixed for the session and recorded", () => {
     expect(adapted.record.adaptation).toEqual({ version: ADAPTATION_VERSION, adapted: true, changed: { "exercise.hold_seconds": 1.2, "exercise.reps_scale": 0.5 } });
     expect(adapted.record.adaptation!.changed).not.toBe(tuning.changed);
     // A skipped session records its tuning too.
-    const skipped = new ExerciseSession({ exerciseId: "ex_reach", rung: 1, side: "right", tuning }, quiet());
+    const skipped = new ExerciseSession({ exerciseId: "ex_wallslide", rung: 1, side: "right", tuning }, quiet());
     skipped.start(0);
     skipped.skip(1);
     expect(skipped.snapshot().record?.not_attempted).toBe(true);

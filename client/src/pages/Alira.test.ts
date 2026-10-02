@@ -242,7 +242,7 @@ describe("Alira arrival and reduced-motion content", () => {
     expect(html).not.toContain("test assessment is complete");
     expect(html).not.toContain("random test marks");
     expect(html).not.toContain("ao-plan-card");
-    expect(launchablePlan(assessment).length).toBeGreaterThan(1);
+    expect(launchablePlan(assessment).map(exercise => exercise.id)).toEqual(["ex_reach"]);
   });
 
   it("returns to the rest invitation after today's full session without replaying assessment messages", () => {

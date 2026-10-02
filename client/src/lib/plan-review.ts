@@ -11,7 +11,7 @@ import {
 } from "@shared/plan-review";
 import { learningToday, loadReports } from "./alira-learning-store";
 import { type StoredAssessment, loadRememberedAssessment } from "./assessment";
-import { EXERCISES, usesSeatedTargets } from "./exercise-engine/config";
+import { EVERYDAY_EXERCISE_ID, EXERCISES, usesSeatedTargets } from "./exercise-engine/config";
 import { readLabSessions, type LabSession } from "./exercise-engine/lab-storage";
 import { dayKey, PATIENT_NAME } from "./home-stage";
 import { companionPlan, demoDayOffset, journeyNow, loadSessionStore, planDesigned, rungFor, type SessionStore } from "./journey";
@@ -30,6 +30,7 @@ export function planItems(assessment: StoredAssessment | null | undefined): Plan
     name: EXERCISES[exercise.id]?.name ?? exercise.name,
     baseLevel: usesSeatedTargets(exercise.id) ? 1 : rungFor(exercise),
     fixedLevel: usesSeatedTargets(exercise.id),
+    locked: exercise.id === EVERYDAY_EXERCISE_ID,
   }));
 }
 

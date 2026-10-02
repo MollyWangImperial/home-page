@@ -134,19 +134,18 @@ export type StoredAssessment = { id: string; completedAt: string; package?: stri
 
 /**
  * Every designed plan starts with Graded Forward Reach at level 1, done daily, whether or not the
- * plan named it, so the patient can begin with it at once. A plan held for clinical review, or an
- * empty plan (the answers call for supported movement rather than camera exercises), is left as it is.
+ * plan named it, so the patient can begin with it at once. Candidate and supported-movement plans
+ * also include this ready exercise. Clinical review information remains in the saved report.
  */
-export function withEverydayExercise(plan: PlanExercise[], gate?: AssessmentReport["clinical_review_gate"]): PlanExercise[] {
-  if (gate?.rehab_access === "blocked" || plan.length === 0) return plan;
+export function withEverydayExercise(plan: PlanExercise[], _gate?: AssessmentReport["clinical_review_gate"]): PlanExercise[] {
   const named = plan.find(exercise => exercise?.id === EVERYDAY_EXERCISE_ID);
   const everyday: PlanExercise = {
+    ...named,
     id: EVERYDAY_EXERCISE_ID,
     name: EXERCISES[EVERYDAY_EXERCISE_ID].name,
     description: "Seated. Reach forward to the target and back, slowly, with your affected arm.",
     sets: 1,
     reps: REPS_BY_RUNG[1],
-    ...named,
     frequency: "Daily",
     difficulty: "easy",
     target_rung: null,

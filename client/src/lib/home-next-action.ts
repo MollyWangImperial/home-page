@@ -37,12 +37,6 @@ export function nextHomeAction(snapshot: HomeActionSnapshot, roll: number, opene
   };
 
   if (!assessment) return fromStage("onboarding", "assessment");
-  if (assessment.report?.clinical_review_gate?.rehab_access === "blocked") {
-    return { ...fromStage("review", "exercises"),
-      text: "Hi {n}. Your plan needs a review before we start exercising. Let’s look at the next step together.",
-      cta: "Review my next step", href: hasAssessmentScores(assessment) && planDesigned(assessment) ? EXERCISES_HREF : "/alira",
-      note: "Alira can help you review the guidance saved with your plan." };
-  }
   if (!hasAssessmentScores(assessment)) {
     return { ...fromStage("assessment", "assessment"), href: "/assessment",
       text: "Hi {n}. Let’s finish your movement check so your exercise plan can be based on your scores.",

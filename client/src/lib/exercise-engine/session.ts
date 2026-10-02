@@ -3,7 +3,7 @@
 // or a test harness. Timing comes from frame.t.
 
 import { bestLine, CLOSER_TARGET_LINE, ELBOW_ADVICE, finalRepAdvice, finishedLevelLine, goodRepsLine, keepInViewLine, moveFurtherLine, reachedTargetsLine, repCompleteLine, repsAheadLine, repScoreLine, SHOULDER_ADVICE, word, cap } from "./spoken";
-import { cycleFor, REPS_BY_RUNG, resolveExercise, DOSE_PRESETS, LEVEL_BY_RUNG, usesSeatedTargets, type CycleStep, type ExerciseConfig, type Rung, type Side } from "./config";
+import { cycleFor, EVERYDAY_EXERCISE_ID, REPS_BY_RUNG, resolveExercise, DOSE_PRESETS, LEVEL_BY_RUNG, usesSeatedTargets, type CycleStep, type ExerciseConfig, type Rung, type Side } from "./config";
 import { compensationStatus, medianGeo, type Frame, type Geo, type LapRest } from "./metrics";
 import { attainment, romAttainment, EXERCISE_SCORE_VERSION, isGoodRep, isMiss, repScore, sessionScore, type HoldOutcome } from "./scoring";
 import { reachAngleProgress, ReachRestCalibration, ReachTargetCalibration } from "./calibration";
@@ -210,12 +210,13 @@ export class ExerciseSession {
       this.reachTargetCalibration = new ReachTargetCalibration(["elbow_flexion", "shoulder_flexion"]);
     }
     // A frozen copy taken once: nothing changes mid-repetition, and later edits to the caller's object do not reach it.
-    const tuning = opts.tuning ?? DEFAULT_EXERCISE_TUNING;
+    const everyday = this.cfg.id === EVERYDAY_EXERCISE_ID;
+    const tuning = everyday ? DEFAULT_EXERCISE_TUNING : opts.tuning ?? DEFAULT_EXERCISE_TUNING;
     this.tuned = Object.freeze({ ...tuning, changed: Object.freeze({ ...tuning.changed }) });
-    this.rung = this.rungStart = opts.rung;
+    this.rung = this.rungStart = everyday ? 1 : opts.rung;
     // The planned count is fixed here; a rescue lowers the rung but never the number of repetitions.
-    this.plannedReps = opts.repsOverride ?? tunedReps(REPS_BY_RUNG[opts.rung], this.tuned);
-    this.cycleCache = cycleFor(opts.exerciseId, opts.rung);
+    this.plannedReps = opts.repsOverride ?? tunedReps(REPS_BY_RUNG[this.rung], this.tuned);
+    this.cycleCache = cycleFor(opts.exerciseId, this.rung);
   }
 
   // ---------- public surface ----------

@@ -9,7 +9,7 @@ import AliraAvatar from "@/components/AliraAvatar";
 import MedalArtwork from "@/components/MedalArtwork";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { loadRememberedAssessment } from "@/lib/assessment";
-import { assessmentServiceBase } from "@/lib/assessment-plan";
+import { patientExerciseReady } from "@/lib/exercise-engine/config";
 import { affectedSideFrom, loadOnboardingAnswers } from "@/lib/alira-onboarding";
 import { dayKey, PATIENT_NAME } from "@/lib/home-stage";
 import { FamilyInvite } from "@/components/FamilyInvite";
@@ -43,6 +43,7 @@ export default function JourneyProgress({ animateEntrance = true, reveal = false
   const [range, setRange] = useState<ChartRange>("all");
   const [showEx, setShowEx] = useState(false);
   const [selected, setSelected] = useState<JourneyExercise | null>(null);
+  const [underDevelopment, setUnderDevelopment] = useState<JourneyExercise | null>(null);
   const [winOpen, setWinOpen] = useState(false);
   const [winDraft, setWinDraft] = useState("");
   const [winPick, setWinPick] = useState("");
@@ -144,13 +145,19 @@ export default function JourneyProgress({ animateEntrance = true, reveal = false
   const prevWeekAvg = avg(m.thisWeek.filter(session => session.day !== m.latest?.day));
   const side = affectedSideFrom(loadOnboardingAnswers());
 
-  const startExercise = (exercise: JourneyExercise, rung: 1 | 2 | 3) => {
-    const query = new URLSearchParams({ rung: String(rung), side, from: "journey" });
+  const startExercise = (exercise: JourneyExercise) => {
+    setSelected(null);
+    if (!patientExerciseReady(exercise.id)) {
+      setUnderDevelopment(exercise);
+      return;
+    }
+    if (m.planRows.find(row => row.exercise.id === exercise.id)?.resting) return;
+    const query = new URLSearchParams({ rung: "1", side, from: "journey" });
     navigate(`/exercise/${exercise.id}?${query}`);
   };
   const startNext = () => {
     const row = m.planRows.find(r => r.exercise.launchable && !r.doneToday && !r.resting);
-    if (row) startExercise(row.exercise, row.rung);
+    if (row) startExercise(row.exercise);
   };
 
   const setWins = (next: Win[]) => { setWinsState(next); saveWins(next); };
@@ -186,7 +193,6 @@ export default function JourneyProgress({ animateEntrance = true, reveal = false
   const noPlan = m.exercises.length === 0;
   const noLaunchable = !noPlan && !m.exercises.some(e => e.launchable);
   const report = assessment.report;
-  const blocked = report?.clinical_review_gate?.rehab_access === "blocked";
   const domains = report?.function_rehab_plan?.caregiver_domains ?? [];
 
   return (
@@ -292,42 +298,40 @@ export default function JourneyProgress({ animateEntrance = true, reveal = false
                 ))}
               </div>
             </div>
-            {blocked && <p className="jp-note">{report?.clinical_review_gate?.patient_message}</p>}
-
-            {m.doneToday ? (
+            {m.doneToday && (
               <div className={`jp-done jp-check-${par}`}>
                 <AliraMark size={88} register={register} />
                 <p>Rest well. Tomorrow’s session will be here in the morning.</p>
               </div>
-            ) : noPlan ? (
+            )}
+            {noPlan ? (
               <p className="jp-plan-empty">{domains.length ? "We’ll start with supported movement. The next step is to review suitable movements with your carer or rehabilitation clinician." : "No camera exercises were selected from these results. Alira can help you review the next step."} <a href="/alira">Talk to Alira</a></p>
             ) : (
               <>
                 <div className="jp-plan-rows">
                   {m.planRows.map(row => (
-                    <div className={`jp-plan-row ${row.doneToday ? "is-done" : ""} ${row.resting ? "is-resting" : ""}`} key={row.exercise.id}>
+                    <div className={`jp-plan-row ${row.doneToday ? "is-done" : ""} ${row.exercise.launchable && row.resting ? "is-resting" : ""}`} key={row.exercise.id}>
                       <span className={`jp-plan-icon jp-area-${row.exercise.area}`} aria-hidden="true"><AreaIcon area={row.exercise.area} /></span>
                       <button type="button" className="jp-plan-name" onClick={() => setSelected(row.exercise)}>{row.exercise.name}<ChevronRight size={16} aria-hidden="true" /></button>
                       <span className="jp-plan-end">
-                        {row.levelChange && !row.doneToday && !row.resting && !blocked && (
+                        {row.levelChange && !row.doneToday && !row.resting && (
                           <span className={`jp-level-change is-${row.levelChange}`}>{row.levelChange === "easier" ? "Easier today" : "Harder today"}</span>
                         )}
-                        {row.doneToday ? <span className="jp-plan-score"><Check size={14} strokeWidth={3} aria-hidden="true" /> {row.score}</span>
-                          : row.resting && !blocked ? <span className="jp-plan-rest">Resting today</span>
-                          : row.exercise.launchable && !blocked ? <button type="button" className="jp-plan-start" onClick={() => startExercise(row.exercise, row.rung)}>Start</button>
-                          : <span className="jp-plan-dose">{blocked ? "Paused" : "With your carer"}</span>}
+                        {row.doneToday && <span className="jp-plan-score"><Check size={14} strokeWidth={3} aria-hidden="true" /> {row.score}</span>}
+                        {row.exercise.launchable && row.resting ? <span className="jp-plan-rest">Resting today</span>
+                          : <button type="button" className="jp-plan-start" aria-label={`Start ${row.exercise.name}`} onClick={() => startExercise(row.exercise)}>Start</button>}
                       </span>
                     </div>
                   ))}
                 </div>
-                {!noLaunchable && !blocked && (
+                {!noLaunchable && !m.doneToday && (
                   <button type="button" className="jp-cta" onClick={startNext} disabled={!m.nextExercise}>
                     <span className="jp-cta-sheen" aria-hidden="true" />
                     <span>{m.nextExercise && m.planRows.some(r => r.doneToday) ? `Continue · ${m.nextExercise.name}` : "Start today’s session"}</span>
                     <ArrowRight className="jp-cta-arrow" size={18} aria-hidden="true" />
                   </button>
                 )}
-                {noLaunchable && !blocked && <p className="jp-plan-empty">These movements are done with your carer. Alira can talk you through them. <a href="/alira">Talk to Alira</a></p>}
+                {noLaunchable && <p className="jp-plan-empty">These movements are done with your carer. Alira can talk you through them. <a href="/alira">Talk to Alira</a></p>}
                 <p className="jp-safety"><ShieldIcon /> Stop and rest if you feel dizzy or unwell. Alira checks in with you during every session.</p>
               </>
             )}
@@ -430,11 +434,17 @@ export default function JourneyProgress({ animateEntrance = true, reveal = false
           <p className="jp-dialog-dose">{selected.plan.sets} {selected.plan.sets === 1 ? "set" : "sets"} · {selected.plan.reps} repetitions · {selected.plan.frequency}</p>
           {selected.plan.selection_reason && <p>{selected.plan.selection_reason}</p>}
           {selected.plan.safety_note && <p className="jp-note">{selected.plan.safety_note}</p>}
-          {blocked ? <p className="jp-note">{report?.clinical_review_gate?.patient_message}</p>
-            : m.planRows.find(r => r.exercise.id === selected.id)?.resting ? <p className="jp-note">This exercise is resting after how you felt last time. It will come back gently.</p>
-            : selected.launchable ? <button type="button" className="jp-primary" onClick={() => { const row = m.planRows.find(r => r.exercise.id === selected.id); setSelected(null); startExercise(selected, row?.rung ?? 1); }}>{m.planRows.find(r => r.exercise.id === selected.id)?.doneToday ? "Do it again" : "Start this exercise"} <ArrowRight size={16} aria-hidden="true" /></button>
-            : <a className="jp-primary" href={`${assessmentServiceBase()}/api/rehab/runner?${new URLSearchParams({ exercise_id: selected.id, reps: String(selected.plan.reps), difficulty: selected.plan.difficulty ?? "easy", affected_side: side })}`} target="_blank" rel="noopener noreferrer">Open in Rehyn <ArrowRight size={16} aria-hidden="true" /></a>}
+          {selected.launchable && m.planRows.find(r => r.exercise.id === selected.id)?.resting ? <p className="jp-note">This exercise is resting after how you felt last time. It will come back gently.</p>
+            : <button type="button" className="jp-primary" onClick={() => startExercise(selected)}>{selected.launchable && m.planRows.find(r => r.exercise.id === selected.id)?.doneToday ? "Do it again" : "Start this exercise"} <ArrowRight size={16} aria-hidden="true" /></button>}
         </>}</DialogContent>
+      </Dialog>
+
+      <Dialog open={underDevelopment !== null} onOpenChange={open => { if (!open) setUnderDevelopment(null); }}>
+        <DialogContent className="jp-dialog">
+          <DialogTitle>Under development</DialogTitle>
+          <DialogDescription>{underDevelopment?.name} is being prepared. You can try Graded Forward Reach now.</DialogDescription>
+          <button type="button" className="jp-primary" onClick={() => setUnderDevelopment(null)}>Got it</button>
+        </DialogContent>
       </Dialog>
 
       <Dialog open={winOpen} onOpenChange={open => { if (!open) setWinOpen(false); }}>

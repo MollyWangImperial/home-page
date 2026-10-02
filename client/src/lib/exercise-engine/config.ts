@@ -19,6 +19,9 @@ export const REPS_BY_RUNG: Record<Rung, number> = { 1: 6, 2: 8, 3: 10 };
  */
 export const EVERYDAY_EXERCISE_ID = "ex_reach";
 
+/** Patient Start buttons launch only the ready exercise; the rest remain available in the admin engine. */
+export const patientExerciseReady = (id: string) => id === EVERYDAY_EXERCISE_ID;
+
 /** Exercises with a calibrated lap and an anatomical/contact target. */
 export const usesSeatedTargets = (id: string) => id === "ex_reach" || id === "ex_h2m";
 

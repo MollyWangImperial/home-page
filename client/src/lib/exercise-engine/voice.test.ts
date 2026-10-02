@@ -49,7 +49,7 @@ describe("Alira's voice in the exercises (opt-in, off for now)", () => {
     const calls: { provider?: string; text: string }[] = [];
     vi.stubGlobal("fetch", vi.fn(async (_url: string, init: RequestInit) => {
       calls.push(JSON.parse(String(init.body)));
-      return new Response(new Blob(["mp3"]), { headers: { "X-Exercise-Language": "en-GB", "X-Exercise-Voice": "Alira", "Content-Type": "audio/mpeg" } });
+      return new Response(new Blob(["mp3"]), { headers: { "X-Exercise-Language": "en-GB", "X-Exercise-Voice": "Alira", "X-Exercise-Voice-Provider": "elevenlabs", "Content-Type": "audio/mpeg" } });
     }));
     const audio = mockAudio();
     const api = createVoice({ alira: true });
@@ -144,6 +144,28 @@ describe("English-only exercise voice when Alira's voice is unavailable", () => 
     expect(api.busy(100000)).toBe(true);
     audio[0].onended?.();
     await vi.advanceTimersByTimeAsync(0);
+    expect(api.busy(100000)).toBe(false);
+  });
+});
+
+describe("reach keeps Alira as its only speaker", () => {
+  it.each([503, 200])("does not switch to a device or local voice on unavailable or mismatched audio (%s)", async status => {
+    vi.useFakeTimers();
+    const synth = mockSpeech(() => [voice("Microsoft Sonia", "en-GB")]);
+    const requests: { provider?: string }[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (_url, init) => {
+      requests.push(JSON.parse(String(init.body)));
+      return new Response(new Blob(["other voice"]), { status, headers: { "X-Exercise-Language": "en-GB", "X-Exercise-Voice": "Other", "X-Exercise-Voice-Provider": "elevenlabs" } });
+    }));
+    const audio = mockAudio();
+    const api = createVoice({ aliraOnly: true });
+    api.onAvailability = vi.fn();
+    api.say("Bring your hand back to your lap.");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(requests).toEqual([{ text: "Bring your hand back to your lap.", provider: "alira" }]);
+    expect(synth.speak).not.toHaveBeenCalled();
+    expect(audio).toHaveLength(0);
+    expect(api.onAvailability).toHaveBeenCalledWith(false);
     expect(api.busy(100000)).toBe(false);
   });
 });
