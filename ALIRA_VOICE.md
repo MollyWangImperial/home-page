@@ -7,7 +7,7 @@ On this site that covers four places:
 - **The Alira page and the welcome conversation**: `/api/alira/voice` for her fixed lines, `/api/alira/speak` for everything else she writes.
 - **The daily exercises and the warm-up repetition**: not yet. They still use the device's English voice. Alira's voice is ready for them (`createVoice({ alira: true })` asks `/api/exercise-voice` with `provider: "alira"`) and will be switched on later; record their lines with `pnpm voice:bake --exercises` first.
 - **The emergency FAST check**: `/api/tts/generate`.
-- **The copied assessment service** (`assessment-service/`): started by `npm run assessment:dev` with `INSTRUCTION_TTS_PROVIDER=elevenlabs`, `ELEVENLABS_VOICE_SCOPE=all` and the key from `.env.local`.
+- **The copied assessment service** (`assessment-service/`): `local_app.py` turns on Alira's voice for every line (`INSTRUCTION_TTS_PROVIDER=elevenlabs`, `ELEVENLABS_VOICE_SCOPE=all`) and reads the key from this site's `.env.local`, however the service is started. Its recorded lines are in `assessment-service/frontend/public/audio/prepared`.
 
 When Alira's voice can't speak a line (it isn't recorded and there is no key or no credits), the exercises and the FAST check fall back to the device's English voice, so spoken guidance never stops, and the assessment falls back to the OpenAI voice. Every Alira message on her page can be heard in her voice, including replies she writes in the moment and personal messages such as her congratulations with your assessment results: those go to `/api/alira/speak`, which sends the text to ElevenLabs. A patient's own words are never sent.
 
