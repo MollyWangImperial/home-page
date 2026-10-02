@@ -1,8 +1,9 @@
-// Local testing only (pnpm dev): a sample first assessment so the Journey can be walked through
+// Local and Render review testing: a sample first assessment so the Journey can be walked through
 // without the camera, matching the design canvas's temporary demo strip. Never part of the patient UI.
 import { rememberAssessment, rememberAssessmentPlan, type AssessmentReport, type StoredAssessment } from "./assessment";
+import { administrativeControlsEnabled } from "./administrative-controls";
 
-export const journeyDemoEnabled = () => import.meta.env.DEV;
+export const journeyDemoEnabled = administrativeControlsEnabled;
 
 export const SAMPLE_ASSESSMENT: AssessmentReport = {
   id: "sample-first-assessment",

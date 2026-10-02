@@ -17,6 +17,7 @@ import { createTracker, openCamera, type Tracker } from "@/lib/exercise-engine/t
 import { createVoice, type RunnerVoice } from "@/lib/exercise-engine/voice";
 import { WARM_REP_LINES } from "@/lib/warm-rep-lines";
 import { simulatedWarmRep, WarmRepTracker, type WarmRepFrame, type WarmRepPhase, type WarmRepState } from "@/lib/warm-rep";
+import { administrativeControlsEnabled } from "@/lib/administrative-controls";
 import "./warm-rep.css";
 
 type Side = "left" | "right";
@@ -270,7 +271,7 @@ export function WarmRep({ source, side, onDone, onSkip, onStop }: WarmRepProps) 
   const [caption, setCaption] = useState("");
   const [voiceMissing, setVoiceMissing] = useState(false);
   const [problem, setProblem] = useState<CameraProblem>("general");
-  const [allowPretend, setAllowPretend] = useState(() => import.meta.env.DEV === true);
+  const [allowPretend, setAllowPretend] = useState(administrativeControlsEnabled);
   const [record, setRecord] = useState<WarmRepRecord | null>(null);
   const [warmLine, setWarmLine] = useState(WARM_LINES[0]);
   const [felt, setFelt] = useState<FeltReport | null>(null);

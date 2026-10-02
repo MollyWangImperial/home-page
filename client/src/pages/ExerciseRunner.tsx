@@ -18,6 +18,7 @@ import { chooseHand, createTracker, openCamera, type Detection, type Tracker } f
 import { createVoice, type RunnerVoice } from "@/lib/exercise-engine/voice";
 import { readLabOptions, saveLabSession, writeLabOptions, type LabOptions } from "@/lib/exercise-engine/lab-storage";
 import { recordExerciseResult } from "@/lib/journey";
+import { administrativeControlsEnabled } from "@/lib/administrative-controls";
 import { loadRememberedAssessment } from "@/lib/assessment";
 import { exerciseCompletionPath, loadExerciseCompletion } from "@/lib/exercise-completion";
 import { beginDebugVideos, DebugVideoRecorder, type DebugClip, type DebugVideoSession } from "@/lib/exercise-engine/debug-video";
@@ -408,8 +409,8 @@ export default function ExerciseRunner() {
     if (runSnapshot?.record && runSnapshot.record.finished_at !== savedRecord.current) {
       savedRecord.current = runSnapshot.record.finished_at;
       saveLabSession(runSnapshot.record, { side: opts.side, sim: opts.sim });
-      // Real attempts count towards today's session on the Journey; simulated runs only in local testing.
-      if (!runSnapshot.record.not_attempted && (!opts.sim || import.meta.env.DEV)) recordExerciseResult(exerciseId, runSnapshot.record.score);
+      // Simulated attempts count in local and Render review testing.
+      if (!runSnapshot.record.not_attempted && (!opts.sim || administrativeControlsEnabled())) recordExerciseResult(exerciseId, runSnapshot.record.score);
       if (!muted) return;
     }
   }, [runSnapshot?.record, opts.side, opts.sim, muted, exerciseId]);
@@ -424,7 +425,7 @@ export default function ExerciseRunner() {
 
   const completeExercise = () => {
     const record = sessionRef.current?.snapshot().record;
-    if (!record || record.not_attempted || (opts.sim && !import.meta.env.DEV)) { backToSettings(); return; }
+    if (!record || record.not_attempted || (opts.sim && !administrativeControlsEnabled())) { backToSettings(); return; }
     learnFromSession();
     stopAll();
     recordExerciseResult(exerciseId, record.score);

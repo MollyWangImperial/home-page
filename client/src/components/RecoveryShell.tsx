@@ -8,6 +8,7 @@ import { profileInitial, profileName, useProfile } from "@/lib/profile";
 import { setDisplayPrefs, useDisplayPrefs } from "@/lib/display-prefs";
 import { SettingsButton, useSettings } from "./AccountSettings";
 import AccountResetControls from "./AccountResetControls";
+import { administrativeControlsEnabled } from "@/lib/administrative-controls";
 import HeartRateMark from "./HeartRateMark";
 import PlanChangeReminder from "./PlanChangeReminder";
 import {
@@ -85,7 +86,7 @@ export default function RecoveryShell({ active, children, dateLabel = "THURSDAY,
           <div className="settings-mobile-brand-group"><SettingsButton mobile /><button className="recovery-mobile-brand" onClick={() => go("/")} aria-label="Rehyn home"><span><HeartRateMark size={19} /></span><b>Rehyn</b></button></div>
           <div className="recovery-date">{dateLabel}</div>
           <div className="recovery-top-actions">
-            {import.meta.env.DEV && active === "Home" && <AccountResetControls />}
+            {administrativeControlsEnabled() && active === "Home" && <AccountResetControls />}
             <button className={`recovery-utility ${largeText ? "is-on" : ""}`} onClick={() => setLargeText(!largeText)} aria-label={largeText ? "Use standard text" : "Use larger text"} title="Larger text"><b>A</b><Plus size={11} /></button>
             <button className={`recovery-utility ${strongContrast ? "is-on" : ""}`} onClick={() => setStrongContrast(!strongContrast)} aria-label="Toggle stronger contrast" title="Stronger contrast"><Sun size={18} /></button>
             <button className="recovery-profile" aria-label={`${profileName(profile)}'s profile`} aria-haspopup="dialog" onClick={event => openSettings(event.currentTarget)}>{profile.photo ? <img src={profile.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit" }} /> : profileInitial(profile)}</button>

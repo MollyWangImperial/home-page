@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ASSESSMENT_RESULT_KEY, loadRememberedAssessment, rememberAssessment, rememberAssessmentPlan, type AssessmentReport } from "./assessment";
 import { ASSESSMENT_PLAN_READY_MESSAGE, assessmentCompletionMessages, assessmentCongratulations, pauseAssessmentChat, planExerciseUrl, randomAssessment, requestAssessmentPlan, runAssessmentConversation, scoreSummary } from "./assessment-plan";
+import { REVIEW_ORIGIN } from "./review-account";
 
 const report: AssessmentReport = { preview_only: true, assessment_package: "initial", task_results: [{ task_id: "T1", steps: [], metrics: { motion_data: ["private frames"], ladder: { attempts: [] } } }],
   metrics: { function_score: { display_total: 75, areas: { arm: { display_score: 75 }, hand: { display_score: null } }, tasks: [] } } };
@@ -51,7 +52,7 @@ describe("assessment to Alira plan handoff", () => {
   });
   it("only permits random completion in the local development preview", async () => {
     vi.stubEnv("DEV", false);
-    await expect(randomAssessment({})).rejects.toThrow("local testing preview only");
+    await expect(randomAssessment({})).rejects.toThrow("local or Render review testing preview only");
   });
 
   it("uses the survey-assigned tasks for random testing and keeps omitted areas unmeasured", async () => {
@@ -68,7 +69,24 @@ describe("assessment to Alira plan handoff", () => {
   it("does not enable random testing against a hosted assessment service", async () => {
     vi.stubEnv("DEV", true);
     vi.stubEnv("VITE_ASSESSMENT_BASE", "https://rehyn.onrender.com");
-    await expect(randomAssessment({})).rejects.toThrow("local testing preview only");
+    await expect(randomAssessment({})).rejects.toThrow("local or Render review testing preview only");
+  });
+
+  it("uses the stateless Render test route and preserves its returned plan without uploading free-text survey answers", async () => {
+    vi.stubEnv("DEV", false);
+    vi.stubEnv("VITE_ASSESSMENT_BASE", "https://rehyn.onrender.com");
+    vi.stubGlobal("window", { location: { origin: REVIEW_ORIGIN } });
+    const sample = { ...report, testing_random: true, rehab_plan: [] };
+    const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => sample });
+    vi.stubGlobal("fetch", fetch);
+    const result = await randomAssessment({ arm_hand_movement: "fairly_well", get_around: "wheelchair", main_goal: "other", main_goal_other: "private goal", help_at_home: "own", private_note: "private note" });
+    expect(fetch.mock.calls[0][0]).toBe("https://rehyn.onrender.com/api/assessment/review-random-results");
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ task_ids: ["T1", "T3", "H4", "H3"], goal: "other", movement: "fairly_well", has_helper: false });
+    const planned = await requestAssessmentPlan(rememberAssessment(result)!, {});
+    expect(planned.metrics).toEqual(sample.metrics);
+    expect(planned.rehab_plan).toEqual(sample.rehab_plan);
+    expect(planned.task_results?.[0].metrics).not.toHaveProperty("motion_data");
+    expect(fetch).toHaveBeenCalledOnce();
   });
 
   it("reveals congratulations, marks, and designing in order and waits for the real plan", async () => {

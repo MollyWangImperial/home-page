@@ -10,6 +10,7 @@ import { loadRememberedAssessment, type PlanExercise, type StoredAssessment } fr
 import { DOMAIN_LABEL, EXERCISES, usesSeatedTargets } from "./exercise-engine/config";
 import { dayKey, markExercisesDoneToday, PATIENT_NAME, REASSESSMENT_CYCLE_DAYS } from "./home-stage";
 import { adjustedLevel, changesFromDay, loadPlanReview, resetPlanReview, restingOn, type PlanReviewState } from "./plan-review-store";
+import { administrativeControlsEnabled } from "./administrative-controls";
 
 export const JOURNEY_START_KEY = "rehyn.journey.start";
 export const JOURNEY_SESSIONS_KEY = "rehyn.journey.sessions";
@@ -158,7 +159,7 @@ export function dayMonth(date: Date): string {
 // ---------------------------------------------------------------- local testing clock
 
 export function demoDayOffset(): number {
-  if (!import.meta.env.DEV) return 0;
+  if (!administrativeControlsEnabled()) return 0;
   const demo = readJson<{ dayOffset?: unknown }>(JOURNEY_DEMO_KEY, {});
   return typeof demo.dayOffset === "number" && Number.isFinite(demo.dayOffset) ? Math.max(0, Math.round(demo.dayOffset)) : 0;
 }
@@ -172,7 +173,7 @@ function clockChanged() {
   }
 }
 export function setDemoDayOffset(dayOffset: number): void {
-  if (!import.meta.env.DEV) return;
+  if (!administrativeControlsEnabled()) return;
   writeJson(JOURNEY_DEMO_KEY, { dayOffset: Math.max(0, Math.round(dayOffset)) });
   clockChanged();
 }

@@ -1,11 +1,12 @@
 import { getAssessmentBase, type AssessmentReport, type PlanExercise, type StoredAssessment } from "./assessment";
 import { companionTaskPlan } from "./assessment";
 import type { OnboardingAnswers } from "./alira-onboarding";
+import { renderReviewControlsEnabled } from "./administrative-controls";
 
 export const EXERCISES_PATH = "/journey?tab=progress&section=exercises";
 export const ASSESSMENT_PLAN_READY_MESSAGE = "Congratulations, you've unlocked Journey! Your exercise plan is ready. Tap View my exercises below to open Journey and try your first movement with me.";
 export const assessmentServiceBase = () => getAssessmentBase(import.meta.env.VITE_ASSESSMENT_BASE, import.meta.env.DEV);
-export const randomAssessmentEnabled = () => import.meta.env.DEV && ["localhost", "127.0.0.1"].includes(new URL(assessmentServiceBase()).hostname);
+export const randomAssessmentEnabled = () => renderReviewControlsEnabled() || (import.meta.env.DEV && ["localhost", "127.0.0.1"].includes(new URL(assessmentServiceBase()).hostname));
 
 export function planExerciseUrl(exercise: PlanExercise, affectedSide: "left" | "right") {
   const query = new URLSearchParams({ exercise_id: exercise.id, reps: String(exercise.reps),
@@ -94,9 +95,18 @@ export async function requestAssessmentPlan(stored: StoredAssessment, answers: O
 }
 
 export async function randomAssessment(answers: OnboardingAnswers, signal?: AbortSignal): Promise<AssessmentReport> {
-  if (!randomAssessmentEnabled()) throw new Error("Random assessments are available in the local testing preview only.");
+  if (!randomAssessmentEnabled()) throw new Error("Random assessments are available in the local or Render review testing preview only.");
   const selected = companionTaskPlan(answers).taskIds;
   if (!selected.length) throw new Error("Your answers call for supported movement rather than a camera assessment. No test marks were created.");
+  if (renderReviewControlsEnabled()) {
+    // Send bounded test options, never the survey's free text or patient records.
+    const goal = ["eating", "dressing", "walking_house", "going_out", "other"].includes(String(answers.main_goal)) ? answers.main_goal : "";
+    const movement = ["none", "little_help", "tires", "fairly_well"].includes(String(answers.arm_hand_movement)) ? answers.arm_hand_movement : "";
+    return readPreviewResponse(await fetch(`${assessmentServiceBase()}/api/assessment/review-random-results`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ task_ids: selected, goal, movement, has_helper: answers.help_at_home !== "own" }), signal,
+    }), true);
+  }
   return postPreview("preview-random-results", {
     assessment_package: "initial", assigned_task_ids: selected,
     task_results: [], patient_parameters: { companion_answers: answers },
@@ -107,6 +117,10 @@ async function postPreview(route: string, body: unknown, signal?: AbortSignal, r
   const response = await fetch(`${assessmentServiceBase()}/api/assessment/${route}?local_preview=1`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal,
   });
+  return readPreviewResponse(response, requirePlan);
+}
+
+async function readPreviewResponse(response: Response, requirePlan: boolean): Promise<AssessmentReport> {
   if (!response.ok) throw new Error("I couldn’t prepare your exercise plan just yet. Your results are still here. Please try again.");
   const report = await response.json() as AssessmentReport;
   if (!report.metrics?.function_score || (requirePlan && !Array.isArray(report.rehab_plan))) throw new Error("The exercise plan was incomplete. Please try again.");

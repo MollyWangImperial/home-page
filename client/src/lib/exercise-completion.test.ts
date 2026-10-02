@@ -71,13 +71,23 @@ describe("exercise completion to Alira", () => {
     expect(JSON.parse(values.get(JOURNEY_SESSIONS_KEY)!)[dayKey(now)]).toBeDefined();
   });
 
-  it("never creates testing scores in production or against a hosted assessment service", () => {
+  it("never creates testing scores on unrelated production sites or a local preview targeting a hosted assessment service", () => {
     const assessment = ready();
     vi.stubEnv("DEV", false);
     expect(finishPreviewExercises(assessment)).toBeNull();
     vi.stubEnv("DEV", true); vi.stubEnv("VITE_ASSESSMENT_BASE", "https://rehyn.onrender.com");
     expect(finishPreviewExercises(assessment)).toBeNull();
     expect(values.get(JOURNEY_SESSIONS_KEY)).toBeUndefined();
+  });
+
+  it("completes exercises on the Render review site without altering the assessment", () => {
+    vi.stubEnv("DEV", false);
+    vi.stubGlobal("window", { location: { origin: "https://rehyn-recovery-companion.onrender.com" }, dispatchEvent: vi.fn() });
+    const assessment = ready();
+    const before = values.get(ASSESSMENT_RESULT_KEY);
+    expect(finishPreviewExercises(assessment, () => 0.5)?.allDone).toBe(true);
+    expect(values.get(ASSESSMENT_RESULT_KEY)).toBe(before);
+    expect(values.get(JOURNEY_SESSIONS_KEY)).toBeDefined();
   });
 
   it("returns to Alira with an explicit exercise context", () => {

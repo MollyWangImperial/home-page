@@ -16,6 +16,7 @@ import { readLabSessions, type LabSession } from "./exercise-engine/lab-storage"
 import { dayKey, PATIENT_NAME } from "./home-stage";
 import { companionPlan, demoDayOffset, journeyNow, loadSessionStore, planDesigned, rungFor, type SessionStore } from "./journey";
 import { loadPlanReview, queueAlert, savePlanReview, type PlanReviewState } from "./plan-review-store";
+import { administrativeControlsEnabled } from "./administrative-controls";
 
 /** How far back a review catches up after the app has been closed for a while. */
 const CATCH_UP_DAYS = 7;
@@ -70,7 +71,7 @@ export type ReviewOptions = { now?: Date; includeSimulated?: boolean };
  * One review pass: warning signs first, then each finished day not yet reviewed. Returns the
  * changes it made (already saved, with their admin emails queued).
  */
-export function reviewNow({ now = new Date(), includeSimulated = import.meta.env.DEV }: ReviewOptions = {}): PlanChange[] {
+export function reviewNow({ now = new Date(), includeSimulated = administrativeControlsEnabled() }: ReviewOptions = {}): PlanChange[] {
   const assessment = loadRememberedAssessment();
   if (!assessment || !planDesigned(assessment)) return [];
   const plan = planItems(assessment);
