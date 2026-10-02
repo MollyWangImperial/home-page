@@ -37,7 +37,8 @@ export type Attempt = {
   eased: boolean;
 };
 
-export type ChangeKind = "easier" | "harder" | "rest" | "rest_day";
+/** "steady": a hard day at the gentlest level (or a fixed-level exercise), so nothing can go lower; Alira still says so. */
+export type ChangeKind = "easier" | "harder" | "rest" | "rest_day" | "steady";
 export type ChangeReason =
   | "pain_a_lot" | "stopped_unwell" | "pain_a_little" | "felt_much_harder"
   | "stopped_early" | "low_score" | "eased_during_session" | "good_sessions";
@@ -197,6 +198,9 @@ export function reviewDay({
     if (reasons.length) {
       if (!item.fixedLevel && state.level > MIN_LEVEL) {
         changes.push({ ...base, id: changeId(day, item.id, "easier"), kind: "easier", fromLevel: state.level, toLevel: asLevel(state.level - 1), reasons });
+      } else {
+        // Already as gentle as it goes: the level stays, but the patient still hears from Alira.
+        changes.push({ ...base, id: changeId(day, item.id, "steady"), kind: "steady", fromLevel: state.level, toLevel: state.level, reasons });
       }
       continue;
     }
@@ -342,6 +346,8 @@ export function patientLine(change: PlanChange, today: string, style: "popup" | 
         return `${name} is resting today, after ${why[reason ?? "pain_a_lot"] ?? "how you felt yesterday"}.`;
       case "rest_day":
         return "All your exercises are resting today, after you felt unwell during yesterday's warm-up.";
+      case "steady":
+        return `${name} stays at its gentlest level, because ${why[reason ?? "low_score"] ?? "yesterday was hard going"}.`;
     }
   }
   const because: Partial<Record<ChangeReason, string>> = {
@@ -363,6 +369,8 @@ export function patientLine(change: PlanChange, today: string, style: "popup" | 
     }
     case "rest_day":
       return `All your exercises are resting ${restWhen(change, today)}, because you didn't feel well during the warm-up. I've let the Rehyn team know.`;
+    case "steady":
+      return `${name} stays at its gentlest level ${whenFrom(change.effectiveDay, today)}. ${reason === "pain_a_little" ? "You mentioned a little pain, so take it slowly." : reason === "felt_much_harder" ? "It felt much harder than expected, so take it slowly." : "It was hard going, so we'll keep it gentle and build up from here."}`;
   }
 }
 
@@ -393,6 +401,8 @@ export function adminLine(change: PlanChange): string {
       return `${change.exerciseName}: resting through ${change.restingThrough}, then back one level easier.${levels} Why: ${why} (${change.reviewedDay}).`;
     case "rest_day":
       return `Every exercise resting through ${change.restingThrough}. Why: during the warm-up, ${why} (${change.reviewedDay}).`;
+    case "steady":
+      return `${change.exerciseName}: kept at the easiest level from ${change.effectiveDay} (no lower level). Why: ${why}.`;
   }
 }
 

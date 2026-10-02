@@ -57,7 +57,10 @@ describe("the evening review", () => {
       expect(change).toMatchObject({ kind: "easier", fromLevel: 2, toLevel: 1, effectiveDay: "2026-10-02", warning: false });
       expect(change.reasons).toContain(reason);
     }
-    expect(review([attempt({ level: 1, score: 20 })], [], { states: { ex_handopen: { level: 1, restingThrough: null } } })).toEqual([]);
+    // At the easiest level the level stays, but Alira still tells the patient.
+    const [steady] = review([attempt({ level: 1, score: 20 })], [], { states: { ex_handopen: { level: 1, restingThrough: null } } });
+    expect(steady).toMatchObject({ kind: "steady", fromLevel: 1, toLevel: 1, reasons: ["low_score"] });
+    expect(patientLine(steady, "2026-10-02")).toBe("Active Hand Opening stays at its gentlest level from today. It was hard going, so we'll keep it gentle and build up from here.");
   });
   it("makes it one level harder after two good days at the current level, up to one above the movement check", () => {
     const twoGoodDays = [attempt({ day: "2026-09-30", score: GOOD_SCORE }), attempt({ score: 92 })];
@@ -96,7 +99,7 @@ describe("the evening review", () => {
     expect(review(twoGoodDays, [report({ felt: "harder" })])).toEqual([]);
     expect(review(twoGoodDays, [report({ exerciseId: "ex_reach", pain: "a_little", day: "2026-09-30" })])).toEqual([]);
     expect(review(twoGoodDays, [], { rehabBlocked: true })).toEqual([]);
-    expect(review([attempt({ exerciseId: "ex_reach", level: 1, score: 10 })])).toEqual([]);
+    expect(review([attempt({ exerciseId: "ex_reach", level: 1, score: 10 })])).toEqual([expect.objectContaining({ kind: "steady", exerciseId: "ex_reach", fromLevel: 1, toLevel: 1 })]);
     expect(review(twoGoodDays, [], { states: { ex_handopen: { level: 2, restingThrough: "2026-10-01" } } })).toEqual([]);
   });
 });

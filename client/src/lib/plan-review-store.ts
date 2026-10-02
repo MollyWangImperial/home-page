@@ -52,7 +52,7 @@ function storage(): Storage | null {
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
-const KINDS: ChangeKind[] = ["easier", "harder", "rest", "rest_day"];
+const KINDS: ChangeKind[] = ["easier", "harder", "rest", "rest_day", "steady"];
 const REASONS: ChangeReason[] = ["pain_a_lot", "stopped_unwell", "pain_a_little", "felt_much_harder", "stopped_early", "low_score", "eased_during_session", "good_sessions"];
 const levelOrNull = (value: unknown): Level | null => (typeof value === "number" && Number.isFinite(value) ? asLevel(value) : null);
 const dayOrNull = (value: unknown) => (isDay(value) ? value : null);

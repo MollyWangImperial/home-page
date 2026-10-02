@@ -41,6 +41,8 @@ function describe(change: PlanChange): string {
       return `resting through ${through}${levels ? `, then back one level easier${levels}` : ""}. ${why}${on}.`;
     case "rest_day":
       return `resting through ${through}. During the warm-up: ${change.reasons.map(reason => REASON_WORDS[reason]).join(", ")}${on}.`;
+    case "steady":
+      return `kept at the easiest level (it can't go lower). ${why}${on}.`;
   }
 }
 
