@@ -31,6 +31,8 @@ export type RunnerOptions = {
   startRungs?: StartRungs;
   /** The named public review site uses a stateless guest runner without patient sign-in. */
   guestReview?: boolean;
+  /** Guest Done returns to the same Alira flow even if the iframe handoff is missed. */
+  returnTo?: "/alira" | "/alira?onboarding=1";
 };
 
 /** Companion core tasks, with hand opening before pinch. The app keeps its own assignment. */
@@ -70,7 +72,7 @@ function startRungJson(learned: Record<string, unknown> | undefined, planned: Re
 }
 
 /** The companion opts into the shared deterministic function ladder. */
-export function buildRunnerUrl(base: string, { affectedSide, voiceGuidance = true, answers = {}, plan: suppliedPlan, startRungs, guestReview = false }: RunnerOptions): string {
+export function buildRunnerUrl(base: string, { affectedSide, voiceGuidance = true, answers = {}, plan: suppliedPlan, startRungs, guestReview = false, returnTo = "/alira" }: RunnerOptions): string {
   const plan = suppliedPlan ? { taskIds: suppliedPlan.taskIds, startRung: suppliedPlan.startRungs,
     helper: suppliedPlan.helper === "none" ? "0" : "ask", walkingHelper: suppliedPlan.walkHelper,
     goal: suppliedPlan.mainGoal } : assessmentPlanFrom(answers);
@@ -84,6 +86,7 @@ export function buildRunnerUrl(base: string, { affectedSide, voiceGuidance = tru
   if (plan.goal) query.set("main_goal", plan.goal);
   query.set("affected_side", affectedSide === "left" ? "left" : "right");
   query.set("voice_guidance", voiceGuidance ? "1" : "0");
+  if (guestReview) query.set("return_to", returnTo === "/alira?onboarding=1" ? returnTo : "/alira");
   if (!guestReview && ["localhost", "127.0.0.1", "[::1]"].includes(new URL(base).hostname)) query.set("local_preview", "1");
   return `${base}/api/pose/${guestReview ? "review-runner" : "runner"}?${query.toString()}`;
 }

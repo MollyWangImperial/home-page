@@ -41,8 +41,8 @@ export default function Assessment() {
   const [caregiverAcknowledged, setCaregiverAcknowledged] = useState(false);
   // Alira's learned start points are read once, as the check opens (after any warm-up and learning run).
   const runnerUrl = useMemo(
-    () => buildRunnerUrl(base, { affectedSide: affectedSideFrom(answers), answers, startRungs: learnedStartRungs(plan.startRung), guestReview: renderReviewControlsEnabled() }),
-    [base, answers, plan]
+    () => buildRunnerUrl(base, { affectedSide: affectedSideFrom(answers), answers, startRungs: learnedStartRungs(plan.startRung), guestReview: renderReviewControlsEnabled(), returnTo: aliraPath }),
+    [base, answers, plan, aliraPath]
   );
   const runnerOrigin = useMemo(() => new URL(runnerUrl).origin, [runnerUrl]);
   const [loaded, setLoaded] = useState(false);
