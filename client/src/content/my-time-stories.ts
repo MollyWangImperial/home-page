@@ -2,12 +2,12 @@
 //
 // IMPORTANT: these four are composite stories. They were written for Rehyn from experiences that
 // stroke survivors and carers commonly describe; David, Lin, Margaret, Alan, Jo and Anne are not
-// real people. The page says so wherever a story is shown: STORIES_NOTE under the list, and
-// storyNote() under each story. When real stories are collected, with each person's written
+// real people. STORIES_NOTE explains their creation under the list; storyNote() names the
+// fictional characters under each story. When real stories are collected, with each person's written
 // consent, replace these and change both notes.
 // Sentences are kept short because they are read aloud one at a time.
 
-export const STORIES_NOTE = "These stories were created for Rehyn by combining experiences commonly described by stroke survivors and carers on similar recovery journeys. The characters are fictional.";
+export const STORIES_NOTE = "These stories were created for Rehyn by combining experiences commonly described by stroke survivors and carers on similar recovery journeys.";
 
 export type StoryVoice = "survivor" | "carer";
 /** The colours of the initial that stands in for a face: a soft background and a darker letter. */
@@ -32,7 +32,7 @@ export type SurvivorStory = {
   alsoNamed?: string[];
 };
 
-/** The note under one story. It says what STORIES_NOTE says, about this story and its people. */
+/** Explains this story's creation and names its fictional characters. */
 export function storyNote(story: SurvivorStory): string {
   const people = [story.name, ...(story.alsoNamed ?? [])];
   const named = people.length > 1 ? `${people.slice(0, -1).join(", ")} and ${people[people.length - 1]}` : people[0];

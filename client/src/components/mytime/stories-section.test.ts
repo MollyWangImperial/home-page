@@ -152,7 +152,6 @@ describe("Reading a story", () => {
     expect(storyNote(story("jo"))).toMatch(/Jo and Anne are fictional characters\.$/);
     expect(storyNote({ ...story("jo"), alsoNamed: ["Anne", "Sam"] })).toMatch(/Jo, Anne and Sam are fictional characters\.$/);
     expect(STORIES_NOTE).toMatch(/combining experiences/);
-    expect(STORIES_NOTE).toMatch(/The characters are fictional\.$/);
   });
 
   it("writes small counts as words", () => {
