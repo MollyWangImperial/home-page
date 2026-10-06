@@ -2,7 +2,9 @@
 // number here is invented. The page says so beside its heading, and nothing a person does on it
 // leaves their device. The pictures are small drawings kept in /public/community.
 
-const art = (id: string) => `/community/${id}.svg`;
+// The pictures live in public/community-art: a folder called "community" would make the server
+// redirect the /community page to /community/.
+const art = (id: string) => `/community-art/${id}.svg`;
 
 export type PersonId = "margaret" | "david" | "tomasz" | "anne" | "priya" | "samuel" | "joan" | "liwei";
 export type Person = { id: PersonId; name: string; face: string; tint: string; about: string };
