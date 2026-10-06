@@ -140,18 +140,19 @@ describe("Reading a story", () => {
     expect(listenProgress(0, 0, false)).toBe(0);
   });
 
-  it("says under each story that it is a composite, naming the people who are not real", () => {
+  it("explains that the stories combine shared experiences, naming the fictional characters", () => {
     for (const item of survivorStories) {
       const note = storyNote(item);
-      expect(note, item.id).toMatch(/^This is a composite story, written for Rehyn/);
-      expect(note, item.id).toMatch(/not (a )?real (person|people)\.$/);
+      expect(note, item.id).toMatch(/^This story was created for Rehyn by combining experiences/);
+      expect(note, item.id).toMatch(/fictional characters?\.$/);
       expect(note, item.id).toContain(item.name);
     }
-    expect(storyNote(story("david"))).toBe("This is a composite story, written for Rehyn from experiences that stroke survivors often describe. David is not a real person.");
-    expect(storyNote(story("margaret"))).toBe("This is a composite story, written for Rehyn from experiences that carers of stroke survivors often describe. Margaret and Alan are not real people.");
-    expect(storyNote(story("jo"))).toMatch(/Jo and Anne are not real people\.$/);
-    expect(storyNote({ ...story("jo"), alsoNamed: ["Anne", "Sam"] })).toMatch(/Jo, Anne and Sam are not real people\.$/);
-    expect(STORIES_NOTE).toMatch(/composite/);
+    expect(storyNote(story("david"))).toBe("This story was created for Rehyn by combining experiences commonly described by stroke survivors on similar recovery journeys. David is a fictional character.");
+    expect(storyNote(story("margaret"))).toBe("This story was created for Rehyn by combining experiences commonly described by carers of stroke survivors on similar recovery journeys. Margaret and Alan are fictional characters.");
+    expect(storyNote(story("jo"))).toMatch(/Jo and Anne are fictional characters\.$/);
+    expect(storyNote({ ...story("jo"), alsoNamed: ["Anne", "Sam"] })).toMatch(/Jo, Anne and Sam are fictional characters\.$/);
+    expect(STORIES_NOTE).toMatch(/combining experiences/);
+    expect(STORIES_NOTE).toMatch(/The characters are fictional\.$/);
   });
 
   it("writes small counts as words", () => {

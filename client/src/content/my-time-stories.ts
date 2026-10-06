@@ -7,7 +7,7 @@
 // consent, replace these and change both notes.
 // Sentences are kept short because they are read aloud one at a time.
 
-export const STORIES_NOTE = "These are composite stories, written for Rehyn from experiences that stroke survivors and carers often describe. The people in them are not real.";
+export const STORIES_NOTE = "These stories were created for Rehyn by combining experiences commonly described by stroke survivors and carers on similar recovery journeys. The characters are fictional.";
 
 export type StoryVoice = "survivor" | "carer";
 /** The colours of the initial that stands in for a face: a soft background and a darker letter. */
@@ -37,7 +37,7 @@ export function storyNote(story: SurvivorStory): string {
   const people = [story.name, ...(story.alsoNamed ?? [])];
   const named = people.length > 1 ? `${people.slice(0, -1).join(", ")} and ${people[people.length - 1]}` : people[0];
   const from = story.voice === "survivor" ? "stroke survivors" : "carers of stroke survivors";
-  return `This is a composite story, written for Rehyn from experiences that ${from} often describe. ${named} ${people.length > 1 ? "are not real people" : "is not a real person"}.`;
+  return `This story was created for Rehyn by combining experiences commonly described by ${from} on similar recovery journeys. ${named} ${people.length > 1 ? "are fictional characters" : "is a fictional character"}.`;
 }
 
 export const survivorStories: SurvivorStory[] = [
