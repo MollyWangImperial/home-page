@@ -1,8 +1,8 @@
-/* My Time, one thing at a time: the heading, the picker, the stage and the pager.
-   The activities themselves are styled in components/mytime/my-time-activities.css. */
+/* The Play section of My Time, one thing at a time: the picker, the stage and the pager.
+   The activities themselves are styled in components/mytime/my-time-activities.css, and the
+   front page, Learn and Stories in mytime-sections.css. */
 .mytime-page { --mytime-stage-height:452px; }
 .mytime-page .mytime-heading { min-height:0; align-items:end; margin-bottom:14px; }
-.mytime-page .mytime-suggestion { margin:10px 0 0; color:#4c6157; font-size:15px; }
 .mytime-surprise { display:flex; align-items:center; gap:8px; flex-shrink:0; min-height:44px; padding:0 17px; border:1px solid #e1c7b7; border-radius:22px; color:#83533d; background:#fffaf5; font:800 13px "Manrope",sans-serif; white-space:nowrap; transition:transform .2s ease,background .2s ease; }
 .mytime-surprise:hover { background:#fff3ea; transform:translateY(-2px); }
 .mytime-surprise:hover svg { animation:mytime-shuffle .5s ease; }
@@ -17,6 +17,14 @@
 .mytime-rail button.is-active { color:#20392f; }
 .mytime-rail button.is-active > span { border-color:#2f6851; background:#edf4e8; box-shadow:0 0 0 2px #2f6851,0 9px 16px #2a3f301c; transform:translateY(-3px) scale(1.05); }
 .mytime-page .mytime-rail button:active { transform:none; }
+
+/* The stage takes a soft colour of its own for each activity, and says where it is in the nine. */
+.mytime-stage { padding:14px 16px 16px; border:1px solid #dfe8e0; border-radius:30px; background:#fffefa; transition:background-color .5s ease; }
+.mytime-stage-breathing,.mytime-stage-pond,.mytime-stage-sounds { background:#dfede5; }
+.mytime-stage-chimes,.mytime-stage-postcard { background:#f4f1ea; }
+.mytime-stage-lantern { background:#efe6f5; }
+.mytime-stage-kicker { margin:0 0 12px 6px; color:#4c6157; font:800 11px "Manrope",sans-serif; letter-spacing:1.4px; text-transform:uppercase; }
+.recovery-strong-contrast .mytime-stage { border-color:#7da08c; }
 
 .mytime-panel.from-right { animation:mytime-arrive-right .45s cubic-bezier(.2,.7,.3,1); }
 .mytime-panel.from-left { animation:mytime-arrive-left .45s cubic-bezier(.2,.7,.3,1); }
@@ -55,6 +63,8 @@
 
 @media (max-width:900px) {
   .mytime-page { --mytime-stage-height:0px; }
+  .mytime-stage { padding:12px; border-radius:28px; }
+  .mytime-stage-kicker { margin-bottom:10px; }
   .mytime-stage .sounds-card { grid-template-columns:1fr; gap:20px; padding:26px 22px; }
   /* A soft fade at both ends says the picker scrolls sideways. */
   .mytime-rail { margin:0 -17px 10px; padding:8px 17px 10px; -webkit-mask-image:linear-gradient(90deg,transparent,#000 18px,#000 calc(100% - 18px),transparent); mask-image:linear-gradient(90deg,transparent,#000 18px,#000 calc(100% - 18px),transparent); }
@@ -62,7 +72,8 @@
 }
 @media (max-width:620px) {
   .mytime-page .mytime-heading { align-items:center; margin-bottom:10px; }
-  .mytime-page .mytime-suggestion { max-width:none; margin-top:6px; font-size:14px; }
+  /* The stage reaches a little way into the page margin, so the activity keeps the page's full width. */
+  .mytime-stage { margin:0 -9px; padding:10px 8px 8px; border-radius:24px; }
   .mytime-surprise { padding:0 13px; font-size:12px; }
   .mytime-stage .sounds-card > div { grid-template-columns:1fr; }
   .mytime-stage .sounds-card button { min-height:60px; }
@@ -78,4 +89,5 @@
 }
 @media (max-width:360px) {
   .mytime-rail { margin:0 -12px 10px; padding:8px 12px 10px; }
+  .mytime-stage { margin:0 -7px; padding:10px 6px 6px; }
 }

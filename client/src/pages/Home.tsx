@@ -47,7 +47,8 @@ export default function Home() {
   const start = () => {
     // Re-check on click as well: a different tab or midnight can change what is due.
     const latest = nextHomeAction(loadHomeActionSnapshot(), roll, greeting.opener);
-    if (latest.kind === "onboarding") rememberYesFromHome();
+    // Before the movement check has scores, the button always goes to Alira, who leads into it.
+    if (latest.kind === "onboarding" || latest.kind === "assessment") rememberYesFromHome();
     navigate(latest.href);
   };
   const openExtra = (chosen: Surprise) => {

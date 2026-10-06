@@ -12,6 +12,7 @@ import Assessment from "./pages/Assessment";
 import FastCheck from "./pages/FastCheck";
 import ExerciseRunner from "./pages/ExerciseRunner";
 import MyTime from "./pages/MyTime";
+import Community from "./pages/Community";
 import WarmUp from "./pages/WarmUp";
 import { SettingsProvider } from "./components/AccountSettings";
 import { WarmRepGate } from "./components/WarmRepGate";
@@ -36,6 +37,7 @@ function Router() {
       <Route path={"/assessment"}>{() => <WarmRepGate gate="pre_assessment"><Assessment /></WarmRepGate>}</Route>
       <Route path={"/fast-check"} component={FastCheck} />
       <Route path={"/my-time"} component={MyTime} />
+      <Route path={"/community"} component={Community} />
       <Route path={"/exercise/:id"}>{() => <WarmRepGate gate="pre_exercise"><ExerciseRunner /></WarmRepGate>}</Route>
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

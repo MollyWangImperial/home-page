@@ -21,9 +21,10 @@ import {
   LockKeyhole,
   Plus,
   Sun,
+  Users,
 } from "lucide-react";
 
-type ViewName = "Home" | "Journey" | "Alira" | "My Time";
+type ViewName = "Home" | "Journey" | "Alira" | "My Time" | "My Community";
 
 type RecoveryShellProps = {
   active: ViewName;
@@ -38,7 +39,10 @@ const navigation: { label: ViewName; href: string; icon: typeof HomeIcon }[] = [
   { label: "Journey", href: "/journey", icon: BookOpen },
   { label: "Alira", href: "/alira", icon: MessageCircle },
   { label: "My Time", href: "/my-time", icon: Heart },
+  { label: "My Community", href: "/community", icon: Users },
 ];
+// The mobile bar's names, where the full names would not fit six across.
+const mobileLabel: Partial<Record<ViewName, string>> = { "My Time": "My time", "My Community": "Community" };
 
 export default function RecoveryShell({ active, children, dateLabel = "THURSDAY, 24 SEPTEMBER", className = "", onboarding = false }: RecoveryShellProps) {
   const [location, setLocation] = useLocation();
@@ -55,8 +59,8 @@ export default function RecoveryShell({ active, children, dateLabel = "THURSDAY,
 
   const go = (href: string) => setLocation(isNewUser && href === "/" ? "/welcome" : isNewUser && href === "/alira" ? "/alira?onboarding=1" : href);
   const openFastCheck = () => setLocation(fastCheckPath(location, search));
-  const isLocked = (label: ViewName) => label === "Journey" ? journeyLocked : isNewUser && label === "My Time";
-  const navLabel = (label: ViewName) => journeyLocked && label === "Journey" ? "My journey" : isNewUser && label === "My Time" ? "My time" : label;
+  const isLocked = (label: ViewName) => label === "Journey" ? journeyLocked : isNewUser && (label === "My Time" || label === "My Community");
+  const navLabel = (label: ViewName) => journeyLocked && label === "Journey" ? "My journey" : isNewUser && label === "My Time" ? "My time" : label === "My Community" ? "My community" : label;
 
   return (
     <div className={`recovery-shell ${largeText ? "recovery-large-text" : ""} ${strongContrast ? "recovery-strong-contrast" : ""} ${className}`}>
@@ -95,10 +99,10 @@ export default function RecoveryShell({ active, children, dateLabel = "THURSDAY,
         {children}
       </main>
 
-      <nav className="recovery-mobile-nav" aria-label="Mobile navigation">
+      <nav className="recovery-mobile-nav" aria-label="Mobile navigation" style={{ gridTemplateColumns: `repeat(${navigation.length + 1}, minmax(0, 1fr))` }}>
         {navigation.map(({ label, href, icon: Icon }) => (
           <button key={label} className={active === label ? "is-active" : ""} onClick={() => { if (!isLocked(label)) go(href); }} aria-current={active === label ? "page" : undefined} aria-disabled={isLocked(label) || undefined} title={isLocked(label) ? "Available after your first assessment" : undefined}>
-            <span className="recovery-mobile-icon"><Icon size={20} />{isLocked(label) && <LockKeyhole className="recovery-nav-lock" size={10} aria-label="Available after your first assessment" />}</span><span>{label === "My Time" ? "My time" : label}</span>
+            <span className="recovery-mobile-icon"><Icon size={20} />{isLocked(label) && <LockKeyhole className="recovery-nav-lock" size={10} aria-label="Available after your first assessment" />}</span><span>{mobileLabel[label] ?? label}</span>
           </button>
         ))}
         <button className="recovery-help-mobile" onClick={openFastCheck}><CircleHelp size={20} /><span>Help</span></button>

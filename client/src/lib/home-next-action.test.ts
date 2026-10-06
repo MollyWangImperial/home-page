@@ -34,7 +34,15 @@ describe("Home's next step", () => {
   it("requires movement scores rather than treating a saved assessment id as completion", () => {
     const action = nextHomeAction(snapshot({ assessment: { id: "unfinished", completedAt: assessment.completedAt } }), 0.99);
     expect(action.kind).toBe("assessment");
-    expect(action.href).toBe("/assessment");
+    // Alira leads the way into the movement check rather than Home opening it directly.
+    expect(action.href).toBe("/alira?onboarding=1&from=home");
+  });
+
+  it.each([0, 0.7, 0.999])("sends anyone without movement scores to Alira, and a patient with exercises to them (%s)", roll => {
+    for (const unassessed of [null, { id: "unfinished", completedAt: assessment.completedAt }]) {
+      expect(nextHomeAction(snapshot({ assessment: unassessed }), roll).href).toBe("/alira?onboarding=1&from=home");
+    }
+    expect(nextHomeAction(snapshot(), roll).href).toBe("/journey?tab=progress&section=exercises");
   });
 
   it("finishes the plan conversation before exercises, even on a previously unlocked Journey", () => {
@@ -60,7 +68,7 @@ describe("Home's next step", () => {
     expect(action.kind).toBe("exercises");
     expect(action.href).toContain("section=exercises");
     expect(nextHomeAction(snapshot({ assessment: { ...blocked, planChatCompleted: false } }), 0).href).toBe("/alira");
-    expect(nextHomeAction(snapshot({ assessment: { ...blocked, report: { ...blocked.report, metrics: undefined } } }), 0).href).toBe("/assessment");
+    expect(nextHomeAction(snapshot({ assessment: { ...blocked, report: { ...blocked.report, metrics: undefined } } }), 0).href).toBe("/alira?onboarding=1&from=home");
   });
 
   it("opens the exercise section and identifies the next unfinished movement", () => {

@@ -26,6 +26,8 @@ export function loadHomeActionSnapshot(now = new Date()): HomeActionSnapshot {
 }
 
 const EXERCISES_HREF = "/journey?tab=progress&section=exercises";
+/** Alira's getting-started conversation: her questions, then the movement check. */
+export const ALIRA_ONBOARDING_HREF = "/alira?onboarding=1&from=home";
 
 /** Required steps are deterministic; only the optional follow-ups use the visit's random roll. */
 export function nextHomeAction(snapshot: HomeActionSnapshot, roll: number, openerIndex = 0): HomeAction {
@@ -37,8 +39,9 @@ export function nextHomeAction(snapshot: HomeActionSnapshot, roll: number, opene
   };
 
   if (!assessment) return fromStage("onboarding", "assessment");
+  // Until the movement check has scores, Home hands over to Alira, who leads the way into it.
   if (!hasAssessmentScores(assessment)) {
-    return { ...fromStage("assessment", "assessment"), href: "/assessment",
+    return { ...fromStage("assessment", "assessment"), href: ALIRA_ONBOARDING_HREF,
       text: "Hi {n}. Let’s finish your movement check so your exercise plan can be based on your scores.",
       cta: "Continue my movement check" };
   }
