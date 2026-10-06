@@ -45,8 +45,6 @@
 .cm-title { font: 400 48px/1.05 var(--cm-serif); letter-spacing: -0.01em; color: var(--cm-ink); }
 .cm-title:focus-visible { outline-offset: 6px; }
 
-.cm-preview-note { display: flex; align-items: flex-start; gap: 10px; max-width: 880px; padding: 11px 16px; border-radius: 16px; background: #EFEBE2; color: #3D4743; font-size: 15px; line-height: 1.45; }
-.cm-preview-note svg { flex-shrink: 0; margin-top: 1px; color: var(--cm-muted); }
 
 .cm-tabs { display: flex; flex-wrap: wrap; gap: 10px; }
 .cm-tab { display: inline-flex; align-items: center; gap: 9px; height: 48px; padding: 0 18px; border-radius: 999px; border: 1.5px solid var(--cm-chip-line); background: var(--cm-card); color: var(--cm-ink); font-size: 16.5px; font-weight: 600; white-space: nowrap; transition: background .2s ease, border-color .2s ease; }
@@ -351,7 +349,7 @@
 
 .recovery-large-text .cm-page { --cm-post: 21px; --cm-message: 19px; }
 .recovery-large-text .cm-page :is(.cm-comment p, .cm-said-text, .cm-speech-inner, .cm-peek-bubble, .cm-starter-text) { font-size: 18px; }
-.recovery-large-text .cm-page :is(.cm-preview-note, .cm-post-meta, .cm-card-note, .cm-group-text > span, .cm-hint, .cm-only-you, .cm-wave-text > span, .cm-upcoming-text > span) { font-size: 16px; }
+.recovery-large-text .cm-page :is(.cm-post-meta, .cm-card-note, .cm-group-text > span, .cm-hint, .cm-only-you, .cm-wave-text > span, .cm-upcoming-text > span) { font-size: 16px; }
 .recovery-strong-contrast .cm-page { --cm-muted: #3A4440; --cm-soft-ink: #333C38; --cm-line: #A9B0A9; --cm-chip-line: #8F978F; --cm-placeholder: #4B5550; }
 .recovery-strong-contrast .cm-page .cm-card { border-color: #7DA08C; }
 

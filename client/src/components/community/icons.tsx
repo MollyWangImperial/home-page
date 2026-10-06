@@ -32,7 +32,6 @@ export const UsersIcon = (props: IconProps) => <Icon {...props}><path d="M16 19v
 export const ShieldIcon = (props: IconProps) => <Icon {...props}><path d="M12 3 5 6v5.5c0 4.3 2.9 7.6 7 9.5 4.1-1.9 7-5.2 7-9.5V6z" /><path d="m9 12 2.2 2.2L15 10.5" /></Icon>;
 export const CheckIcon = (props: IconProps) => <Icon strokeWidth={3.2} {...props}><path d="m5 12.5 4.5 4.5L19 7.5" /></Icon>;
 export const LockIcon = (props: IconProps) => <Icon {...props}><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></Icon>;
-export const InfoIcon = (props: IconProps) => <Icon {...props}><circle cx="12" cy="12" r="9" /><path d="M12 11v5" /><path d="M12 7.6v.2" /></Icon>;
 export const CloseIcon = (props: IconProps) => <Icon strokeWidth={2} {...props}><path d="M6 6l12 12M18 6 6 18" /></Icon>;
 export const PlayIcon = (props: IconProps) => <Icon fill="currentColor" strokeWidth={1.4} {...props}><path d="M8 5.6v12.8l10.5-6.4z" /></Icon>;
 export const StopIcon = (props: IconProps) => <Icon fill="currentColor" strokeWidth={1.4} {...props}><rect x="7" y="7" width="10" height="10" rx="1.6" /></Icon>;

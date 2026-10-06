@@ -11,14 +11,12 @@ const words = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&#x27;/g,
 /** Whether some opening tag of this kind carries every one of the given attributes, in any order. */
 const tagWith = (html: string, name: string, ...attributes: string[]) =>
   (html.match(new RegExp(`<${name}\\b[^>]*>`, "g")) ?? []).some(tag => attributes.every(attribute => tag.includes(attribute)));
-const honest = "A preview of My community. The people, posts and groups here are examples, and nothing you share leaves this device yet.";
 
 describe("My community views", () => {
   it("opens on the feed, with the preview note, the tabs and the side cards", () => {
     const html = page("/community");
     const text = words(html);
     expect(text).toContain("My community");
-    expect(text).toContain(honest);
     expect(tagWith(html, "a", 'href="/community"', 'class="cm-tab is-active"', 'aria-current="page"')).toBe(true);
     for (const space of ["lounge", "circle", "groups"]) expect(tagWith(html, "a", `href="/community?space=${space}"`, 'class="cm-tab "')).toBe(true);
     expect(text).toContain("What's new with you, Zak?");
@@ -37,7 +35,6 @@ describe("My community views", () => {
   it("shows the lounge with its people, quick replies and the tea-break poll", () => {
     const html = page("/community?space=lounge");
     const text = words(html);
-    expect(text).toContain(honest);
     expect(tagWith(html, "a", 'href="/community?space=lounge"', 'aria-current="page"')).toBe(true);
     expect(text).toContain("14 chatting now");
     expect(text).toContain("Alira's chat starter");
@@ -54,7 +51,6 @@ describe("My community views", () => {
   it("shows the Sunday circle with an empty seat kept for the person", () => {
     const html = page("/community?space=circle");
     const text = words(html);
-    expect(text).toContain(honest);
     expect(text).toContain("Nine of us here. One seat is yours.");
     expect(text).toContain("The teacup goes round. Whoever holds it speaks.");
     expect(text).toContain("Pause the teacup");
@@ -68,7 +64,6 @@ describe("My community views", () => {
   it("opens a named group, with its challenge, the group list and suggestions", () => {
     const html = page("/community?space=groups&group=walk");
     const text = words(html);
-    expect(text).toContain(honest);
     expect(html).toMatch(/<h2[^>]*id="cm-group-title"[^>]*>Morning walkers<\/h2>/);
     expect(text).toContain("This week: one walk a little further than last week");
     expect(tagWith(html, "span", 'role="progressbar"', 'aria-valuetext="5 of 8"')).toBe(true);
@@ -85,7 +80,6 @@ describe("My community views", () => {
   it("starts a group in three steps, with a way back to the feed", () => {
     const html = page("/community?space=start");
     const text = words(html);
-    expect(text).toContain(honest);
     expect(tagWith(html, "a", 'class="cm-back"', 'href="/community"')).toBe(true);
     expect(html).toMatch(/<h1[^>]*data-view-heading[^>]*>Start a group<\/h1>/);
     expect((html.match(/type="radio"/g) ?? []).length).toBe(10);

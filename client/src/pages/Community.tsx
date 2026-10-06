@@ -7,7 +7,7 @@ import FeedView from "@/components/community/Feed";
 import GroupsView from "@/components/community/Groups";
 import { BackIcon } from "@/components/community/icons";
 import LoungeView from "@/components/community/Lounge";
-import { LiveDot, PreviewNote } from "@/components/community/parts";
+import { LiveDot } from "@/components/community/parts";
 import StartGroupView from "@/components/community/StartGroup";
 import { lounge } from "@/content/community-samples";
 import { communityHref, communityViewFromQuery, firstName, unreadCount, useCommunity, type CommunitySpace } from "@/lib/community-store";
@@ -90,7 +90,6 @@ export default function Community() {
               <h1 className="cm-title" tabIndex={-1} data-page-heading>My community</h1>
               <CommunitySearch />
             </div>
-            <PreviewNote />
             <SpaceTabs space={view.space} here={here} unread={unreadCount(memory)} />
           </header>
         )}
@@ -105,7 +104,6 @@ export default function Community() {
               <Link className="cm-back" href={communityHref()}><BackIcon size={18} /><span>My community</span></Link>
               <h1 className="cm-title" tabIndex={-1} data-view-heading>Start a group</h1>
               <p className="cm-start-intro">A little corner for your people: a chat, photos, and a name you choose.</p>
-              <PreviewNote />
             </header>
             <StartGroupView name={name} />
           </div>

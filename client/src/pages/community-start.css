@@ -4,7 +4,6 @@
 .cm-back { display: inline-flex; align-items: center; align-self: flex-start; gap: 6px; min-height: 44px; margin: -8px 0 -6px; color: var(--cm-green); font-size: 15.5px; font-weight: 600; }
 .cm-back:hover { color: var(--cm-ok); text-decoration: underline; text-underline-offset: 3px; }
 .cm-start-intro { color: var(--cm-muted); font-size: 17px; line-height: 1.45; }
-.cm-start-head .cm-preview-note { margin-top: 6px; }
 
 .cm-start { display: grid; grid-template-columns: minmax(0, 1fr) 324px; gap: 20px; align-items: start; }
 .cm-start-main { min-width: 0; }

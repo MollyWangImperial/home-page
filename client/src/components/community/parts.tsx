@@ -4,7 +4,7 @@ import { communityStore, preparePostPhoto, useCommunity, type NoteDraft, type Ow
 import { profileInitial, useProfile } from "@/lib/profile";
 import type { Burst } from "./hooks";
 import { useVoiceNote, voiceSeconds } from "./hooks";
-import { ArrowIcon, CloseIcon, HandIcon, HeartIcon, InfoIcon, LockIcon, MicIcon, PhotoIcon, PlayIcon, PulseIcon, StarIcon, StopIcon, ThemeIcon } from "./icons";
+import { ArrowIcon, CloseIcon, HandIcon, HeartIcon, LockIcon, MicIcon, PhotoIcon, PlayIcon, PulseIcon, StarIcon, StopIcon, ThemeIcon } from "./icons";
 
 /* ------------------------------------------------------------------ faces */
 
@@ -51,16 +51,6 @@ export function TypingDots() {
 /** Said under everything the person writes: in this preview, it goes nowhere. */
 export function OnlyYou({ className = "", children = "Only you can see this" }: { className?: string; children?: string }) {
   return <span className={`cm-only-you ${className}`}><LockIcon size={14} />{children}</span>;
-}
-
-/** The calm line beside the heading that says what this page is. */
-export function PreviewNote() {
-  return (
-    <p className="cm-preview-note">
-      <InfoIcon size={20} />
-      <span>A preview of My community. The people, posts and groups here are examples, and nothing you share leaves this device yet.</span>
-    </p>
-  );
 }
 
 export function FloatingHearts({ bursts, className = "" }: { bursts: Burst[]; className?: string }) {
