@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Link } from "wouter";
 import { defaultInvites, GROUP_NAME_LIMIT, groupHellos, groupThemes, inviteFriends, people, type PersonId, type ThemeId } from "@/content/community-samples";
-import { communityHref, communityStore, listNames, useCommunity, type StartedGroup } from "@/lib/community-store";
+import { communityHref, communityStore, isBlocked, listNames, useCommunity, type CommunityMemory, type StartedGroup } from "@/lib/community-store";
 import { coverForTheme } from "./group-model";
 import { ArrowIcon, CheckIcon, ShieldIcon, ThemeIcon, UsersIcon } from "./icons";
 import { AliraMark, Cover, Face, MyFace, OnlyYou } from "./parts";
@@ -9,13 +9,18 @@ import { AliraMark, Cover, Face, MyFace, OnlyYou } from "./parts";
 const helloLabels = ["Hello everyone!", "Welcome to the group", "Who's got news?"];
 const helloTones = ["cm-quick-mint", "cm-quick-amber", "cm-quick-blue"];
 const nameOf = (who: PersonId) => people[who].name;
+/** Blocked people are out of sight in My community, so they are never offered, ticked or shown here. */
+const unblocked = (memory: CommunityMemory, list: PersonId[]) => list.filter(who => !isBlocked(memory, who));
 
 /** I: start your own group in three taps: what it's about, a name, and who's coming. */
 export default function StartGroupView({ name }: { name: string }) {
   const memory = useCommunity();
   const [theme, setTheme] = useState<ThemeId>(groupThemes[0].id);
   const [groupName, setGroupName] = useState(groupThemes[0].names[0]);
-  const [friends, setFriends] = useState<PersonId[]>(defaultInvites);
+  const [chosen, setChosen] = useState<PersonId[]>(defaultInvites);
+  const pickable = unblocked(memory, inviteFriends);
+  // Someone blocked since they were ticked drops out of the group too.
+  const friends = unblocked(memory, chosen);
   const [open, setOpen] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const createdHeading = useRef<HTMLHeadingElement>(null);
@@ -37,7 +42,7 @@ export default function StartGroupView({ name }: { name: string }) {
     if (groupName.trim() === "" || look.names.includes(groupName)) setGroupName(groupThemes.find(item => item.id === next)?.names[0] ?? groupName);
     setTheme(next);
   };
-  const toggleFriend = (who: PersonId) => setFriends(list => (list.includes(who) ? list.filter(other => other !== who) : inviteFriends.filter(other => other === who || list.includes(other))));
+  const toggleFriend = (who: PersonId) => setChosen(list => (list.includes(who) ? list.filter(other => other !== who) : inviteFriends.filter(other => other === who || list.includes(other))));
   const start = (event: FormEvent) => {
     event.preventDefault();
     const group = communityStore.startGroup({ name: shownName, theme, friends, open });
@@ -48,12 +53,13 @@ export default function StartGroupView({ name }: { name: string }) {
     setCreatedId(null);
     setTheme(groupThemes[0].id);
     setGroupName(groupThemes[0].names[0]);
-    setFriends(defaultInvites);
+    setChosen(defaultInvites);
     setOpen(false);
     window.requestAnimationFrame(() => firstChoice.current?.focus());
   };
 
-  const going = (created?.friends ?? friends).map(nameOf);
+  const coming = created ? unblocked(memory, created.friends) : friends;
+  const going = coming.map(nameOf);
   const inviteLine = going.length === 0
     ? "It's just you for now. Your group is kept on this device, and you can invite friends whenever you like."
     : `${listNames(going)} ${going.length === 1 ? "is an example friend" : "are example friends"}, so no invitations go out in this preview. Your group is kept on this device.`;
@@ -90,7 +96,7 @@ export default function StartGroupView({ name }: { name: string }) {
             <fieldset className="cm-step">
               <legend className="cm-step-title"><span className="cm-step-num cm-step-3" aria-hidden="true">3</span><span>Who's coming?</span><span className="cm-step-aside">Tap your friends</span></legend>
               <div className="cm-friend-picks">
-                {inviteFriends.map(who => {
+                {pickable.map(who => {
                   const on = friends.includes(who);
                   return (
                     <label key={who} className={`cm-friend-pick ${on ? "is-on" : ""}`}>
@@ -147,9 +153,9 @@ export default function StartGroupView({ name }: { name: string }) {
             <div className="cm-preview-members">
               <span className="cm-face-stack" aria-hidden="true">
                 <MyFace size={38} />
-                {(created?.friends ?? friends).map(who => <Face key={who} who={who} size={38} className="cm-pop" />)}
+                {coming.map(who => <Face key={who} who={who} size={38} className="cm-pop" />)}
               </span>
-              <span>{created ? (created.friends.length === 0 ? "Just you for now" : created.friends.length === 1 ? "You and 1 friend" : `You and ${created.friends.length} friends`) : memberLine}</span>
+              <span>{created ? (coming.length === 0 ? "Just you for now" : coming.length === 1 ? "You and 1 friend" : `You and ${coming.length} friends`) : memberLine}</span>
             </div>
             <div className="cm-preview-alira">
               <AliraMark size={32} />

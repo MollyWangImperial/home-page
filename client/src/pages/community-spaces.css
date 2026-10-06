@@ -107,6 +107,8 @@
 .cm-seat-name { position: absolute; top: calc(100% + 6px); left: 50%; width: 120px; color: var(--cm-sage); font-size: 13px; font-weight: 500; line-height: 1.2; text-align: center; transform: translateX(-50%); }
 .cm-seat.is-speaking .cm-seat-name { color: var(--cm-gold); font-weight: 700; }
 .cm-seat.is-empty .cm-empty-seat { cursor: pointer; }
+/* A chair left empty: someone the person has blocked is out of sight. */
+.cm-seat-away { display: block; border: 2px dashed rgba(255, 255, 255, .24); border-radius: 999px; }
 .cm-speech { position: absolute; z-index: 4; left: clamp(8px, calc(50% + var(--cos) * var(--rx) - min(110px, 36%)), calc(100% - min(220px, 72%) - 8px)); width: min(220px, 72%); pointer-events: none; }
 .cm-speech.is-below { top: calc(var(--cy) + var(--sin) * var(--ry) + var(--seat) / 2 + 24px); }
 .cm-speech.is-above { top: calc(var(--cy) + var(--sin) * var(--ry) - var(--seat) / 2 - 10px); transform: translateY(-100%); }

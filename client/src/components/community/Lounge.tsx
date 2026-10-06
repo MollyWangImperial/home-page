@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { Link } from "wouter";
 import { lounge, people, type LoungeMessage, type PersonId } from "@/content/community-samples";
-import { communityHref, communityStore, useCommunity, type NoteDraft } from "@/lib/community-store";
+import { canSee, communityHref, communityStore, isBlocked, useCommunity, type NoteDraft } from "@/lib/community-store";
 import { useBursts, useLater, usePinnedToEnd } from "./hooks";
 import { ChatIcon, HandIcon, HeartIcon, NextIcon, RingIcon } from "./icons";
 import { AliraMark, ChatInput, Face, FloatingHearts, LiveDot, MyMessage, TheirMessage, toneClass, TypingRow } from "./parts";
@@ -27,7 +27,7 @@ function WaveCard() {
         <span className="cm-card-aside">Here right now</span>
       </div>
       <ul className="cm-wave-list">
-        {lounge.waves.map(({ who, note }) => {
+        {lounge.waves.filter(({ who }) => !isBlocked(memory, who)).map(({ who, note }) => {
           const waved = memory.waves.includes(who);
           const back = waved && !waiting.includes(who);
           const name = people[who].name;
@@ -74,9 +74,15 @@ function PollCard() {
   );
 }
 
-/** F1: the lounge. Messages and people arrive while it is open; anyone can join in with a tap. */
+/**
+ * F1: the lounge. Messages and people arrive while it is open; anyone can join in with a tap.
+ * Messages from people the person has blocked or hidden are left out.
+ */
 export default function LoungeView({ active, here, onHere }: { active: boolean; here: number; onHere: (change: (here: number) => number) => void }) {
-  const seated = useCommunity().seated;
+  const memory = useCommunity();
+  const seated = memory.seated;
+  // Blocked people are out of sight, their faces included.
+  const faces = lounge.faces.filter(who => !isBlocked(memory, who));
   const [lines, setLines] = useState<Line[]>(() => lounge.messages.map(message => ({ kind: "theirs" as const, message })));
   const [step, setStep] = useState(0);
   const [typing, setTyping] = useState<PersonId | null>(null);
@@ -117,7 +123,7 @@ export default function LoungeView({ active, here, onHere }: { active: boolean; 
   return (
     <div className="cm-layout">
       <section className="cm-card cm-chat" aria-labelledby="cm-lounge-title">
-        {toast && (
+        {toast && canSee(memory, toast.who) && (
           <div key={toast.n} className="cm-toast" aria-hidden="true">
             <Face who={toast.who} size={32} /><span>{toast.text}</span>
           </div>
@@ -129,8 +135,8 @@ export default function LoungeView({ active, here, onHere }: { active: boolean; 
             <p className="cm-live-line"><LiveDot /><span>{here} chatting now</span></p>
           </div>
           <span className="cm-face-stack cm-chat-faces" aria-hidden="true">
-            {lounge.faces.map(who => <Face key={who} who={who} size={38} />)}
-            <span className="cm-face-more">+{Math.max(0, here - lounge.faces.length)}</span>
+            {faces.map(who => <Face key={who} who={who} size={38} />)}
+            <span className="cm-face-more">+{Math.max(0, here - faces.length)}</span>
           </span>
         </header>
         <div className="cm-starter">
@@ -144,11 +150,11 @@ export default function LoungeView({ active, here, onHere }: { active: boolean; 
         <div className="cm-chat-log" ref={box} onScroll={onScroll} role="log" aria-live="off" aria-label="Messages in the lounge" tabIndex={0}>
           <div className="cm-chat-fade" aria-hidden="true" />
           <ol className="cm-messages">
-            {lines.map(line => line.kind === "theirs"
+            {lines.filter(line => line.kind === "mine" || canSee(memory, line.message.who)).map(line => line.kind === "theirs"
               ? <TheirMessage key={line.message.id} message={line.message} heartKey={`lounge:${line.message.id}`} />
               : <MyMessage key={line.id} note={{ text: line.note.text, voice: line.note.voice, photo: null }} />)}
           </ol>
-          {typing && <TypingRow who={typing} />}
+          {typing && canSee(memory, typing) && <TypingRow who={typing} />}
         </div>
         <FloatingHearts bursts={bursts} className="cm-hearts-chat" />
         <div className="cm-chat-foot">

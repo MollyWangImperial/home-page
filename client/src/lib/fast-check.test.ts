@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { checkFastRunner, fastCheckPath, fastCheckReturnPath, fastRunnerUrl } from "./fast-check";
 
 describe("FAST check navigation", () => {
-  it.each(["/", "/welcome", "/journey?tab=journal", "/alira?onboarding=1", "/my-time"])("returns to %s", path => {
+  it.each(["/", "/welcome", "/journey?tab=journal", "/alira?onboarding=1", "/my-time", "/community?space=safety", "/community?space=lounge&panel=friends&tab=sent"])("returns to %s", path => {
     const target = fastCheckPath(path);
     expect(target.startsWith("/fast-check?")).toBe(true);
     expect(fastCheckReturnPath(target.split("?")[1])).toBe(path);

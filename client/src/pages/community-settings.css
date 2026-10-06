@@ -1,0 +1,160 @@
+/* My community: Community settings page (F5). Classes here start with cm-set-. Imported after community.css.
+   Five sections that open one at a time on the left; on the right, a live preview of the person's
+   card, a sample post at the chosen text size and a way to Safety. Below 860px the preview moves
+   under the settings. Motion is switched off by the shared reduced-motion rule in community.css. */
+
+/* ------------------------------------------------------------------ page */
+
+.cm-set-page { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; max-width: 1100px; }
+.cm-set-main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.cm-set-head { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cm-set-titles { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+/* "Saved", for a moment after each change: it rises in, waits, then fades. */
+.cm-set-saved-slot { display: flex; flex-shrink: 0; justify-content: flex-end; min-width: 108px; min-height: 38px; }
+.cm-set-saved { display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px; border-radius: 999px; background: var(--cm-mint); color: var(--cm-green); font-size: 14.5px; font-weight: 700; white-space: nowrap; animation: cm-set-saved 1.8s ease both; }
+.cm-set-saved svg { flex-shrink: 0; }
+.cm-set-saved svg path { stroke-dasharray: 40; animation: cm-set-draw .6s .15s ease-out both; }
+
+/* --------------------------------------------------------------- sections */
+
+/* When a section opens it is brought into view; the margins keep it clear of the screen's edges. */
+.cm-set-section { overflow: hidden; scroll-margin: 24px 0; }
+.cm-set-section-head { font: inherit; }
+.cm-set-toggle { display: flex; align-items: center; gap: 16px; width: 100%; min-height: 78px; padding: 12px 20px; border: 0; border-radius: 23px; background: transparent; color: var(--cm-ink); font: inherit; text-align: left; cursor: pointer; transition: background .2s ease; }
+.cm-set-toggle[aria-expanded="true"] { border-radius: 23px 23px 0 0; }
+.cm-set-toggle:hover { background: #FAF8F3; }
+/* The card clips anything outside it, so the focus ring is drawn just inside the heading. */
+.cm-set-toggle:focus-visible { outline-offset: -4px; }
+.cm-set-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 48px; height: 48px; border-radius: 16px; }
+.cm-set-icon-rose { background: #FBE3DB; color: var(--cm-rust-dark); }
+.cm-set-icon-blue { background: #DCECF4; color: #1F4E66; }
+.cm-set-icon-mint { background: var(--cm-mint); color: var(--cm-green); }
+.cm-set-icon-lilac { background: #E9E2F4; color: #45357A; }
+.cm-set-icon-amber { background: #FBEBC2; color: #6B5108; }
+.cm-set-toggle-text { display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0; }
+.cm-set-toggle-title { color: var(--cm-ink); font-size: 19px; font-weight: 700; line-height: 1.25; }
+.cm-set-summary { overflow: hidden; color: var(--cm-muted); font-size: 14.5px; font-weight: 400; line-height: 1.35; white-space: nowrap; text-overflow: ellipsis; }
+.cm-set-chev { display: flex; flex-shrink: 0; color: var(--cm-soft-ink); transition: transform .3s ease; }
+.cm-set-toggle[aria-expanded="true"] .cm-set-chev { transform: rotate(180deg); }
+
+.cm-set-panel { display: flex; flex-direction: column; gap: 8px; padding: 4px 20px 18px 84px; border-top: 1px solid #EFEBE3; animation: cm-set-open .4s cubic-bezier(.2, .8, .2, 1) both; }
+.cm-set-panel[hidden] { display: none; }
+
+/* A switch, a stepper or a choice, each with its name and a line about what it does. */
+.cm-set-row { display: flex; align-items: center; gap: 16px; min-height: 52px; }
+.cm-set-label { display: flex; flex: 1 1 auto; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
+.cm-set-name { color: var(--cm-ink); font-size: 17px; font-weight: 600; line-height: 1.3; }
+.cm-set-hint { color: var(--cm-muted); font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; }
+.cm-set-choice { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+.cm-set-choice.is-spaced { padding-top: 8px; }
+.cm-set-note { display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
+.cm-set-profile-button { margin-left: -8px; }
+.cm-set-row .cm-set-profile-button { margin-top: -6px; margin-bottom: -6px; }
+
+/* Words that hide posts: a dark chip for each (pressing it stops hiding the word), then the ways to add one. */
+.cm-set-words { display: flex; flex-wrap: wrap; gap: 8px; }
+.cm-set-word { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 44px; padding: 6px 10px 6px 16px; border: 0; border-radius: 999px; background: var(--cm-green); color: #FFFFFF; font-size: 15px; font-weight: 600; line-height: 1.2; text-align: left; cursor: pointer; }
+.cm-set-word > span { min-width: 0; overflow-wrap: anywhere; }
+.cm-set-word > svg, .cm-set-add > svg { flex-shrink: 0; }
+.cm-set-word:hover { background: #163C31; }
+.cm-set-add { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 44px; padding: 6px 16px; border: 1.5px dashed var(--cm-ok); border-radius: 999px; background: transparent; color: var(--cm-green); font-size: 15px; font-weight: 700; line-height: 1.2; text-align: left; cursor: pointer; }
+.cm-set-add:hover, .cm-set-add[aria-expanded="true"] { background: var(--cm-mint); }
+.cm-set-word-form { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; }
+.cm-set-word-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cm-set-word-row input { flex: 1 1 200px; min-width: 0; height: 48px; padding: 0 18px; border: 1.5px solid #8F8778; border-radius: 999px; background: var(--cm-cream); color: var(--cm-ink); font: 400 16.5px "DM Sans", system-ui, sans-serif; }
+.cm-set-word-row input[aria-invalid="true"] { border-color: var(--cm-rust); }
+
+/* Quiet at night: − 9 pm + to 8 am. */
+.cm-set-quiet { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; min-height: 52px; }
+.cm-set-quiet > .cm-set-label { flex: 1 1 200px; }
+.cm-set-stepper { display: flex; align-items: center; gap: 6px; }
+.cm-set-stepper-button { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; padding: 0; border: 1.5px solid var(--cm-chip-line); border-radius: 12px; background: var(--cm-card); color: var(--cm-ink); cursor: pointer; }
+.cm-set-stepper-button:hover { border-color: #BDB5A5; background: #FFFFFF; }
+.cm-set-stepper-button[aria-disabled="true"] { border-color: var(--cm-line); background: transparent; color: #A39C90; cursor: default; }
+.cm-set-hour { display: inline-block; min-width: 70px; color: var(--cm-ink); font-size: 17px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+.cm-set-hour-end { min-width: 58px; }
+.cm-set-to { padding: 0 4px; color: var(--cm-muted); font-size: 15px; }
+
+.cm-set-link { display: inline-flex; align-self: flex-start; align-items: center; gap: 8px; min-height: 44px; margin-top: 2px; color: var(--cm-green); font-size: 15.5px; font-weight: 700; }
+.cm-set-link:hover { color: var(--cm-ok); text-decoration: underline; text-underline-offset: 3px; }
+.cm-set-link > svg { flex-shrink: 0; }
+
+/* ---------------------------------------------------------------- preview */
+
+.cm-set-aside { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.cm-set-aside-title { padding-left: 4px; color: var(--cm-rust-dark); font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+
+/* The card: a garden cover tagged "Your card", the picture (with the online dot), the name, the line
+   under it, and what the card would offer (flat labels: this is a picture of a card, not buttons). */
+.cm-set-card { display: flex; flex-direction: column; overflow: hidden; }
+.cm-set-cover { position: relative; display: block; height: 92px; background: #CFE8C9 url("/community-art/fb2175989c4397ad5f421824e41a5e87.svg") center / cover no-repeat; }
+.cm-set-card-tag { position: absolute; top: 12px; right: 12px; display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 999px; background: rgba(30, 42, 38, .84); color: #FFFFFF; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.cm-set-card-body { display: flex; flex-direction: column; gap: 10px; padding: 0 20px 20px; }
+.cm-set-card-face { position: relative; display: block; width: 84px; height: 84px; margin-top: -42px; }
+.cm-set-card-face .cm-face { box-shadow: 0 0 0 4px var(--cm-card); }
+.cm-set-card-face .cm-face-initial { background-color: var(--cm-green); color: #FFFFFF; font-family: var(--cm-serif); font-weight: 400; }
+.cm-set-online { position: absolute; right: 2px; bottom: 4px; width: 18px; height: 18px; border: 3px solid var(--cm-card); border-radius: 999px; background: var(--cm-ok); animation: cm-live-green 1.8s ease-out infinite; }
+.cm-set-card-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cm-set-card-name { color: var(--cm-ink); font: 400 32px/1.05 var(--cm-serif); overflow-wrap: anywhere; }
+.cm-set-card-line { color: var(--cm-muted); font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
+.cm-set-card-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.cm-set-pill { display: inline-flex; align-items: center; gap: 6px; min-width: 0; min-height: 30px; padding: 4px 12px; border-radius: 8px; font-size: 14px; font-weight: 700; line-height: 1.2; cursor: default; }
+.cm-set-pill > svg { flex-shrink: 0; }
+.cm-set-pill-add { background: var(--cm-mint); color: var(--cm-green); }
+.cm-set-pill-off { background: #EBE7DE; color: var(--cm-soft-ink); }
+.cm-set-pill-message { border: 1.5px solid #CFC9BC; color: var(--cm-ink); }
+.cm-set-pill-message.is-limited { border-style: dashed; color: var(--cm-muted); }
+.cm-set-card-note { color: var(--cm-muted); font-size: 13.5px; line-height: 1.45; }
+
+/* A sample post at the chosen text size: the same size posts and messages use. */
+.cm-set-sample { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px; }
+.cm-set-sample-title { color: var(--cm-ok); font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.cm-set-sample-who { display: flex; align-items: center; gap: 10px; color: var(--cm-ink); font-size: 15.5px; font-weight: 700; }
+.cm-set-sample-text { color: var(--cm-ink); font-size: var(--cm-post); line-height: 1.45; overflow-wrap: anywhere; transition: font-size .3s ease; }
+
+.cm-set-safety { display: flex; align-items: center; gap: 12px; padding: 14px 18px; color: var(--cm-ink); transition: border-color .2s ease; }
+.cm-set-safety:hover { border-color: #CFC9BC; color: var(--cm-ink); }
+.cm-set-safety > svg { flex-shrink: 0; color: var(--cm-ink); }
+.cm-set-safety-icon { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 14px; background: #FBE3DB; color: var(--cm-rust-dark); }
+.cm-set-safety-text { display: flex; flex: 1; flex-direction: column; gap: 1px; min-width: 0; }
+.cm-set-safety-text b { font-size: 16.5px; font-weight: 700; }
+.cm-set-safety-text span { color: var(--cm-muted); font-size: 13.5px; line-height: 1.4; }
+
+/* -------------------------------------------------------------- motion */
+
+@keyframes cm-set-open { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes cm-set-saved { 0% { opacity: 0; transform: translateY(8px); } 15% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes cm-set-draw { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
+
+/* ------------------------------------------------- comfort and small screens */
+
+.recovery-large-text :is(.cm-page, .cm-layer) :is(.cm-set-hint, .cm-set-summary, .cm-set-card-note, .cm-set-safety-text span) { font-size: 16px; }
+
+/* On a phone the app's top bar stays put and its tab bar sits along the bottom. */
+@media (max-width: 620px) {
+  .cm-set-section { scroll-margin: 84px 0 calc(84px + env(safe-area-inset-bottom)); }
+}
+
+/* Narrower: the preview goes under the settings, the card beside the sample post and Safety. */
+@container cm (max-width: 860px) {
+  .cm-set-page { grid-template-columns: minmax(0, 1fr); }
+  .cm-set-aside { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .cm-set-aside-title { grid-column: 1 / -1; }
+  .cm-set-card { grid-row: span 2; }
+}
+
+/* A phone: one column, no indent inside the sections, and "Saved" beside the heading. */
+@container cm (max-width: 560px) {
+  .cm-set-aside { display: flex; }
+  .cm-set-head { display: block; }
+  .cm-set-head .cm-view-title { margin-right: 112px; font-size: 30px; }
+  .cm-set-saved-slot { position: absolute; top: -3px; right: 0; min-width: 0; min-height: 0; }
+  .cm-set-saved { max-width: 108px; height: auto; min-height: 38px; padding: 4px 12px; line-height: 1.15; white-space: normal; }
+  .cm-set-toggle { gap: 12px; min-height: 72px; padding: 12px 14px; }
+  .cm-set-icon { width: 44px; height: 44px; border-radius: 14px; }
+  .cm-set-toggle-title { font-size: 18px; }
+  .cm-set-panel { padding: 4px 16px 18px; }
+  .cm-set-row { gap: 12px; }
+  .cm-set-card-body { padding: 0 16px 18px; }
+}

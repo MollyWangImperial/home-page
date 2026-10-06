@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { groupQuickReplies, inviteFriends, people, suggestedGroups, type GroupMessage, type PersonId, type SuggestedGroupId } from "@/content/community-samples";
-import { communityHref, communityStore, listNames, useCommunity, type NoteDraft, type OwnNote } from "@/lib/community-store";
+import { canSee, communityHref, communityStore, isBlocked, listNames, useCommunity, type NoteDraft, type OwnNote } from "@/lib/community-store";
 import { lastLine, myGroups, type GroupModel } from "./group-model";
 import { useBursts, usePinnedToEnd } from "./hooks";
 import { HeartIcon, PlusIcon, StarIcon } from "./icons";
@@ -37,9 +37,13 @@ function Challenge({ group }: { group: GroupModel }) {
   );
 }
 
-/** "+ Invite a friend": the example friends who could come along. Nothing is sent anywhere. */
+/**
+ * "+ Invite a friend": the example friends who could come along (never anyone blocked). Nothing is
+ * sent anywhere.
+ */
 function InvitePanel({ group, id, invited, onToggle }: { group: GroupModel; id: string; invited: PersonId[]; onToggle: (who: PersonId) => void }) {
-  const candidates = group.kind === "started" ? inviteFriends : inviteFriends.filter(who => !group.faces.includes(who));
+  const memory = useCommunity();
+  const candidates = (group.kind === "started" ? inviteFriends : inviteFriends.filter(who => !group.faces.includes(who))).filter(who => !isBlocked(memory, who));
   return (
     <div className="cm-invite-panel cm-pop" id={id}>
       <p className="cm-invite-note">These are example friends, so nothing is sent.</p>
@@ -63,9 +67,15 @@ function InvitePanel({ group, id, invited, onToggle }: { group: GroupModel; id: 
   );
 }
 
-/** F3: my groups. Switch groups, clear unread badges, join the weekly challenge, join suggested groups. */
+/**
+ * F3: my groups. Switch groups, clear unread badges, join the weekly challenge, join suggested groups.
+ * Messages from people the person has blocked or hidden are left out.
+ */
 export default function GroupsView({ active, requested }: { active: boolean; requested: string | null }) {
   const memory = useCommunity();
+  const shown = (who: PersonId) => canSee(memory, who);
+  // Blocked people are out of sight: not in the face stacks, the invites or the names.
+  const inSight = (who: PersonId) => !isBlocked(memory, who);
   const [, navigate] = useLocation();
   const groups = myGroups(memory);
   const selected = groups.find(group => group.id === requested) ?? groups.find(group => group.id === "garden") ?? groups[0];
@@ -81,12 +91,12 @@ export default function GroupsView({ active, requested }: { active: boolean; req
   const own = memory.messages[selected.id] ?? [];
   const deliveredAt = delivered[selected.id];
   const log: LogLine[] = [
-    ...selected.messages.map(message => ({ kind: "theirs" as const, at: 0, message })),
+    ...selected.messages.filter(message => shown(message.who)).map(message => ({ kind: "theirs" as const, at: 0, message })),
     ...(selected.started?.hello ? [{ kind: "hello" as const, at: selected.started.createdAt, text: selected.started.hello }] : []),
     ...own.map(note => ({ kind: "mine" as const, at: note.createdAt, note })),
-    ...(deliveredAt !== undefined && selected.incoming ? [{ kind: "theirs" as const, at: deliveredAt, message: selected.incoming }] : []),
+    ...(deliveredAt !== undefined && selected.incoming && shown(selected.incoming.who) ? [{ kind: "theirs" as const, at: deliveredAt, message: selected.incoming }] : []),
   ].sort((a, b) => a.at - b.at);
-  const writing = typing && typing.group === selected.id ? typing.who : null;
+  const writing = typing && typing.group === selected.id && shown(typing.who) ? typing.who : null;
   const { box, onScroll } = usePinnedToEnd<HTMLDivElement>(`${selected.id}:${log.length}:${writing ?? ""}`, active);
 
   // Opening a group clears its unread badge.
@@ -108,7 +118,7 @@ export default function GroupsView({ active, requested }: { active: boolean; req
     if (note) setSentNote(`Sent. Only you can see it: ${note.text || "your photo"}`);
   };
   const started = selected.started;
-  const invited = started ? started.friends : invites[selected.id] ?? [];
+  const invited = (started ? started.friends : invites[selected.id] ?? []).filter(inSight);
   const toggleInvite = (who: PersonId) => {
     if (started) communityStore.toggleGroupFriend(started.id, who);
     else setInvites(list => {
@@ -136,7 +146,7 @@ export default function GroupsView({ active, requested }: { active: boolean; req
           </div>
           <span className="cm-face-stack cm-group-faces" aria-hidden="true">
             {started && <MyFace size={36} />}
-            {selected.faces.slice(0, 4).map(who => <Face key={who} who={who} size={36} />)}
+            {selected.faces.filter(inSight).slice(0, 4).map(who => <Face key={who} who={who} size={36} />)}
           </span>
           <button type="button" className={`cm-invite ${!started && invited.length ? "is-on" : ""}`} aria-expanded={inviting} aria-controls={inviting ? panelId : undefined} onClick={() => setInviting(!inviting)}>
             {!started && invited.length ? `${invited.length} invited` : "+ Invite a friend"}
@@ -153,7 +163,7 @@ export default function GroupsView({ active, requested }: { active: boolean; req
               </span>
             ) : (
               <>
-                <span>{started.friends.length ? `${listNames(started.friends.map(nameOf))} ${started.friends.length === 1 ? "is an example friend" : "are example friends"}, so only you can see this group.` : "Only you can see this group."}</span>
+                <span>{invited.length ? `${listNames(invited.map(nameOf))} ${invited.length === 1 ? "is an example friend" : "are example friends"}, so only you can see this group.` : "Only you can see this group."}</span>
                 <button type="button" className="cm-text-button" onClick={() => setClosing(true)}>Close group</button>
               </>
             )}
@@ -197,7 +207,7 @@ export default function GroupsView({ active, requested }: { active: boolean; req
                       <Cover cover={group.cover} className="cm-cover-thumb" />
                       {group.active && <span className="cm-cover-live cm-live" aria-hidden="true" />}
                     </span>
-                    <span className="cm-group-text"><b>{group.name}</b><span>{lastLine(group, memory, delivered[group.id] ?? null, nameOf)}</span></span>
+                    <span className="cm-group-text"><b>{group.name}</b><span>{lastLine(group, memory, delivered[group.id] ?? null, nameOf, shown)}</span></span>
                     {unread > 0 && <span className="cm-badge cm-pop"><span aria-hidden="true">{unread}</span><span className="cm-sr">{`, ${unread} unread`}</span></span>}
                   </Link>
                 </li>

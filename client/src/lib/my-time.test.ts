@@ -132,7 +132,7 @@ describe("What My Time has to read", () => {
     for (const story of survivorStories) for (const paragraph of story.paragraphs) expect(splitSentences(paragraph).join(" "), story.id).toBe(paragraph);
   });
 
-  it("tells stories from both survivors and carers, and says they are composites", () => {
+  it("tells stories from both survivors and carers, and says how they were made", () => {
     expect(survivorStories.some(story => story.voice === "survivor")).toBe(true);
     expect(survivorStories.some(story => story.voice === "carer")).toBe(true);
     expect(new Set(survivorStories.map(story => story.id)).size).toBe(survivorStories.length);
@@ -140,8 +140,9 @@ describe("What My Time has to read", () => {
       expect(story.paragraphs.length, story.id).toBeGreaterThan(4);
       expect(story.helped.length, story.id).toBe(3);
     }
-    expect(STORIES_NOTE).toMatch(/composite/);
-    expect(STORIES_NOTE).toMatch(/not real/);
+    // The list says the stories combine experiences people often describe; each story's own note
+    // names its characters as fictional (stories-section.test.ts).
+    expect(STORIES_NOTE).toMatch(/combining experiences/);
   });
 });
 

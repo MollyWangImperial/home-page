@@ -1,23 +1,29 @@
 import { useEffect, useId, useReducer, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import { Link } from "wouter";
 import { TypedChatText } from "@/components/TypedChatText";
-import { circle, people, type CircleSeat } from "@/content/community-samples";
-import { communityHref, communityStore, useCommunity } from "@/lib/community-store";
+import { circle, people, type CircleSeat, type PersonId } from "@/content/community-samples";
+import { canSee, communityHref, communityStore, isBlocked, useCommunity } from "@/lib/community-store";
 import { useBursts, useLater, usePinnedToEnd } from "./hooks";
 import { CupIcon, HeartIcon, PauseIcon, PlayIcon, PlusIcon, PulseIcon } from "./icons";
 import { AliraMark, Face, FloatingHearts, LiveDot, MyFace, OnlyYou } from "./parts";
 
 type Said = { id: number; who: CircleSeat; text: string };
 type CircleState = { at: number; said: Said[]; waiting: boolean; next: number };
-type CircleAction = { type: "advance"; seated: boolean } | { type: "speak"; text: string };
+/** "advance" passes the teacup on, past `skip`: people the person has blocked or hidden. */
+type CircleAction = { type: "advance"; seated: boolean; skip: CircleSeat[] } | { type: "speak"; text: string };
 
 const start: CircleState = { at: 0, said: [{ id: 0, who: "alira", text: circle.lines.alira }], waiting: false, next: 1 };
 
-/** The next one to hold the teacup. Your place is skipped until you have sat down. */
-function nextSeat(at: number, seated: boolean): number {
+/** The next one to hold the teacup. Your place is skipped until you have sat down, and so is anyone in `skip`. */
+function nextSeat(at: number, seated: boolean, skip: CircleSeat[]): number {
   let index = at;
-  do { index = (index + 1) % circle.order.length; } while (circle.order[index] === "you" && !seated);
-  return index;
+  for (let step = 0; step < circle.order.length; step++) {
+    index = (index + 1) % circle.order.length;
+    const who = circle.order[index];
+    if ((who !== "you" || seated) && !skip.includes(who)) return index;
+  }
+  // Alira hosts and is never skipped, so the cup always finds her.
+  return Math.max(0, circle.order.indexOf("alira"));
 }
 
 function goRound(state: CircleState, action: CircleAction): CircleState {
@@ -25,7 +31,7 @@ function goRound(state: CircleState, action: CircleAction): CircleState {
     const line: Said = { id: state.next, who: "you", text: action.text };
     return { ...state, waiting: false, next: state.next + 1, said: [...state.said, line].slice(-30) };
   }
-  const at = nextSeat(state.at, action.seated);
+  const at = nextSeat(state.at, action.seated, action.skip);
   const who = circle.order[at];
   // When the cup reaches you, it waits for you.
   if (who === "you") return { ...state, at, waiting: true };
@@ -36,6 +42,10 @@ const seatsInPlace = (Object.keys(circle.seats) as CircleSeat[]).sort((a, b) => 
 const angleOf = (who: CircleSeat) => ((-90 + circle.seats[who] * 36) * Math.PI) / 180;
 const place = (who: CircleSeat) => ({ "--cos": Math.cos(angleOf(who)).toFixed(4), "--sin": Math.sin(angleOf(who)).toFixed(4) }) as unknown as CSSProperties;
 const nameOf = (who: CircleSeat) => (who === "alira" ? "Alira" : who === "you" ? "You" : people[who].name);
+const isPerson = (who: CircleSeat): who is PersonId => who !== "alira" && who !== "you";
+const COUNT_WORDS = ["No one", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
+/** "Nine", for "Nine of us here". */
+const countWord = (count: number) => COUNT_WORDS[count] ?? String(count);
 
 function Upcoming() {
   const reminders = useCommunity().reminders;
@@ -65,10 +75,22 @@ function Upcoming() {
   );
 }
 
-/** F2: the Sunday circle. A teacup goes round; whoever holds it speaks. Take your seat and it comes to you. */
+/**
+ * F2: the Sunday circle. A teacup goes round; whoever holds it speaks. Take your seat and it comes
+ * to you. Someone the person has blocked is out of sight: their chair stands empty. Nobody blocked
+ * or hidden holds the teacup, and what they said isn't shown.
+ */
 export default function CircleView({ active, name }: { active: boolean; name: string }) {
-  const seated = useCommunity().seated;
+  const memory = useCommunity();
+  const seated = memory.seated;
+  const away = (who: CircleSeat) => isPerson(who) && isBlocked(memory, who);
+  const heard = (who: CircleSeat) => !isPerson(who) || canSee(memory, who);
+  const skip = circle.order.filter(who => !heard(who));
+  // The teacup's timer reads who to skip as it is now.
+  const skipNow = useRef(skip);
+  skipNow.current = skip;
   const [state, dispatch] = useReducer(goRound, start);
+  const saidShown = state.said.filter(line => heard(line.who));
   const [held, setHeld] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [words, setWords] = useState("");
@@ -78,16 +100,18 @@ export default function CircleView({ active, name }: { active: boolean; name: st
   const warmth = useRef<HTMLButtonElement>(null);
   const shareButton = useRef<HTMLButtonElement>(null);
   const firstChoice = useRef<HTMLButtonElement>(null);
-  const { box, onScroll } = usePinnedToEnd<HTMLOListElement>(state.said.length, active);
+  const { box, onScroll } = usePinnedToEnd<HTMLOListElement>(saidShown.length, active);
   // When the button that was pressed goes away, the focus moves to the one that takes its place.
   const focusSoon = (target: { current: HTMLElement | null }) => window.requestAnimationFrame(() => target.current?.focus());
 
   const speaker = circle.order[state.at];
   const myTurn = seated && speaker === "you" && state.waiting;
+  // Alira and everyone still in sight, then you once you have sat down.
+  const present = seatsInPlace.filter(who => who !== "you" && !away(who)).length + (seated ? 1 : 0);
 
   useEffect(() => {
     if (!active || state.waiting || held) return;
-    const timer = window.setInterval(() => dispatch({ type: "advance", seated }), circle.everyMs);
+    const timer = window.setInterval(() => dispatch({ type: "advance", seated, skip: skipNow.current }), circle.everyMs);
     return () => window.clearInterval(timer);
   }, [active, state.waiting, held, seated]);
 
@@ -110,10 +134,10 @@ export default function CircleView({ active, name }: { active: boolean; name: st
     later(burst, 500);
     focusSoon(warmth);
   };
-  const pass = () => { dispatch({ type: "advance", seated }); focusSoon(warmth); };
+  const pass = () => { dispatch({ type: "advance", seated, skip }); focusSoon(warmth); };
   const share = (event: FormEvent) => { event.preventDefault(); speak(words); };
 
-  const bubbleFor = speaker !== "you" ? speaker : null;
+  const bubbleFor = speaker !== "you" && heard(speaker) ? speaker : null;
   const lastSaid = state.said[state.said.length - 1];
 
   return (
@@ -122,7 +146,7 @@ export default function CircleView({ active, name }: { active: boolean; name: st
         <div className="cm-stage-head">
           <div>
             <h2 id="cm-circle-title" tabIndex={-1} data-view-heading>Sunday circle</h2>
-            <p>{seated ? `Ten of us now. Welcome, ${name}.` : "Nine of us here. One seat is yours."}</p>
+            <p>{seated ? `${countWord(present)} of us now. Welcome, ${name}.` : `${countWord(present)} of us here. One seat is yours.`}</p>
           </div>
           <div className="cm-stage-tools">
             <p className="cm-stage-rule"><CupIcon size={18} /><span>The teacup goes round. Whoever holds it speaks.</span></p>
@@ -141,7 +165,8 @@ export default function CircleView({ active, name }: { active: boolean; name: st
           </div>
           <ul className="cm-seats" aria-label="Who is in the circle">
             {seatsInPlace.map(who => {
-              const speaking = who === speaker && (who !== "you" || seated);
+              if (away(who)) return <li key={who} className="cm-seat is-away" style={place(who)} aria-hidden="true"><span className="cm-seat-face cm-seat-away" /></li>;
+              const speaking = who === speaker && (who !== "you" || seated) && heard(who);
               const empty = who === "you" && !seated;
               return (
                 <li key={who} className={`cm-seat ${speaking ? "is-speaking" : ""} ${empty ? "is-empty" : ""}`} style={place(who)}>
@@ -199,10 +224,10 @@ export default function CircleView({ active, name }: { active: boolean; name: st
         <section className="cm-card cm-said" aria-labelledby="cm-said-title">
           <div className="cm-card-row">
             <h3 id="cm-said-title">Said in the circle</h3>
-            <span className="cm-online-line"><LiveDot tone="green" />{seated ? 10 : 9} here</span>
+            <span className="cm-online-line"><LiveDot tone="green" />{present} here</span>
           </div>
           <ol className="cm-said-list" ref={box} onScroll={onScroll} tabIndex={0} aria-label="What has been said">
-            {state.said.map(line => (
+            {saidShown.map(line => (
               <li key={line.id} className="cm-said-line cm-msg-in">
                 {line.who === "alira" ? <span className="cm-said-alira" aria-hidden="true"><PulseIcon size={18} /></span>
                   : line.who === "you" ? <MyFace size={32} /> : <Face who={line.who} size={32} />}

@@ -1,19 +1,46 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  alertHref,
+  alertList,
+  alertsQuiet,
   blankCommunityMemory,
+  blockedList,
+  blockedSince,
+  canSee,
   cleanGroupName,
+  cleanHiddenWord,
   COMMUNITY_KEY,
   communityHref,
   communityViewFromQuery,
   createCommunityStore,
+  daysAgoLabel,
+  defaultCommunitySettings,
   firstName,
+  friendList,
+  friendsHref,
+  hiddenPostList,
+  hiddenWordIn,
+  hourLabel,
+  inQuietHours,
+  isBlocked,
+  leadsHere,
   listNames,
+  mutedList,
+  onBreak,
   parseCommunityMemory,
+  pendingRequestCount,
+  placeOf,
+  postVisibility,
   preparePostPhoto,
+  relationship,
+  requestList,
+  sentList,
   timeAgo,
   unreadCount,
+  unseenAlertCount,
+  viewHref,
 } from "./community-store";
-import { feedPosts, inviteFriends, sampleGroups } from "@/content/community-samples";
+import { communityAlerts, feedPosts, inviteFriends, sampleGroups } from "@/content/community-samples";
 
 afterEach(() => { vi.unstubAllGlobals(); });
 
@@ -45,6 +72,66 @@ describe("My community addresses", () => {
     expect(communityHref("groups", "<script>")).toBe("/community?space=groups");
     expect(communityHref("start", "garden")).toBe("/community?space=start");
     expect(communityViewFromQuery(communityHref("groups", "mine-abc").split("?")[1])).toEqual({ space: "groups", group: "mine-abc" });
+  });
+
+  it("has addresses for settings, safety and the Friends drawer over any view", () => {
+    expect(communityViewFromQuery("space=settings")).toEqual({ space: "settings", group: null });
+    expect(communityViewFromQuery("space=safety")).toEqual({ space: "safety", group: null });
+    expect(communityHref("settings")).toBe("/community?space=settings");
+    expect(communityHref("safety")).toBe("/community?space=safety");
+
+    expect(communityViewFromQuery("panel=friends")).toEqual({ space: "feed", group: null, panel: "friends", tab: "requests" });
+    expect(communityViewFromQuery("space=lounge&panel=friends&tab=sent")).toEqual({ space: "lounge", group: null, panel: "friends", tab: "sent" });
+    expect(communityViewFromQuery("space=groups&group=walk&panel=friends&tab=blocked")).toEqual({ space: "groups", group: "walk", panel: "friends", tab: "blocked" });
+    expect(communityViewFromQuery("panel=friends&tab=enemies")).toMatchObject({ panel: "friends", tab: "requests" });
+    expect(communityViewFromQuery("panel=secrets&tab=sent")).toEqual({ space: "feed", group: null });
+
+    expect(communityHref(null, null, { panel: "friends" })).toBe("/community?panel=friends");
+    expect(communityHref("lounge", null, { panel: "friends", tab: "sent" })).toBe("/community?space=lounge&panel=friends&tab=sent");
+    expect(communityHref("groups", "walk", { panel: "friends", tab: "requests" })).toBe("/community?space=groups&group=walk&panel=friends");
+    expect(communityHref("settings", null, { panel: null, tab: "sent" })).toBe("/community?space=settings");
+    expect(friendsHref()).toBe("/community?panel=friends");
+    expect(friendsHref("blocked", { space: "safety", group: null })).toBe("/community?space=safety&panel=friends&tab=blocked");
+
+    const view = communityViewFromQuery("space=groups&group=garden&panel=friends&tab=friends");
+    expect(placeOf(view)).toEqual({ space: "groups", group: "garden" });
+    expect(communityViewFromQuery(friendsHref(view.tab, placeOf(view)).split("?")[1])).toEqual(view);
+  });
+
+  it("names a section of Community settings, and only there", () => {
+    expect(communityViewFromQuery("space=settings&section=quiet")).toEqual({ space: "settings", group: null, section: "quiet" });
+    expect(communityViewFromQuery("space=settings&section=secrets")).toEqual({ space: "settings", group: null });
+    expect(communityViewFromQuery("space=safety&section=quiet")).toEqual({ space: "safety", group: null });
+    expect(communityViewFromQuery("section=see")).toEqual({ space: "feed", group: null });
+    expect(communityHref("settings", null, { section: "quiet" })).toBe("/community?space=settings&section=quiet");
+    expect(communityHref("settings", null, { section: "friends", panel: "friends", tab: "sent" })).toBe("/community?space=settings&section=friends&panel=friends&tab=sent");
+    expect(communityHref("safety", null, { section: "quiet" })).toBe("/community?space=safety");
+    for (const query of ["space=settings&section=see", "space=settings&section=friends&panel=friends&tab=sent", "space=groups&group=walk&panel=friends", "", "space=lounge"]) {
+      expect(viewHref(communityViewFromQuery(query))).toBe(query ? `/community?${query}` : "/community");
+    }
+  });
+
+  it("knows when a link leads to the view already showing", () => {
+    expect(leadsHere("/community", "")).toBe(true);
+    expect(leadsHere("/community", "space=lounge")).toBe(false);
+    expect(leadsHere("/community?space=settings&section=quiet", "space=settings")).toBe(true);
+    expect(leadsHere("/community?space=settings", "space=settings&section=see")).toBe(true);
+    expect(leadsHere("/community?space=settings&section=friends", "space=settings&panel=friends")).toBe(false);
+    expect(leadsHere("/community?space=groups&group=walk", "space=groups&group=walk")).toBe(true);
+    expect(leadsHere("/community?space=groups&group=garden", "space=groups&group=walk")).toBe(false);
+    expect(leadsHere("/community?panel=friends&tab=sent", "panel=friends&tab=sent")).toBe(true);
+    expect(leadsHere("/community?panel=friends&tab=sent", "panel=friends")).toBe(false);
+    expect(leadsHere("/alira", "")).toBe(false);
+    expect(leadsHere("/community-art/face.svg", "")).toBe(false);
+  });
+
+  it("sends each alert to the right place", () => {
+    const over = { space: "lounge" as const, group: null };
+    const href = (id: string) => alertHref(communityAlerts.find(alert => alert.id === id)!, over);
+    expect(href("a-joan")).toBe("/community?space=lounge&panel=friends");
+    expect(href("a-liwei")).toBe("/community?space=lounge&panel=friends");
+    expect(href("a-garden")).toBe("/community?space=groups&group=garden");
+    expect(href("a-circle")).toBe("/community?space=circle");
   });
 });
 
@@ -147,6 +234,27 @@ describe("when the browser blocks storage", () => {
     const store = createCommunityStore(() => ({ getItem: storage.getItem, setItem: () => { throw new Error("QuotaExceededError"); } }));
     store.toggleFriend("anne");
     expect(store.load().friends).toEqual(["joan", "anne"]);
+  });
+
+  it("says whether the last change reached storage, so Settings never claims a save that failed", () => {
+    let full = false;
+    const storage = memoryStorage(JSON.stringify({ friends: ["joan"] }));
+    const store = createCommunityStore(() => ({ getItem: storage.getItem, setItem: (key: string, value: string) => { if (full) throw new Error("QuotaExceededError"); storage.setItem(key, value); } }));
+    store.updateSettings({ textSize: "bigger" });
+    expect(store.lastSaveKept()).toBe(true);
+    full = true;
+    store.updateSettings({ textSize: "smaller" });
+    // The old record is still in storage, but this change isn't: it lasts for the visit only.
+    expect(store.lastSaveKept()).toBe(false);
+    expect(store.load().settings.textSize).toBe("smaller");
+    expect(saved(storage).settings.textSize).toBe("bigger");
+    full = false;
+    store.updateSettings({ textSize: "normal" });
+    expect(store.lastSaveKept()).toBe(true);
+    expect(createCommunityStore(() => null).lastSaveKept()).toBe(true);
+    const none = createCommunityStore(() => null);
+    none.updateSettings({ gentleMode: false });
+    expect(none.lastSaveKept()).toBe(false);
   });
 });
 
@@ -316,6 +424,304 @@ describe("small helpers", () => {
     expect(listNames(["Margaret", "Joan", "Anne"])).toBe("Margaret, Joan and Anne");
     expect(firstName("  Zak Ahmed ")).toBe("Zak");
     expect(firstName("")).toBe("there");
+  });
+});
+
+describe("friends", () => {
+  it("starts with three friends, two requests waiting, one sent and Gary blocked", () => {
+    const memory = blankCommunityMemory();
+    expect(friendList(memory).map(friend => friend.who)).toEqual(["david", "margaret", "anne"]);
+    expect(requestList(memory).map(entry => [entry.request.who, entry.answer])).toEqual([["joan", null], ["liwei", null]]);
+    expect(pendingRequestCount(memory)).toBe(2);
+    expect(sentList(memory, NOW)).toEqual([{ who: "tomasz", at: NOW - 2 * 86_400_000, beforeVisit: true }]);
+    expect(relationship(memory, "david")).toBe("friend");
+    expect(relationship(memory, "joan")).toBe("incoming");
+    expect(relationship(memory, "tomasz")).toBe("sent");
+    expect(relationship(memory, "priya")).toBe("none");
+    expect(relationship(memory, "gary")).toBe("blocked");
+  });
+
+  it("accepts, declines and takes an answer back, and the Friends badge agrees", () => {
+    const storage = memoryStorage();
+    const store = createCommunityStore(() => storage);
+    store.acceptRequest("joan");
+    store.declineRequest("liwei");
+    let memory = createCommunityStore(() => storage).load();
+    expect(memory.answers).toEqual({ joan: "accepted", liwei: "declined" });
+    expect(pendingRequestCount(memory)).toBe(0);
+    expect(friendList(memory).map(friend => friend.who)).toEqual(["david", "margaret", "anne", "joan"]);
+    expect(friendList(memory)[3]).toMatchObject({ isNew: true });
+    expect(relationship(memory, "liwei")).toBe("none");
+    store.undoAnswer("liwei");
+    memory = store.load();
+    expect(relationship(memory, "liwei")).toBe("incoming");
+    expect(pendingRequestCount(memory)).toBe(1);
+    // A wave to a new friend is the same wave as anywhere else.
+    store.wave("joan");
+    expect(store.load().waves).toEqual(["joan"]);
+  });
+
+  it("sends and cancels requests, so the Add friend buttons and the Sent tab agree", () => {
+    const storage = memoryStorage();
+    const store = createCommunityStore(() => storage);
+    store.requestFriend("priya", NOW);
+    store.requestFriend("david", NOW);
+    expect(relationship(store.load(), "priya")).toBe("sent");
+    expect(store.load().friends).toEqual(["priya"]);
+    expect(sentList(store.load(), NOW + 1000).map(entry => entry.who)).toEqual(["priya", "tomasz"]);
+
+    store.cancelRequest("tomasz");
+    store.cancelRequest("priya");
+    store.cancelRequest("david");
+    let memory = createCommunityStore(() => storage).load();
+    expect(memory.cancelled).toEqual(["tomasz"]);
+    expect(memory.friends).toEqual([]);
+    expect(memory.sentAt).toEqual({});
+    expect(sentList(memory)).toEqual([]);
+
+    // Undo in the Sent tab sends it again.
+    store.requestFriend("tomasz", NOW);
+    memory = store.load();
+    expect(memory.cancelled).toEqual([]);
+    expect(sentList(memory, NOW).map(entry => entry.who)).toEqual(["tomasz"]);
+
+    // Asking someone who is already asking says yes, even after "Not now".
+    store.declineRequest("joan");
+    store.requestFriend("joan", NOW);
+    expect(relationship(store.load(), "joan")).toBe("friend");
+  });
+
+  it("keeps the low-level toggle working, with the time it was sent", () => {
+    const store = createCommunityStore(() => memoryStorage());
+    store.toggleFriend("samuel", NOW);
+    expect(store.load()).toMatchObject({ friends: ["samuel"], sentAt: { samuel: NOW } });
+    store.toggleFriend("samuel", NOW);
+    expect(store.load().friends).toEqual([]);
+    expect(store.load().sentAt).toEqual({});
+  });
+});
+
+describe("blocking, hiding and reporting", () => {
+  it("unblocks Gary, who was blocked to begin with, and remembers it", () => {
+    const storage = memoryStorage();
+    const store = createCommunityStore(() => storage);
+    expect(blockedList(store.load(), NOW)).toEqual([{ who: "gary", at: NOW - 3 * 86_400_000 }]);
+    expect(blockedSince(store.load(), "gary", NOW)).toBe(NOW - 3 * 86_400_000);
+    store.unblock("gary");
+    expect(saved(storage).blocks).toEqual({ gary: 0 });
+    const reloaded = createCommunityStore(() => storage).load();
+    expect(isBlocked(reloaded, "gary")).toBe(false);
+    expect(blockedList(reloaded)).toEqual([]);
+    expect(postVisibility(reloaded, feedPosts[0])).toEqual({ shown: true });
+    store.block("gary", NOW);
+    expect(store.load().blocks).toEqual({ gary: NOW });
+    expect(blockedSince(store.load(), "gary")).toBe(NOW);
+  });
+
+  it("blocks and unblocks anyone, hiding them from friends and requests", () => {
+    const store = createCommunityStore(() => memoryStorage());
+    store.block("margaret", NOW);
+    store.block("joan", NOW + 1);
+    store.block("margaret", NOW + 5);
+    let memory = store.load();
+    expect(blockedList(memory, NOW).map(entry => entry.who)).toEqual(["joan", "margaret", "gary"]);
+    expect(relationship(memory, "margaret")).toBe("blocked");
+    expect(friendList(memory).map(friend => friend.who)).toEqual(["david", "anne"]);
+    expect(pendingRequestCount(memory)).toBe(1);
+    expect(canSee(memory, "margaret")).toBe(false);
+    store.acceptRequest("joan");
+    expect(store.load().answers).toEqual({});
+    store.unblock("margaret");
+    memory = store.load();
+    expect(memory.blocks).toEqual({ joan: NOW + 1 });
+    expect(relationship(memory, "margaret")).toBe("friend");
+  });
+
+  it("hides someone's posts, or a single post, and shows them again", () => {
+    const storage = memoryStorage();
+    const store = createCommunityStore(() => storage);
+    const margaret = feedPosts.find(post => post.who === "margaret")!;
+    const tomasz = feedPosts.find(post => post.who === "tomasz")!;
+    store.mute("margaret", NOW);
+    store.hidePost(tomasz.id, NOW + 1);
+    store.hidePost("p-nobody", NOW);
+    let memory = createCommunityStore(() => storage).load();
+    expect(mutedList(memory)).toEqual([{ who: "margaret", at: NOW }]);
+    expect(hiddenPostList(memory)).toEqual([{ postId: tomasz.id, at: NOW + 1 }]);
+    expect(postVisibility(memory, margaret)).toEqual({ shown: false, why: "muted", at: NOW, word: null });
+    expect(postVisibility(memory, tomasz)).toEqual({ shown: false, why: "post", at: NOW + 1, word: null });
+    expect(canSee(memory, "margaret")).toBe(false);
+    expect(relationship(memory, "margaret")).toBe("friend");
+    store.unmute("margaret");
+    store.unhidePost(tomasz.id);
+    memory = store.load();
+    expect(memory.muted).toEqual({});
+    expect(memory.hiddenPosts).toEqual({});
+    expect(postVisibility(memory, margaret)).toEqual({ shown: true });
+  });
+
+  it("hides posts that mention a hidden word, at the start of a word", () => {
+    expect(hiddenWordIn("Back at the hospital today", ["hospital", "falls"])).toBe("hospital");
+    expect(hiddenWordIn("Hospitals are busy", ["hospital"])).toBe("hospital");
+    expect(hiddenWordIn("He FALLS asleep", ["falls"])).toBe("falls");
+    expect(hiddenWordIn("A secure handrail", ["cure"])).toBeNull();
+    expect(hiddenWordIn("Cured!", ["cure"])).toBe("cure");
+    expect(hiddenWordIn("Nothing here", [])).toBeNull();
+    const anne = feedPosts.find(post => post.who === "anne")!;
+    expect(postVisibility(blankCommunityMemory(), anne)).toEqual({ shown: false, why: "words", at: 0, word: "hospital" });
+  });
+
+  it("keeps reports on this device, blocking too when asked", () => {
+    const storage = memoryStorage();
+    const store = createCommunityStore(() => storage);
+    expect(store.report({ who: "nobody" as never, reason: "money" })).toBeNull();
+    expect(store.report({ who: "david", reason: "shouting" as never })).toBeNull();
+    const first = store.report({ who: "priya", postId: "p-priya", reason: "unkind", note: "  Not   kind  " }, NOW);
+    const second = store.report({ who: "gary", postId: "p-unknown", reason: "health", alsoBlock: true }, NOW + 1);
+    expect(first).toMatchObject({ who: "priya", postId: "p-priya", reason: "unkind", note: "Not kind", alsoBlock: false, createdAt: NOW });
+    expect(second).toMatchObject({ who: "gary", postId: null, alsoBlock: true });
+    const memory = createCommunityStore(() => storage).load();
+    expect(memory.reports.map(report => report.id)).toEqual([second!.id, first!.id]);
+    expect(isBlocked(memory, "priya")).toBe(false);
+    store.report({ who: "samuel", reason: "other", alsoBlock: true }, NOW + 2);
+    expect(isBlocked(store.load(), "samuel")).toBe(true);
+    expect(store.load().hiddenPosts).toEqual({});
+    store.removeReport(first!.id);
+    expect(store.load().reports.map(report => report.id)).not.toContain(first!.id);
+  });
+});
+
+describe("alerts", () => {
+  it("counts new alerts until they are seen, or dealt with", () => {
+    const store = createCommunityStore(() => memoryStorage());
+    expect(unseenAlertCount(store.load())).toBe(4);
+    store.markAlertsSeen(["a-circle"]);
+    expect(unseenAlertCount(store.load())).toBe(3);
+    store.acceptRequest("joan");
+    store.markRead("garden");
+    expect(alertList(store.load()).filter(entry => entry.isNew).map(entry => entry.alert.id)).toEqual(["a-liwei"]);
+    store.markAlertsSeen();
+    expect(unseenAlertCount(store.load())).toBe(0);
+    expect(store.load().seenAlerts).toEqual(["a-circle", "a-joan", "a-garden", "a-liwei"]);
+  });
+
+  it("treats the circle alert as done once the seat is taken", () => {
+    const store = createCommunityStore(() => memoryStorage());
+    store.takeSeat();
+    expect(alertList(store.load()).find(entry => entry.alert.id === "a-circle")?.isNew).toBe(false);
+  });
+});
+
+describe("community settings", () => {
+  it("starts with the designed defaults", () => {
+    expect(blankCommunityMemory().settings).toEqual({
+      showTown: true, showOnline: true, picture: "drawn", requestsFrom: "everyone", messagesFrom: "friends",
+      gentleMode: true, showHeartCounts: true, hiddenWords: ["hospital", "falls"], readAloud: false, writeOutVoiceNotes: true,
+      textSize: "normal", quietFrom: 21, quietUntil: 8, breakChoice: "none", breakUntil: null,
+    });
+  });
+
+  it("checks every change and remembers it", () => {
+    const storage = memoryStorage();
+    const store = createCommunityStore(() => storage);
+    store.updateSettings({ gentleMode: false, textSize: "bigger", picture: "initial", quietFrom: 22 });
+    store.updateSettings({ textSize: "huge" as never, quietFrom: 3, requestsFrom: "noOne", showOnline: "yes" as never });
+    const settings = createCommunityStore(() => storage).load().settings;
+    expect(settings).toMatchObject({ gentleMode: false, textSize: "bigger", picture: "initial", quietFrom: 22, requestsFrom: "noOne", showOnline: true });
+    const before = store.load();
+    expect(store.updateSettings({ textSize: "bigger" })).toBe(before);
+    store.resetSettings();
+    expect(store.load().settings).toEqual(defaultCommunitySettings());
+  });
+
+  it("adds and removes hidden words, cleanly", () => {
+    const store = createCommunityStore(() => memoryStorage());
+    expect(cleanHiddenWord("  Money  Talk ")).toBe("money talk");
+    expect(cleanHiddenWord("<b>")).toBe("");
+    expect(store.addHiddenWord("Cure")).toBe(true);
+    expect(store.addHiddenWord("cure")).toBe(false);
+    expect(store.addHiddenWord("   ")).toBe(false);
+    expect(store.load().settings.hiddenWords).toEqual(["hospital", "falls", "cure"]);
+    store.removeHiddenWord("hospital");
+    expect(store.load().settings.hiddenWords).toEqual(["falls", "cure"]);
+    for (let i = 0; i < 30; i++) store.addHiddenWord(`word${i}`);
+    expect(store.load().settings.hiddenWords).toHaveLength(20);
+  });
+
+  it("takes a break of a day or a week, and ends it", () => {
+    const store = createCommunityStore(() => memoryStorage());
+    store.takeBreak("day", NOW);
+    expect(store.load().settings).toMatchObject({ breakChoice: "day", breakUntil: NOW + 86_400_000 });
+    expect(onBreak(store.load().settings, NOW + 1000)).toBe(true);
+    expect(onBreak(store.load().settings, NOW + 2 * 86_400_000)).toBe(false);
+    store.takeBreak("week", NOW);
+    expect(store.load().settings.breakUntil).toBe(NOW + 7 * 86_400_000);
+    store.takeBreak("none", NOW);
+    expect(store.load().settings).toMatchObject({ breakChoice: "none", breakUntil: null });
+  });
+
+  it("knows quiet time, from the evening until 8 am", () => {
+    const settings = defaultCommunitySettings();
+    const at = (hour: number) => new Date(2026, 9, 6, hour, 30);
+    expect(inQuietHours(settings, at(12))).toBe(false);
+    expect(inQuietHours(settings, at(20))).toBe(false);
+    expect(inQuietHours(settings, at(21))).toBe(true);
+    expect(inQuietHours(settings, at(2))).toBe(true);
+    expect(inQuietHours(settings, at(8))).toBe(false);
+    expect(alertsQuiet(settings, at(12))).toBe(false);
+    expect(alertsQuiet({ ...settings, breakChoice: "day", breakUntil: at(12).getTime() + 1000 }, at(12))).toBe(true);
+    expect(hourLabel(21)).toBe("9 pm");
+    expect(hourLabel(8)).toBe("8 am");
+    expect(hourLabel(12)).toBe("12 pm");
+    expect(hourLabel(0)).toBe("12 am");
+  });
+});
+
+describe("loading friends, safety and settings", () => {
+  it("rebuilds only what it knows", () => {
+    const memory = parseCommunityMemory(JSON.stringify({
+      friends: ["priya", "samuel"],
+      answers: { joan: "accepted", liwei: "maybe", margaret: "accepted" },
+      cancelled: ["tomasz", "priya", 7],
+      sentAt: { priya: NOW, samuel: "now", david: NOW },
+      blocks: { gary: 0, margaret: NOW, david: 0, nobody: NOW, anne: -4 },
+      muted: { samuel: NOW, tomasz: 0, "__proto__": NOW },
+      hiddenPosts: { "p-tomasz": NOW, "p-nobody": NOW },
+      reports: [
+        { id: "report-a", who: "gary", postId: "p-gary", reason: "health", note: "x".repeat(900), alsoBlock: true, createdAt: NOW },
+        { id: "report-a", who: "gary", reason: "health", createdAt: NOW },
+        { id: "report-b", who: "zak", reason: "health", createdAt: NOW },
+        { id: "report-c", who: "anne", reason: "rude", createdAt: NOW },
+        { id: "not-a-report", who: "anne", reason: "other", createdAt: NOW },
+        { id: "report-d", who: "anne", postId: "elsewhere", reason: "other", createdAt: NOW },
+      ],
+      seenAlerts: ["a-joan", "a-nothing", "a-joan"],
+      settings: { showTown: false, picture: "cartoon", hiddenWords: ["Falls", "<script>", "falls", 3, "hip op"], textSize: "smaller", quietFrom: 25, quietUntil: 7, breakChoice: "week", breakUntil: NOW, readAloud: "true" },
+    }));
+    expect(memory.answers).toEqual({ joan: "accepted" });
+    expect(memory.cancelled).toEqual(["tomasz"]);
+    expect(memory.sentAt).toEqual({ priya: NOW });
+    expect(memory.blocks).toEqual({ gary: 0, margaret: NOW });
+    expect(memory.muted).toEqual({ samuel: NOW });
+    expect(memory.hiddenPosts).toEqual({ "p-tomasz": NOW });
+    expect(memory.reports.map(report => report.id)).toEqual(["report-a", "report-d"]);
+    expect(memory.reports[0].note).toHaveLength(400);
+    expect(memory.reports[1].postId).toBeNull();
+    expect(memory.seenAlerts).toEqual(["a-joan"]);
+    expect(memory.settings).toEqual({
+      ...defaultCommunitySettings(),
+      showTown: false, hiddenWords: ["falls", "hip op"], textSize: "smaller", quietUntil: 7, breakChoice: "week", breakUntil: NOW,
+    });
+    expect(parseCommunityMemory(JSON.stringify({ settings: { hiddenWords: [] } })).settings.hiddenWords).toEqual([]);
+    expect(parseCommunityMemory(JSON.stringify({ settings: { breakChoice: "day" } })).settings).toMatchObject({ breakChoice: "none", breakUntil: null });
+  });
+
+  it("says how long ago, in days", () => {
+    const noon = new Date(2026, 9, 6, 12).getTime();
+    expect(daysAgoLabel(noon - 3_600_000, noon)).toBe("today");
+    expect(daysAgoLabel(noon - 86_400_000, noon)).toBe("yesterday");
+    expect(daysAgoLabel(noon - 3 * 86_400_000, noon)).toBe("3 days ago");
+    expect(daysAgoLabel(noon - 30 * 86_400_000, noon)).toMatch(/^on \d{1,2} September$/);
   });
 });
 

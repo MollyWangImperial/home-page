@@ -65,14 +65,16 @@ export function myGroups(memory: CommunityMemory): GroupModel[] {
 
 /**
  * The last line said in a group, for its row in the list: the newest of the person's own messages,
- * a message that arrived during this visit, or the group's latest example message.
+ * a message that arrived during this visit, or the group's latest example message. Messages from
+ * people `shown` rules out (blocked or hidden) are skipped.
  */
-export function lastLine(group: GroupModel, memory: CommunityMemory, deliveredAt: number | null, name: (who: PersonId) => string): string {
+export function lastLine(group: GroupModel, memory: CommunityMemory, deliveredAt: number | null, name: (who: PersonId) => string, shown: (who: PersonId) => boolean = () => true): string {
   const lines: { at: number; text: string }[] = [];
   (memory.messages[group.id] ?? []).forEach(note => lines.push({ at: note.createdAt, text: `You: ${note.text || "a photo"}` }));
-  if (deliveredAt !== null && group.incoming) lines.push({ at: deliveredAt, text: `${name(group.incoming.who)}: ${group.incoming.text}` });
+  if (deliveredAt !== null && group.incoming && shown(group.incoming.who)) lines.push({ at: deliveredAt, text: `${name(group.incoming.who)}: ${group.incoming.text}` });
   if (group.started?.hello) lines.push({ at: group.started.createdAt, text: `You: ${group.started.hello}` });
   if (lines.length) return lines.reduce((newest, line) => (line.at >= newest.at ? line : newest)).text;
-  const last = group.messages[group.messages.length - 1];
+  const visible = group.messages.filter(message => shown(message.who));
+  const last = visible[visible.length - 1];
   return last ? `${name(last.who)}: ${last.text}` : "Just you for now. Say hello";
 }

@@ -1,7 +1,11 @@
-/* My community: the page, its heading, tabs and search, shared pieces, and the feed (F).
-   The spaces are in community-spaces.css and starting a group is in community-start.css. */
+/* My community: the page, its heading, toolbar and tabs, the dialogs every overlay is built on,
+   shared pieces, and the feed (F). The spaces are in community-spaces.css, starting a group is in
+   community-start.css, and the toolbar's features each have their own file: community-friends.css
+   (cm-fr-), community-settings.css (cm-set-), community-safety.css (cm-sa-) and community-alerts.css
+   (cm-al-, for Alerts and Find). Overlays render in .cm-layer, beside the page, so it shares the
+   page's colours and sizes. */
 
-.cm-page {
+.cm-page, .cm-layer {
   --cm-ink: #1E2A26;
   --cm-muted: #5F6B66;
   --cm-soft-ink: #4F5A55;
@@ -24,14 +28,14 @@
   --cm-serif: "Instrument Serif", Georgia, serif;
   --cm-post: 19px;
   --cm-message: 17px;
-  container: cm / inline-size;
   font-family: "DM Sans", system-ui, sans-serif;
   color: var(--cm-ink);
 }
-.cm-page *, .cm-page *::before, .cm-page *::after { box-sizing: border-box; }
-.cm-page :where(h1, h2, h3, p, ul, ol, figure, fieldset, legend) { margin: 0; }
-.cm-page :where(button, input, textarea) { font-family: inherit; }
-.cm-page :where(a) { text-decoration: none; }
+.cm-page { container: cm / inline-size; }
+:is(.cm-page, .cm-layer) *, :is(.cm-page, .cm-layer) *::before, :is(.cm-page, .cm-layer) *::after { box-sizing: border-box; }
+:is(.cm-page, .cm-layer) :where(h1, h2, h3, p, ul, ol, figure, fieldset, legend) { margin: 0; }
+:is(.cm-page, .cm-layer) :where(button, input, textarea, select) { font-family: inherit; }
+:is(.cm-page, .cm-layer) :where(a) { text-decoration: none; }
 .cm-sr, .cm-page .chat-sr { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 /* Focus stays visible on the dark green panels too (and on the light bar that sits on one). */
@@ -44,6 +48,29 @@
 .cm-head-row { display: flex; align-items: center; justify-content: space-between; gap: 16px 20px; flex-wrap: wrap; }
 .cm-title { font: 400 48px/1.05 var(--cm-serif); letter-spacing: -0.01em; color: var(--cm-ink); }
 .cm-title:focus-visible { outline-offset: 6px; }
+
+/* The community look: a dotted page, so My community feels like its own place in the app. */
+.recovery-shell.cm-shell { background-color: #F5F3EE; background-image: radial-gradient(rgba(30, 42, 38, .075) 1.1px, transparent 1.3px); background-size: 22px 22px; }
+@media (min-width: 621px) { .recovery-shell.cm-shell .recovery-topbar { background: transparent; } }
+
+/* The three-circle mark beside the title. */
+.cm-brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.cm-mark { position: relative; flex-shrink: 0; width: 46px; height: 34px; }
+.cm-mark i { position: absolute; width: 22px; height: 22px; border-radius: 999px; }
+.cm-mark i:nth-child(1) { left: 0; top: 6px; background: #E8795A; opacity: .9; }
+.cm-mark i:nth-child(2) { left: 12px; top: 0; background: #F2C14E; opacity: .9; mix-blend-mode: multiply; }
+.cm-mark i:nth-child(3) { left: 24px; top: 8px; background: #2E7D5B; opacity: .85; mix-blend-mode: multiply; }
+
+/* The toolbar: Find, Alerts, Friends, Safety, Settings. Each is a round icon with its name under it. */
+.cm-tools { display: flex; align-items: flex-start; gap: 6px; }
+.cm-tool { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 62px; padding: 0; border: 0; border-radius: 16px; background: none; color: var(--cm-ink); font: inherit; cursor: pointer; }
+.cm-tool-icon { position: relative; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; border: 1.5px solid var(--cm-chip-line); border-radius: 999px; background: var(--cm-card); color: var(--cm-green); transition: background .2s ease, border-color .2s ease, color .2s ease; }
+.cm-tool-label { color: var(--cm-ink); font-size: 13px; font-weight: 600; line-height: 1.2; }
+.cm-tool:hover .cm-tool-icon { border-color: #BDB5A5; background: #FFFFFF; }
+.cm-tool.is-on .cm-tool-icon { border-color: var(--cm-green); background: var(--cm-green); color: #FFFFFF; }
+.cm-tool.is-on .cm-tool-label { font-weight: 700; }
+.cm-tool:hover, .cm-tool:focus-visible { color: var(--cm-ink); }
+.cm-tool-badge { position: absolute; top: -5px; right: -6px; display: flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border: 2px solid var(--cm-cream); border-radius: 999px; background: var(--cm-rust); color: #FFFFFF; font-size: 12.5px; font-weight: 700; line-height: 1; }
 
 
 .cm-tabs { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -59,33 +86,11 @@
 
 .cm-badge { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: var(--cm-rust); color: #FFFFFF; font-size: 13.5px; font-weight: 700; }
 
-/* ----------------------------------------------------------------- search */
-
-.cm-search { position: relative; width: 300px; max-width: 100%; }
-.cm-search-box { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 6px 0 18px; border-radius: 999px; border: 1px solid var(--cm-line); background: var(--cm-card); color: var(--cm-muted); }
-.cm-search-box:focus-within { border-color: #7FA493; outline: 3px solid #159a8e; outline-offset: 2px; }
-.cm-search-box input { flex: 1; min-width: 0; height: 100%; border: 0; outline: none; background: transparent; color: var(--cm-ink); font: 400 16.5px "DM Sans", system-ui, sans-serif; }
-.cm-search-box input:focus-visible { outline: none !important; }
-.cm-search-box input::placeholder { color: var(--cm-placeholder); opacity: 1; }
-.cm-search-box input::-webkit-search-cancel-button { display: none; }
-.cm-search-clear { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border: 0; border-radius: 999px; background: transparent; color: var(--cm-muted); cursor: pointer; }
-.cm-search-clear:hover { background: var(--cm-bubble); }
-.cm-search-results { position: absolute; z-index: 30; top: calc(100% + 8px); right: 0; width: min(380px, calc(100vw - 32px)); max-height: 440px; overflow-y: auto; padding: 8px 14px 14px; border: 1px solid var(--cm-line); border-radius: 20px; background: var(--cm-card); box-shadow: 0 18px 40px rgba(30, 42, 38, .16); }
-.cm-search-results h3 { margin: 10px 2px 4px; color: var(--cm-muted); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
-.cm-search-results ul { display: grid; gap: 2px; padding: 0; list-style: none; }
-.cm-search-results li { display: flex; align-items: center; gap: 12px; min-height: 58px; }
-.cm-search-text { display: flex; flex: 1; flex-direction: column; gap: 1px; min-width: 0; }
-.cm-search-text b { font-size: 16px; font-weight: 700; }
-.cm-search-text span { overflow: hidden; color: var(--cm-muted); font-size: 13.5px; white-space: nowrap; text-overflow: ellipsis; }
-.cm-search-go { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; min-height: 44px; padding: 0 10px 0 14px; border: 1.5px solid var(--cm-green); border-radius: 999px; color: var(--cm-green); font-size: 14.5px; font-weight: 700; }
-.cm-search-go:hover { background: var(--cm-mint); color: var(--cm-green); }
-.cm-search-empty { padding: 10px 2px 2px; color: var(--cm-muted); font-size: 15px; line-height: 1.45; }
-
 /* ----------------------------------------------------------------- layout */
 
 .cm-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
 .cm-lane, .cm-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.cm-card { border: 1px solid var(--cm-line); border-radius: 22px; background: var(--cm-card); box-shadow: var(--cm-shadow); }
+.cm-card { border: 1px solid var(--cm-line); border-radius: 24px; background: var(--cm-card); box-shadow: var(--cm-shadow); }
 
 @container cm (max-width: 760px) {
   .cm-layout { grid-template-columns: minmax(0, 1fr); }
@@ -212,7 +217,91 @@
 .cm-voice.is-mine :is(.cm-voice-time, .cm-voice-caption) { color: #FBE3DB; }
 .cm-voice.is-mine .cm-voice-words { margin: 0; }
 
+/* ---------------------------------------------------------------- dialogs */
+
+/* CommunityDialog (components/community/dialog.tsx): a drawer from the right, a sheet in the
+   middle (at the bottom on a phone), or a panel under a toolbar button. Each sits over a dimmed page. */
+.cm-dialog-layer { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
+.cm-scrim { position: absolute; inset: 0; background: rgba(30, 42, 38, .42); pointer-events: auto; animation: cm-fade-in .35s ease both; }
+.cm-dialog-layer-panel .cm-scrim { background: rgba(30, 42, 38, .18); }
+.cm-dialog { position: absolute; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; overscroll-behavior: contain; background: #FBF8F2; color: var(--cm-ink); pointer-events: auto; }
+.cm-dialog:focus { outline: none; }
+.cm-dialog-drawer { top: 0; right: 0; bottom: 0; width: min(540px, 100vw); padding: 30px 30px 22px; border-radius: 30px 0 0 30px; box-shadow: -24px 0 60px rgba(30, 42, 38, .25); animation: cm-drawer-in .5s cubic-bezier(.2, .8, .2, 1) both; }
+.cm-dialog-sheet { top: 50%; left: 50%; width: min(620px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 26px 30px 28px; border-radius: 30px; box-shadow: 0 30px 80px rgba(30, 42, 38, .35); transform: translate(-50%, -50%); animation: cm-sheet-in .45s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes cm-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cm-drawer-in { from { opacity: 0; transform: translateX(60px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes cm-sheet-in { from { opacity: 0; transform: translate(-50%, calc(-50% + 26px)) scale(.98); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes cm-sheet-up { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+.cm-dialog-panel { top: 150px; right: 24px; width: min(400px, calc(100vw - 32px)); max-height: calc(100vh - 170px); padding: 18px 18px 20px; border: 1px solid var(--cm-line); border-radius: 24px; background: var(--cm-card); box-shadow: 0 18px 40px rgba(30, 42, 38, .18); animation: cm-pop .3s cubic-bezier(.2, .8, .2, 1) both; transform-origin: top right; }
+
+.cm-dialog-head { display: flex; align-items: flex-start; gap: 14px; }
+.cm-dialog-titles { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+.cm-dialog-titles > p { color: var(--cm-muted); font-size: 16px; line-height: 1.4; }
+.cm-dialog-title { color: var(--cm-ink); font: 400 44px/1 var(--cm-serif); }
+.cm-dialog-title-small { font: 400 30px/1.05 var(--cm-serif); }
+.cm-dialog-title:focus-visible { outline-offset: 4px; }
+.cm-dialog-close { display: grid; place-items: center; flex-shrink: 0; width: 48px; height: 48px; border: 1.5px solid var(--cm-chip-line); border-radius: 999px; background: var(--cm-card); color: var(--cm-ink); cursor: pointer; }
+.cm-dialog-close:hover { background: #FFFFFF; border-color: #BDB5A5; }
+/* The dialog box itself scrolls, so its body grows with what is in it and never squeezes a foot link. */
+.cm-dialog-body { display: flex; flex: 1 0 auto; flex-direction: column; gap: 12px; }
+.cm-dialog-foot-link { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 12px 16px; border-radius: 18px; background: var(--cm-bubble); color: var(--cm-ink); font-size: 15.5px; }
+.cm-dialog-foot-link > svg { flex-shrink: 0; color: var(--cm-green); }
+.cm-dialog-foot-link > span:nth-child(2) { flex: 1; min-width: 0; }
+.cm-dialog-foot-action { color: var(--cm-green); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.cm-dialog-foot-link:hover { background: #EBE7DE; color: var(--cm-ink); }
+
+/* Pieces the overlays and the Settings and Safety pages share. */
+.cm-segments { display: flex; gap: 4px; padding: 4px; border-radius: 16px; background: #EBE7DE; }
+.cm-segment { display: flex; flex: 1 1 0; align-items: center; justify-content: center; gap: 7px; min-width: 0; min-height: 48px; padding: 6px 10px; border: 0; border-radius: 12px; background: transparent; color: var(--cm-soft-ink); font-size: 15.5px; font-weight: 700; line-height: 1.2; cursor: pointer; }
+.cm-segment:is([aria-selected="true"], [aria-pressed="true"]) { background: var(--cm-card); color: var(--cm-green); box-shadow: 0 1px 4px rgba(30, 42, 38, .16); }
+.cm-segment-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: #DDD7CB; color: var(--cm-ink); font-size: 12.5px; }
+.cm-plain-list { display: flex; flex-direction: column; gap: 4px; padding: 0; list-style: none; }
+.cm-plain-row { display: flex; align-items: center; gap: 12px; min-height: 60px; color: var(--cm-ink); }
+.cm-plain-link { margin: 0 -8px; padding: 6px 8px; border-radius: 16px; }
+.cm-plain-link:hover { background: #F3F1EA; color: var(--cm-ink); }
+.cm-plain-text { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.cm-plain-text > b { font-size: 17px; font-weight: 700; overflow-wrap: anywhere; }
+.cm-plain-text > span { color: var(--cm-muted); font-size: 14.5px; line-height: 1.35; }
+.cm-plain-empty { padding: 8px 2px; color: var(--cm-muted); font-size: 15.5px; }
+/* A switch: role="switch" on a button, with aria-checked. */
+.cm-switch { position: relative; flex-shrink: 0; width: 60px; height: 34px; border: 0; border-radius: 999px; background: #7D857F; cursor: pointer; transition: background .25s ease; }
+.cm-switch::before { content: ""; position: absolute; inset: -5px -2px; }
+.cm-switch > span { position: absolute; top: 4px; left: 4px; width: 26px; height: 26px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform .28s cubic-bezier(.2, .8, .2, 1); }
+.cm-switch[aria-checked="true"] { background: var(--cm-ok); }
+.cm-switch[aria-checked="true"] > span { transform: translateX(26px); }
+
+/* The Settings and Safety pages: a heading in the page's own type. */
+.cm-view-head { display: flex; align-items: center; gap: 14px; }
+.cm-view-title { color: var(--cm-ink); font: 400 34px/1.05 var(--cm-serif); }
+.cm-view-title:focus-visible { outline-offset: 4px; }
+.cm-view-intro { color: var(--cm-muted); font-size: 15.5px; }
+.cm-set-page, .cm-sa-page { display: flex; flex-direction: column; gap: 16px; max-width: 980px; }
+
+@media (max-width: 620px) {
+  .cm-dialog-drawer { width: 100vw; padding: 22px 16px 16px; border-radius: 0; }
+  .cm-dialog-sheet { top: auto; bottom: 0; left: 0; width: 100vw; max-height: calc(100vh - 24px); padding: 22px 16px calc(20px + env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; transform: none; animation-name: cm-sheet-up; }
+  .cm-dialog-panel { left: 12px !important; right: 12px !important; width: auto; }
+  .cm-dialog-title { font-size: 38px; }
+}
+
 /* ------------------------------------------------------------------- feed */
+
+/* The ··· button on a post: hide, block or report. */
+.cm-more { display: grid; place-items: center; flex-shrink: 0; width: 46px; height: 46px; border: 1.5px solid var(--cm-chip-line); border-radius: 999px; background: var(--cm-cream); color: var(--cm-ink); cursor: pointer; }
+.cm-more:hover, .cm-more[aria-expanded="true"] { border-color: var(--cm-rust); background: var(--cm-card); }
+/* "Read posts aloud": the device reads the post. */
+.cm-listen { display: inline-flex; align-self: flex-start; align-items: center; gap: 7px; min-height: 44px; padding: 0 16px; border: 1.5px solid #B9A6D9; border-radius: 999px; background: #F3EFF9; color: #45357A; font-size: 15px; font-weight: 700; cursor: pointer; }
+.cm-listen.is-on { border-color: #45357A; background: #E9E2F4; }
+/* Gentle mode: a sad or upsetting post stays covered until it is shown. */
+.cm-gentle { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 16px 18px; border-radius: 18px; background: #EFEBE3; }
+.cm-gentle > p { flex: 1 1 260px; color: var(--cm-ink); font-size: 16.5px; line-height: 1.45; }
+.cm-gentle-icon { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 14px; background: var(--cm-card); color: var(--cm-soft-ink); }
+.cm-gentle-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+/* Where a post was before it was hidden, with Undo; and the note about posts hidden by words. */
+.cm-hidden-note, .cm-words-note { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 10px 14px 10px 18px; border-radius: 18px; background: #EBE7DE; }
+.cm-hidden-note > p, .cm-words-note > p { flex: 1 1 220px; color: var(--cm-soft-ink); font-size: 15.5px; line-height: 1.45; }
+.cm-hidden-icon { display: flex; flex-shrink: 0; color: var(--cm-soft-ink); }
+.cm-words-actions { display: flex; flex-wrap: wrap; gap: 0 6px; }
 
 .cm-composer { padding: 18px; }
 .cm-composer form { display: flex; flex-direction: column; gap: 12px; }
@@ -250,12 +339,19 @@
 .cm-post-photo { display: block; width: 100%; height: 220px; border-radius: 16px; object-fit: cover; }
 .cm-post-photo.is-own { height: auto; max-height: 380px; background: #EFEBE2; object-fit: contain; }
 .cm-post.is-mine { border-color: #CFE2D6; }
+/* The post the hide, block or report sheet is about, while the sheet is open (its ··· is marked too). */
+.cm-post.is-acting { border-color: var(--cm-rust); box-shadow: 0 0 0 1px var(--cm-rust), var(--cm-shadow); }
 .cm-post-tags { display: flex; flex-wrap: wrap; gap: 8px; }
 .cm-tag { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px; font-size: 14px; font-weight: 700; }
 .cm-tag-win { background: var(--cm-mint); color: var(--cm-green); }
 .cm-tag-feeling { background: #FBEBC2; color: #6B5108; }
-.cm-friend { flex-shrink: 0; height: 44px; padding: 0 16px; border: 1.5px solid var(--cm-green); border-radius: 999px; background: transparent; color: var(--cm-green); font-size: 15px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.cm-friend { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; gap: 6px; height: 44px; padding: 0 16px; border: 1.5px solid var(--cm-green); border-radius: 999px; background: transparent; color: var(--cm-green); font-size: 15px; font-weight: 700; white-space: nowrap; cursor: pointer; }
 .cm-friend.is-on { background: var(--cm-green); color: #FFFFFF; }
+.cm-friend.is-friend { border-color: transparent; background: var(--cm-mint); cursor: default; }
+.cm-friend.is-asking { border-color: var(--cm-rust); color: var(--cm-rust-dark); }
+.cm-friend.is-asking:hover { background: #FBF0EB; color: var(--cm-rust-dark); }
+.cm-voice-show { align-self: flex-start; min-height: 44px; padding: 0 14px; border: 1.5px solid #E5A893; border-radius: 999px; background: transparent; color: var(--cm-rust-dark); font-size: 14.5px; font-weight: 700; cursor: pointer; }
+.cm-voice.is-mine .cm-voice-show { border-color: rgba(255, 255, 255, .5); color: #FFFFFF; }
 
 .cm-reactions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .cm-react { display: inline-flex; align-items: center; gap: 7px; height: 46px; padding: 0 14px; border: 1.5px solid var(--cm-chip-line); border-radius: 999px; background: var(--cm-card); color: var(--cm-ink); font-size: 15.5px; font-weight: 600; cursor: pointer; transition: background .2s ease, border-color .2s ease, color .2s ease; }
@@ -347,11 +443,18 @@
 
 /* ------------------------------------------------- comfort and small screens */
 
-.recovery-large-text .cm-page { --cm-post: 21px; --cm-message: 19px; }
+.recovery-large-text :is(.cm-page, .cm-layer) { --cm-post: 21px; --cm-message: 19px; }
 .recovery-large-text .cm-page :is(.cm-comment p, .cm-said-text, .cm-speech-inner, .cm-peek-bubble, .cm-starter-text) { font-size: 18px; }
-.recovery-large-text .cm-page :is(.cm-post-meta, .cm-card-note, .cm-group-text > span, .cm-hint, .cm-only-you, .cm-wave-text > span, .cm-upcoming-text > span) { font-size: 16px; }
-.recovery-strong-contrast .cm-page { --cm-muted: #3A4440; --cm-soft-ink: #333C38; --cm-line: #A9B0A9; --cm-chip-line: #8F978F; --cm-placeholder: #4B5550; }
-.recovery-strong-contrast .cm-page .cm-card { border-color: #7DA08C; }
+.recovery-large-text :is(.cm-page, .cm-layer) :is(.cm-post-meta, .cm-card-note, .cm-group-text > span, .cm-hint, .cm-only-you, .cm-wave-text > span, .cm-upcoming-text > span, .cm-plain-text > span) { font-size: 16px; }
+.recovery-strong-contrast :is(.cm-page, .cm-layer) { --cm-muted: #3A4440; --cm-soft-ink: #333C38; --cm-line: #A9B0A9; --cm-chip-line: #8F978F; --cm-placeholder: #4B5550; }
+.recovery-strong-contrast :is(.cm-page, .cm-layer) .cm-card { border-color: #7DA08C; }
+
+/* "Text size in My community" (Community settings): smaller, normal or bigger posts and messages.
+   It comes after the app's larger text, so the community's own choice wins here. */
+:is(.cm-page, .cm-layer).cm-text-smaller { --cm-post: 16px; --cm-message: 15px; }
+:is(.cm-page, .cm-layer).cm-text-bigger { --cm-post: 23px; --cm-message: 20px; }
+:is(.cm-page, .cm-layer).cm-text-smaller :is(.cm-comment p, .cm-peek-bubble) { font-size: 15px; }
+:is(.cm-page, .cm-layer).cm-text-bigger :is(.cm-comment p, .cm-peek-bubble, .cm-starter-text, .cm-said-text) { font-size: 19.5px; }
 
 @container cm (max-width: 560px) {
   .cm-composer-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -367,17 +470,24 @@
   .cm-post-head { flex-wrap: wrap; row-gap: 8px; }
   .cm-post-head .cm-post-who { flex-basis: calc(100% - 60px); }
   .cm-post-head :is(.cm-friend, .cm-text-button, .cm-confirm) { margin-left: 60px; }
+  .cm-post-head .cm-post-who + .cm-more { margin-left: 60px; }
 }
 
 @media (max-width: 620px) {
   .cm-title { font-size: 40px; }
-  .cm-search { width: 100%; }
+  .cm-tools { justify-content: space-between; width: 100%; gap: 2px; }
+  .cm-tool { width: 60px; }
   .cm-tabs { gap: 8px; }
   .cm-tab, .cm-tab:first-child { height: 46px; padding: 0 14px; gap: 7px; font-size: 15.5px; }
   .cm-side-card, .cm-composer { padding: 16px; }
   .cm-page { --cm-post: 18px; }
 }
 
+@media (max-width: 360px) {
+  .cm-tool { width: 56px; }
+  .cm-tool-icon { width: 46px; height: 46px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .cm-page *, .cm-page *::before, .cm-page *::after { animation: none !important; transition: none !important; }
+  :is(.cm-page, .cm-layer) *, :is(.cm-page, .cm-layer) *::before, :is(.cm-page, .cm-layer) *::after { animation: none !important; transition: none !important; }
 }

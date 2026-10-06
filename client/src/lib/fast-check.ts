@@ -1,6 +1,7 @@
 export const FAST_CHECK_PATH = "/fast-check";
 const RETURN_ORIGIN = "https://rehyn.invalid";
-const RETURN_PAGES = new Set(["/", "/welcome", "/journey", "/alira", "/my-time"]);
+// My community keeps its view in the query (?space=safety), so the check comes back to that view.
+const RETURN_PAGES = new Set(["/", "/welcome", "/journey", "/alira", "/my-time", "/community"]);
 
 function safeReturnPath(value: string | null): string {
   if (!value?.startsWith("/") || value.startsWith("//")) return "/";

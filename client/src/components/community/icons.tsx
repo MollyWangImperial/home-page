@@ -36,6 +36,28 @@ export const CloseIcon = (props: IconProps) => <Icon strokeWidth={2} {...props}>
 export const PlayIcon = (props: IconProps) => <Icon fill="currentColor" strokeWidth={1.4} {...props}><path d="M8 5.6v12.8l10.5-6.4z" /></Icon>;
 export const StopIcon = (props: IconProps) => <Icon fill="currentColor" strokeWidth={1.4} {...props}><rect x="7" y="7" width="10" height="10" rx="1.6" /></Icon>;
 export const PauseIcon = (props: IconProps) => <Icon fill="currentColor" strokeWidth={1.2} {...props}><rect x="7" y="5.5" width="3.4" height="13" rx="1" /><rect x="13.6" y="5.5" width="3.4" height="13" rx="1" /></Icon>;
+/* The toolbar, the Friends drawer, settings and safety (F4 to F6). */
+export const BellIcon = (props: IconProps) => <Icon {...props}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></Icon>;
+export const SlidersIcon = (props: IconProps) => <Icon {...props}><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" /><circle cx="15" cy="6" r="2" /><circle cx="9" cy="12" r="2" /><circle cx="17" cy="18" r="2" /></Icon>;
+export const DotsIcon = (props: IconProps) => <Icon {...props}><circle cx="5" cy="12" r="1.6" fill="currentColor" /><circle cx="12" cy="12" r="1.6" fill="currentColor" /><circle cx="19" cy="12" r="1.6" fill="currentColor" /></Icon>;
+export const EyeIcon = (props: IconProps) => <Icon {...props}><path d="M2 12c1-2.5 5-7 10-7s9 4.5 10 7c-1 2.5-5 7-10 7S3 14.5 2 12z" /><circle cx="12" cy="12" r="3" /></Icon>;
+export const EyeOffIcon = (props: IconProps) => <Icon {...props}><path d="M3 3l18 18" /><path d="M10.6 5.1A10 10 0 0 1 12 5c5 0 9 4.5 10 7-.4 1-1.2 2.3-2.4 3.6M6.6 6.6C4.4 8 2.8 10.2 2 12c1 2.5 5 7 10 7 1.7 0 3.3-.5 4.7-1.3" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></Icon>;
+export const BlockIcon = (props: IconProps) => <Icon {...props}><circle cx="12" cy="12" r="9" /><path d="m5.6 5.6 12.8 12.8" /></Icon>;
+export const FlagIcon = (props: IconProps) => <Icon {...props}><path d="M5 21V4" /><path d="M5 4h12l-2.5 4 2.5 4H5" /></Icon>;
+export const PersonIcon = (props: IconProps) => <Icon {...props}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" /></Icon>;
+export const ClockIcon = (props: IconProps) => <Icon {...props}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></Icon>;
+export const MoonIcon = (props: IconProps) => <Icon {...props}><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" /></Icon>;
+export const SpeakerIcon = (props: IconProps) => <Icon {...props}><path d="M11 5 6 9H3v6h3l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /></Icon>;
+export const ChevronDownIcon = (props: IconProps) => <Icon strokeWidth={2} {...props}><path d="m6 9 6 6 6-6" /></Icon>;
+export const MinusIcon = (props: IconProps) => <Icon strokeWidth={2.2} {...props}><path d="M5 12h14" /></Icon>;
+export const QuestionIcon = (props: IconProps) => <Icon {...props}><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.5" /><circle cx="12" cy="17" r=".6" /></Icon>;
+export const PauseCircleIcon = (props: IconProps) => <Icon {...props}><circle cx="12" cy="12" r="9" /><path d="M10 9v6M14 9v6" /></Icon>;
+/* Report reasons. */
+export const CoinsIcon = (props: IconProps) => <Icon {...props}><circle cx="9" cy="9" r="6" /><path d="M15.4 9.6a6 6 0 1 1-5.8 5.8" /><path d="M9 6.5v5M7.5 8h3" /></Icon>;
+export const BandageIcon = (props: IconProps) => <Icon {...props}><path d="M10.5 20.5a5 5 0 0 1-7-7l6-6a5 5 0 0 1 7 7z" /><path d="m8.5 8.5 7 7" /></Icon>;
+export const FrownIcon = (props: IconProps) => <Icon {...props}><circle cx="12" cy="12" r="9" /><path d="M8.5 16c2-2 5-2 7 0" /><path d="M9 9.5v.5M15 9.5v.5" /></Icon>;
+export const MaskIcon = (props: IconProps) => <Icon {...props}><path d="M3 7c3-1.5 6-1.5 9 0 3-1.5 6-1.5 9 0 0 6-3 10-9 10S3 13 3 7z" /><path d="M7.5 11h2M14.5 11h2" /></Icon>;
+export const EllipsisCircleIcon = (props: IconProps) => <Icon {...props}><circle cx="12" cy="12" r="9" /><path d="M8 12h.01M12 12h.01M16 12h.01" /></Icon>;
 export const RingIcon = (props: IconProps) => (
   <Icon fill="currentColor" stroke="none" {...props}>
     <circle cx="12" cy="4" r="2" /><circle cx="18.9" cy="8" r="2" /><circle cx="18.9" cy="16" r="2" />

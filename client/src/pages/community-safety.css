@@ -1,0 +1,214 @@
+/* My community: Safety page and the hide, block or report sheet (F6). Classes here start with cm-sa-. Imported after community.css. */
+
+/* ------------------------------------------------------------ colours */
+
+.cm-sa-tone-mint { background: var(--cm-mint); color: var(--cm-green); }
+.cm-sa-tone-amber { background: #FBEBC2; color: #6B5108; }
+.cm-sa-tone-rose { background: #FBE3DB; color: var(--cm-rust-dark); }
+.cm-sa-tone-blue { background: #DCECF4; color: #1F4E66; }
+.cm-sa-ink-ok { color: var(--cm-ok); }
+.cm-sa-ink-green { color: var(--cm-green); }
+.cm-sa-ink-amber { color: #6B5108; }
+.cm-sa-ink-blue { color: #1F4E66; }
+
+/* -------------------------------------------------------------- sheet */
+
+/* The sheet opens over the page; each step slides in from the right as it comes. */
+.cm-sa-sheet { gap: 18px; }
+.cm-sa-step { display: flex; flex-direction: column; gap: 16px; animation: cm-sa-step-in .4s cubic-bezier(.2, .8, .2, 1) both; }
+.cm-sa-finished { text-align: center; }
+@keyframes cm-sa-step-in { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: translateX(0); } }
+
+/* The menu: who it is about, and the three things that can be done. */
+.cm-sa-who { display: flex; align-items: center; gap: 16px; }
+.cm-sa-who-text { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.cm-sa-name { color: var(--cm-ink); font: 400 34px/1.05 var(--cm-serif); overflow-wrap: anywhere; }
+.cm-sa-about { color: var(--cm-muted); font-size: 15px; line-height: 1.4; }
+.cm-sa-intro { color: var(--cm-soft-ink); font-size: 16px; line-height: 1.45; }
+.cm-sa-option { display: flex; align-items: center; gap: 16px; width: 100%; min-height: 76px; padding: 12px 16px; border: 1.5px solid var(--cm-line); border-radius: 18px; background: var(--cm-card); color: var(--cm-ink); font: inherit; text-align: left; cursor: pointer; transition: border-color .2s ease, background .2s ease; }
+.cm-sa-option:hover { border-color: #BDB5A5; background: #FFFFFF; }
+.cm-sa-option-icon { display: grid; place-items: center; flex-shrink: 0; width: 50px; height: 50px; border-radius: 16px; }
+.cm-sa-option-text { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.cm-sa-option-text > b { font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+.cm-sa-option-text > span { color: var(--cm-muted); font-size: 14.5px; line-height: 1.4; }
+.cm-sa-option-go { display: flex; flex-shrink: 0; color: var(--cm-soft-ink); }
+.cm-sa-never, .cm-sa-also { min-height: 50px; padding: 0 16px; border: 0; background: transparent; color: var(--cm-green); font-size: 16px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.cm-sa-also { min-height: 46px; font-size: 15.5px; }
+.cm-sa-never:hover, .cm-sa-also:hover { color: var(--cm-ok); }
+
+/* The top of a step: Back, and how far through the report the person is. */
+.cm-sa-top { display: flex; align-items: center; gap: 12px; }
+.cm-sa-back { display: grid; place-items: center; flex-shrink: 0; width: 46px; height: 46px; border: 1.5px solid var(--cm-chip-line); border-radius: 999px; background: var(--cm-card); color: var(--cm-ink); cursor: pointer; }
+.cm-sa-back:hover { border-color: #BDB5A5; background: #FFFFFF; }
+.cm-sa-progress { display: flex; align-items: center; gap: 6px; margin-left: auto; color: var(--cm-muted); font-size: 13.5px; }
+.cm-sa-progress > i { width: 10px; height: 10px; border-radius: 999px; background: var(--cm-chip-line); }
+.cm-sa-progress > i.is-on { width: 26px; background: var(--cm-green); }
+.cm-sa-progress > span { margin-left: 4px; }
+
+.cm-sa-titles { display: flex; flex-direction: column; gap: 6px; }
+.cm-sa-titles > p { color: var(--cm-muted); font-size: 16px; line-height: 1.45; }
+.cm-sa-title { color: var(--cm-ink); font: 400 36px/1.08 var(--cm-serif); overflow-wrap: anywhere; }
+.cm-sa-title-done { font-size: 38px; line-height: 1.1; }
+:is(.cm-sa-name, .cm-sa-title):focus-visible { outline-offset: 4px; }
+
+/* Step 1: why. Two by two, with "Something else" across the bottom. */
+.cm-sa-reasons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.cm-sa-reason { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 10px; min-width: 0; min-height: 96px; padding: 14px; border: 2.5px solid transparent; border-radius: 18px; font: inherit; text-align: left; cursor: pointer; transition: border-color .2s ease; }
+.cm-sa-reason:not(.is-on):hover { border-color: rgba(28, 74, 60, .3); }
+.cm-sa-reason.is-on { border-color: var(--cm-green); }
+.cm-sa-reason.is-wide { grid-column: span 2; flex-direction: row; align-items: center; justify-content: flex-start; min-height: 64px; }
+.cm-sa-reason-icon { display: flex; }
+.cm-sa-reason-label { color: var(--cm-ink); font-size: 16.5px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.cm-sa-reason.is-wide .cm-sa-reason-label { padding-right: 32px; }
+.cm-sa-reason-check { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; background: var(--cm-green); color: #FFFFFF; }
+.cm-sa-next { display: flex; flex-direction: column; }
+.cm-sa-need { color: var(--cm-rust-dark); font-size: 15px; font-weight: 600; line-height: 1.45; }
+.cm-sa-need:not(:empty) { margin-bottom: 10px; }
+
+/* Step 2: a note, the post it is about, and whether to block them too. */
+.cm-sa-note { display: flex; }
+.cm-sa-note textarea { width: 100%; min-width: 0; min-height: 60px; max-height: 200px; padding: 16px 18px; border: 1.5px solid var(--cm-chip-line); border-radius: 16px; background: var(--cm-card); color: var(--cm-ink); font: 400 17px/1.4 "DM Sans", system-ui, sans-serif; resize: vertical; field-sizing: content; }
+.cm-sa-note textarea::placeholder { color: var(--cm-placeholder); opacity: 1; }
+.cm-sa-note textarea:focus { border-color: #7FA493; }
+.cm-sa-quote { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 16px; background: var(--cm-bubble); }
+.cm-sa-quote-head { display: flex; align-items: center; gap: 8px; color: var(--cm-soft-ink); font-size: 13.5px; font-weight: 700; line-height: 1.35; }
+.cm-sa-quote-head > svg { flex-shrink: 0; }
+.cm-sa-quote-text { color: var(--cm-soft-ink); font-size: max(15px, calc(var(--cm-post) - 3.5px)); font-style: italic; line-height: 1.4; overflow-wrap: anywhere; }
+/* A post the person's settings keep out of sight (gentle mode, hidden words) is not quoted. */
+.cm-sa-quote-covered { color: var(--cm-soft-ink); font-size: 15px; line-height: 1.45; }
+.cm-sa-switch-row { display: flex; align-items: center; gap: 16px; min-height: 52px; }
+.cm-sa-switch-text { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.cm-sa-switch-text > span:first-child { color: var(--cm-ink); font-size: 17px; font-weight: 600; }
+.cm-sa-switch-text > span:last-child { color: var(--cm-muted); font-size: 14px; line-height: 1.35; }
+.cm-sa-already { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: #FBEBC2; color: #6B5108; font-size: 15.5px; font-weight: 600; }
+.cm-sa-already > svg { flex-shrink: 0; }
+
+/* Big buttons along the bottom of a step. */
+.cm-sa-wide { display: inline-flex; align-items: center; justify-content: center; min-height: 56px; padding: 8px 18px; border: 0; border-radius: 16px; font-size: 17px; font-weight: 700; line-height: 1.25; text-align: center; cursor: pointer; transition: background .2s ease; }
+.cm-sa-green { background: var(--cm-green); color: #FFFFFF; }
+.cm-sa-green:hover { background: #163C31; color: #FFFFFF; }
+.cm-sa-rust { background: var(--cm-rust); color: #FFFFFF; }
+.cm-sa-rust:hover { background: #A04626; color: #FFFFFF; }
+.cm-sa-danger { background: var(--cm-rust-dark); color: #FFFFFF; }
+.cm-sa-danger:hover { background: #76291A; color: #FFFFFF; }
+.cm-sa-outline { border: 1.5px solid var(--cm-green); background: transparent; color: var(--cm-green); }
+.cm-sa-outline:hover { background: var(--cm-mint); color: var(--cm-green); }
+.cm-sa-plain { border: 1.5px solid #CFC9BC; background: transparent; color: var(--cm-ink); }
+.cm-sa-plain:hover { background: var(--cm-bubble); }
+/* "Next" before a reason is chosen: it says why it waits rather than doing nothing. */
+.cm-sa-waiting { background: #DDD7CB; color: #4F5A55; cursor: default; }
+.cm-sa-pair { display: flex; flex-wrap: wrap; gap: 10px; }
+.cm-sa-pair > * { flex: 1 1 180px; }
+.cm-sa-pair-spaced { margin-top: 6px; }
+
+/* Blocking: what it does, before it is done. */
+.cm-sa-lines { display: flex; flex-direction: column; gap: 16px; padding: 0; list-style: none; }
+.cm-sa-lines > li { display: flex; align-items: center; gap: 12px; color: var(--cm-ink); font-size: 17px; line-height: 1.4; }
+.cm-sa-line-icon { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 14px; }
+
+/* The end of a step: a tick, a heading, and what happened, all on this device. */
+.cm-sa-big { display: grid; place-items: center; align-self: center; width: 84px; height: 84px; border-radius: 999px; }
+.cm-sa-tick { display: flex; }
+.cm-sa-tick path { stroke-dasharray: 40; animation: cm-sa-draw .6s .15s ease-out both; }
+@keyframes cm-sa-draw { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
+.cm-sa-done-text { color: var(--cm-soft-ink); font-size: 17px; line-height: 1.5; }
+.cm-sa-facts { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border: 1px solid var(--cm-line); border-radius: 18px; background: var(--cm-card); list-style: none; text-align: left; }
+.cm-sa-facts > li { display: flex; align-items: center; gap: 10px; color: var(--cm-ink); font-size: 16px; line-height: 1.4; }
+.cm-sa-facts svg { flex-shrink: 0; }
+.cm-sa-alira { display: inline-flex; align-self: center; align-items: center; justify-content: center; min-height: 44px; padding: 0 8px; color: var(--cm-green); font-size: 15.5px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.cm-sa-alira:hover { color: var(--cm-ok); }
+
+/* --------------------------------------------------------------- page */
+
+.cm-sa-head { display: flex; align-items: center; gap: 14px; }
+.cm-sa-head-icon { display: grid; place-items: center; flex-shrink: 0; width: 54px; height: 54px; border-radius: 18px; background: var(--cm-mint); color: var(--cm-green); }
+.cm-sa-head-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cm-sa-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+.cm-sa-main, .cm-sa-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.cm-sa-card { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; }
+.cm-sa-overline { color: var(--cm-rust-dark); font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.cm-sa-overline:focus-visible { outline-offset: 4px; }
+.cm-sa-card-title { color: var(--cm-ink); font-size: 18px; font-weight: 700; }
+.cm-sa-empty { color: var(--cm-muted); font-size: 15.5px; line-height: 1.6; }
+/* A small picture of the ··· button, in a sentence. */
+.cm-sa-dots { display: inline-grid; place-items: center; width: 30px; height: 22px; margin: 0 2px; border: 1.5px solid var(--cm-chip-line); border-radius: 999px; background: var(--cm-cream); color: var(--cm-ink); vertical-align: -5px; }
+
+/* Your reports: each one kept on this device, with a way to remove it. */
+.cm-sa-reports { display: flex; flex-direction: column; gap: 10px; padding: 0; list-style: none; }
+.cm-sa-report { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 18px; background: var(--cm-bubble); }
+.cm-sa-report-head { display: flex; align-items: center; gap: 12px; }
+.cm-sa-report-text { display: flex; flex: 1; flex-direction: column; gap: 1px; min-width: 0; }
+.cm-sa-report-text > b { color: var(--cm-ink); font-size: 16.5px; font-weight: 700; overflow-wrap: anywhere; }
+.cm-sa-report-text > span { color: var(--cm-muted); font-size: 14px; }
+.cm-sa-report-quote { color: var(--cm-soft-ink); font-size: max(15px, calc(var(--cm-post) - 3.5px)); font-style: italic; line-height: 1.4; overflow-wrap: anywhere; }
+.cm-sa-report-note { color: var(--cm-ink); font-size: 15.5px; line-height: 1.45; overflow-wrap: anywhere; }
+.cm-sa-report-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; }
+.cm-sa-kept { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 12px; border-radius: 999px; background: var(--cm-mint); color: var(--cm-green); font-size: 13.5px; font-weight: 700; }
+.cm-sa-kept > svg { flex-shrink: 0; }
+
+/* Blocked and hidden: a row for each person or post, with its undo. */
+.cm-sa-people { display: flex; flex-direction: column; gap: 6px; padding: 0; list-style: none; }
+.cm-sa-person { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 60px; }
+.cm-sa-person-text { flex: 1 1 120px; }
+.cm-sa-person-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.cm-sa-pill { display: inline-flex; align-items: center; min-height: 46px; padding: 0 16px; border: 1.5px solid #CFC9BC; border-radius: 999px; background: transparent; color: var(--cm-ink); font-size: 15px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.cm-sa-pill:hover { background: var(--cm-bubble); }
+.cm-sa-snippet { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-style: italic; }
+.cm-sa-confirm { display: flex; flex-basis: 100%; flex-direction: column; gap: 12px; padding: 14px 16px; border-radius: 16px; background: #FBE3DB; }
+.cm-sa-confirm > p { color: var(--cm-ink); font-size: 16px; line-height: 1.45; }
+.cm-sa-confirm-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.cm-sa-confirm-buttons > button { flex: 1 1 140px; min-height: 48px; padding: 0 14px; border-radius: 14px; font-size: 15.5px; font-weight: 700; cursor: pointer; }
+.cm-sa-yes { border: 0; background: var(--cm-rust-dark); color: #FFFFFF; }
+.cm-sa-yes:hover { background: #76291A; }
+.cm-sa-keep { border: 1.5px solid #CFC9BC; background: var(--cm-card); color: var(--cm-ink); }
+.cm-sa-keep:hover { background: #FFFFFF; }
+.cm-sa-link { display: inline-flex; align-self: flex-start; align-items: center; gap: 8px; min-height: 44px; color: var(--cm-green); font-size: 15px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.cm-sa-link:hover { color: var(--cm-ok); }
+.cm-sa-link > svg { flex-shrink: 0; }
+
+/* What you can do about someone. */
+.cm-sa-cans { display: flex; flex-direction: column; gap: 14px; padding: 0; list-style: none; }
+.cm-sa-cans > li { display: flex; align-items: center; gap: 12px; }
+.cm-sa-can-icon { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 14px; }
+.cm-sa-can-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cm-sa-can-text > b { color: var(--cm-ink); font-size: 16px; font-weight: 700; }
+.cm-sa-can-text > span { color: var(--cm-muted); font-size: 14px; line-height: 1.4; }
+.cm-sa-how { padding: 10px 12px; border-radius: 14px; background: var(--cm-bubble); color: var(--cm-soft-ink); font-size: 14.5px; line-height: 1.6; }
+
+/* If they feel unwell or unsafe: Warning signs, or a talk with Alira. */
+.cm-sa-help { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: 18px; background: #FBE3DB; }
+.cm-sa-help-icon { display: flex; flex-shrink: 0; padding-top: 2px; color: var(--cm-rust-dark); }
+.cm-sa-help-text { display: flex; flex-direction: column; gap: 10px; min-width: 0; color: var(--cm-ink); font-size: 15.5px; line-height: 1.45; }
+.cm-sa-help-link { display: inline-block; margin: -11px 0; padding: 11px 0; color: var(--cm-green); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.cm-sa-help-link:hover { color: var(--cm-rust-dark); }
+
+.cm-sa-settings { display: flex; align-items: center; gap: 12px; padding: 14px 18px; color: var(--cm-ink); transition: border-color .2s ease; }
+.cm-sa-settings:hover { border-color: #BDB5A5; color: var(--cm-ink); }
+.cm-sa-settings-icon { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 14px; }
+.cm-sa-settings-text { display: flex; flex: 1; flex-direction: column; gap: 1px; min-width: 0; }
+.cm-sa-settings-text > b { font-size: 16.5px; font-weight: 700; }
+.cm-sa-settings-text > span { color: var(--cm-muted); font-size: 13.5px; line-height: 1.4; }
+.cm-sa-settings > svg { flex-shrink: 0; color: var(--cm-soft-ink); }
+
+/* ------------------------------------------- comfort and small screens */
+
+.recovery-large-text :is(.cm-page, .cm-layer) :is(.cm-sa-about, .cm-sa-option-text > span, .cm-sa-progress, .cm-sa-quote-head, .cm-sa-switch-text > span:last-child, .cm-sa-report-text > span, .cm-sa-can-text > span, .cm-sa-settings-text > span, .cm-sa-how, .cm-sa-kept) { font-size: 16px; }
+
+@container cm (max-width: 760px) {
+  .cm-sa-layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+@container cm (max-width: 480px) {
+  .cm-sa-card { padding: 16px; }
+  .cm-sa-head-icon { width: 48px; height: 48px; border-radius: 16px; }
+  .cm-sa-report { padding: 12px 14px; }
+}
+
+@media (max-width: 620px) {
+  .cm-sa-who { gap: 12px; }
+  .cm-sa-name { font-size: 30px; }
+  .cm-sa-title { font-size: 31px; }
+  .cm-sa-option { gap: 14px; min-height: 72px; padding: 12px 14px; }
+  .cm-sa-option-icon { width: 46px; height: 46px; border-radius: 14px; }
+  .cm-sa-big { width: 72px; height: 72px; }
+}

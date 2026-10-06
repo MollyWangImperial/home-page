@@ -1,0 +1,139 @@
+/* My community: the Alerts and Find panels, which drop down from the toolbar. Classes here start
+   with cm-al- (Find's with cm-al-find-). Imported after community.css. Both panels are
+   CommunityDialog boxes in .cm-layer, so the page's colours, text size ("Text size in My
+   community" reaches the titles through --cm-message) and the reduced-motion rule apply here. */
+
+/* ------------------------------------------------------------- both panels */
+
+.cm-al-panel { width: min(420px, calc(100vw - 32px)); gap: 14px; padding: 18px; }
+.cm-al-find { width: min(460px, calc(100vw - 32px)); gap: 14px; padding: 18px; }
+:is(.cm-al-panel, .cm-al-find) .cm-dialog-head { align-items: center; gap: 12px; }
+:is(.cm-al-panel, .cm-al-find) .cm-dialog-title-small { font-size: 32px; line-height: 1.05; }
+:is(.cm-al-panel, .cm-al-find) .cm-dialog-titles > p { font-size: 15px; line-height: 1.35; }
+:is(.cm-al-panel, .cm-al-find) .cm-overline { padding: 0 2px; }
+
+/* ------------------------------------------------------------------ alerts */
+
+/* Why the badge is quiet: quiet time at night, or a break. */
+.cm-al-quiet { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; background: #FBEBC2; color: var(--cm-ink); font-size: 15px; line-height: 1.45; }
+.cm-al-quiet > svg { flex-shrink: 0; margin-top: 1px; color: #6B5108; }
+
+.cm-al-section { display: flex; flex-direction: column; gap: 6px; }
+.cm-al-list { display: flex; flex-direction: column; gap: 4px; padding: 0; list-style: none; }
+.cm-al-list > li { animation: cm-al-in .4s cubic-bezier(.2, .8, .2, 1) both; }
+.cm-al-list > li:nth-child(2) { animation-delay: .05s; }
+.cm-al-list > li:nth-child(3) { animation-delay: .1s; }
+.cm-al-list > li:nth-child(n + 4) { animation-delay: .15s; }
+
+/* One alert: the whole row is the link. New ones sit on a warm tint, with a "New" pill. */
+.cm-al-row { display: flex; align-items: center; gap: 14px; min-height: 72px; margin: 0 -8px; padding: 10px 10px 10px 8px; border-radius: 18px; color: var(--cm-ink); transition: background .2s ease; }
+.cm-al-row:hover { background: #F3F1EA; color: var(--cm-ink); }
+.cm-al-row.is-new { background: #FDF4EF; }
+.cm-al-row.is-new:hover { background: #FBEDE6; }
+
+.cm-al-pic { position: relative; display: block; flex-shrink: 0; width: 48px; height: 48px; }
+.cm-al-pic > .cm-face { display: block; }
+.cm-al-pic-circle { display: grid; place-items: center; border-radius: 999px; background: var(--cm-green); color: var(--cm-gold); }
+.cm-al-pic-plain { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 999px; background: var(--cm-mint); color: var(--cm-green); }
+.cm-al-cover { width: 48px; height: 48px; border-radius: 14px; }
+.cm-al-pic-face { position: absolute; right: -7px; bottom: -7px; box-shadow: 0 0 0 2.5px var(--cm-card); }
+.cm-al-pic-mark { position: absolute; right: -5px; bottom: -5px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 999px; background: #DCECF4; color: #1F4E66; box-shadow: 0 0 0 2.5px var(--cm-card); }
+.cm-al-row.is-new :is(.cm-al-pic-face, .cm-al-pic-mark) { box-shadow: 0 0 0 2.5px #FDF4EF; }
+
+.cm-al-text { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.cm-al-title { color: var(--cm-ink); font-size: calc(var(--cm-message) - .5px); font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.cm-al-detail { color: var(--cm-muted); font-size: max(13.5px, calc(var(--cm-message) - 2.5px)); line-height: 1.4; overflow-wrap: anywhere; }
+.cm-al-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 2px; color: var(--cm-muted); font-size: 13.5px; font-weight: 600; }
+.cm-al-new { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; background: var(--cm-rust); color: #FFFFFF; font-size: 12.5px; font-weight: 700; letter-spacing: .02em; animation: cm-pop .45s .2s cubic-bezier(.2, .8, .2, 1) both; }
+.cm-al-outcome { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 999px; background: var(--cm-mint); color: var(--cm-green); font-size: 13px; font-weight: 700; }
+.cm-al-outcome.is-plain { background: #EBE7DE; color: var(--cm-soft-ink); }
+.cm-al-go { flex-shrink: 0; color: var(--cm-soft-ink); }
+
+/* Nothing new: said calmly, like "All caught up" in the Friends drawer. */
+.cm-al-caught { display: flex; align-items: center; gap: 10px; padding: 6px 2px; color: var(--cm-ok); font-size: 15.5px; font-weight: 600; line-height: 1.4; }
+.cm-al-caught > svg { flex-shrink: 0; }
+.cm-al-foot { margin-top: 2px; }
+
+@keyframes cm-al-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* -------------------------------------------------------------------- find */
+
+/* The search box. The count under it is the live region that says how much was found. */
+.cm-al-find-search { display: flex; flex-direction: column; }
+.cm-al-find-box { display: flex; align-items: center; gap: 4px; height: 58px; padding: 0 6px 0 18px; border: 1.5px solid var(--cm-chip-line); border-radius: 999px; background: var(--cm-cream); color: var(--cm-muted); transition: background .2s ease, border-color .2s ease; }
+.cm-al-find-box:focus-within { border-color: #7FA493; background: #FFFFFF; outline: 3px solid #159A8E; outline-offset: 2px; }
+.cm-al-find-label { display: flex; flex: 1; align-items: center; gap: 10px; min-width: 0; height: 100%; cursor: text; }
+.cm-al-find-label > svg { flex-shrink: 0; color: var(--cm-green); }
+.cm-al-find-label input { flex: 1; width: 100%; min-width: 0; height: 100%; padding: 0; border: 0; outline: none; background: transparent; color: var(--cm-ink); font: 400 17.5px/1.2 "DM Sans", system-ui, sans-serif; -webkit-appearance: none; appearance: none; }
+.cm-al-find-label input:focus-visible { outline: none !important; }
+.cm-al-find-label input::placeholder { color: var(--cm-placeholder); opacity: 1; }
+.cm-al-find-label input::-webkit-search-cancel-button, .cm-al-find-label input::-webkit-search-decoration { display: none; -webkit-appearance: none; appearance: none; }
+.cm-al-find-clear { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border: 0; border-radius: 999px; background: transparent; color: var(--cm-soft-ink); cursor: pointer; }
+.cm-al-find-clear:hover { background: #EBE7DE; }
+.cm-al-find-count { padding: 0 8px; color: var(--cm-soft-ink); font-size: 14.5px; font-weight: 600; line-height: 1.4; }
+.cm-al-find-count:not(:empty) { margin-top: 8px; }
+
+.cm-al-find-results { display: flex; flex-direction: column; gap: 16px; }
+.cm-al-find-section { display: flex; flex-direction: column; gap: 6px; animation: cm-al-in .35s cubic-bezier(.2, .8, .2, 1) both; }
+.cm-al-find-list { display: flex; flex-direction: column; gap: 2px; padding: 0; list-style: none; }
+
+/* A person: their face and name, with Add friend (or where they stand with the person). */
+.cm-al-find-row { display: flex; align-items: center; gap: 12px; min-height: 62px; padding: 4px 0; }
+.cm-al-find-row > :is(.cm-friend, .cm-join) { flex-shrink: 0; }
+/* A group: the whole row opens it. */
+.cm-al-find-link { display: flex; align-items: center; gap: 12px; min-height: 62px; margin: 0 -8px; padding: 6px 8px; border-radius: 16px; color: var(--cm-ink); transition: background .2s ease; }
+.cm-al-find-link:hover { background: #F3F1EA; color: var(--cm-ink); }
+.cm-al-find-text { display: flex; flex: 1; flex-direction: column; gap: 1px; min-width: 0; }
+.cm-al-find-text > b { color: var(--cm-ink); font-size: calc(var(--cm-message) - .5px); font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.cm-al-find-text > span { color: var(--cm-muted); font-size: max(13.5px, calc(var(--cm-message) - 3px)); line-height: 1.35; overflow-wrap: anywhere; }
+.cm-al-find-cover { width: 44px; height: 44px; border-radius: 13px; }
+.cm-al-find-go { flex-shrink: 0; color: var(--cm-soft-ink); }
+.cm-al-find-mark { padding: 0 1px; border-radius: 4px; background: #FBEBC2; color: inherit; }
+/* A friend: the mint "Friends" pill, here a link to the friends list. */
+.cm-friend.is-friend.cm-al-find-friend { cursor: pointer; }
+.cm-friend.is-friend.cm-al-find-friend:hover { background: #D3E7D9; color: var(--cm-green); }
+
+/* Places: tiles, two to a row, each with its colour from the designs. */
+.cm-al-find-places { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0; list-style: none; }
+.cm-al-find-places > li { display: flex; min-width: 0; }
+.cm-al-find-place { display: flex; flex: 1; align-items: center; gap: 10px; min-width: 0; min-height: 64px; padding: 10px; border: 1px solid var(--cm-line); border-radius: 18px; background: var(--cm-card); color: var(--cm-ink); box-shadow: var(--cm-shadow); transition: border-color .2s ease, background .2s ease, transform .2s ease; }
+.cm-al-find-place:hover { border-color: #BDB5A5; background: #FFFFFF; color: var(--cm-ink); transform: translateY(-1px); }
+.cm-al-find-place.is-here { border-color: var(--cm-green); background: var(--cm-mint); }
+.cm-al-find-icon { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; border-radius: 13px; }
+.cm-al-find-icon.is-amber { background: #FBEBC2; color: #6B5108; }
+.cm-al-find-icon.is-rose { background: #FBE3DB; color: var(--cm-rust-dark); }
+.cm-al-find-icon.is-mint { background: var(--cm-mint); color: var(--cm-green); }
+.cm-al-find-icon.is-blue { background: #DCECF4; color: #1F4E66; }
+.cm-al-find-icon.is-lilac { background: #E9E2F4; color: #45357A; }
+.cm-al-find-icon.is-circle { border-radius: 999px; background: var(--cm-green); color: var(--cm-gold); }
+.cm-al-find-icon.is-start { border: 1.5px dashed var(--cm-rust); background: transparent; color: var(--cm-rust-dark); }
+.cm-al-find-place.is-here .cm-al-find-icon:not(.is-circle) { background: var(--cm-card); }
+.cm-al-find-place-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cm-al-find-place-text > b { font-size: 15.5px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.cm-al-find-place-text > span { color: var(--cm-muted); font-size: 13px; line-height: 1.3; overflow-wrap: anywhere; }
+
+/* Nothing found: a gentle note, with the places under it as a way on. */
+.cm-al-find-empty { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 16px; background: var(--cm-bubble); color: var(--cm-soft-ink); font-size: 15px; line-height: 1.45; }
+.cm-al-find-empty-title { color: var(--cm-ink); font-weight: 700; overflow-wrap: anywhere; }
+
+/* ------------------------------------------------------- small screens */
+
+@media (max-width: 620px) {
+  /* The panels stretch between the page's edges there (community.css), so they let go of their width. */
+  .cm-al-panel, .cm-al-find { width: auto; padding: 16px 14px; }
+  :is(.cm-al-panel, .cm-al-find) .cm-dialog-title-small { font-size: 28px; }
+  .cm-al-row { gap: 12px; }
+  .cm-al-find-place { gap: 8px; padding: 8px; }
+  .cm-al-find-icon { width: 34px; height: 34px; border-radius: 11px; }
+}
+
+@media (max-width: 420px) {
+  /* A person's button ("Wants to be friends" is long) goes under their name, so the name keeps its room. */
+  .cm-al-find-row { flex-wrap: wrap; row-gap: 4px; }
+  .cm-al-find-row > .cm-al-find-text { flex-basis: calc(100% - 56px); }
+  .cm-al-find-row > :is(.cm-friend, .cm-join) { margin-left: 56px; }
+}
+
+@media (max-width: 340px) {
+  .cm-al-find-places { grid-template-columns: minmax(0, 1fr); }
+}

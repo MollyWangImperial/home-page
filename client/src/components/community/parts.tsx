@@ -1,10 +1,11 @@
 import { useId, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent, type ReactNode } from "react";
-import { people, reactionLabels, type GroupCover, type GroupMessage, type PersonId, type QuickTone, type ReactionKind } from "@/content/community-samples";
-import { communityStore, preparePostPhoto, useCommunity, type NoteDraft, type OwnNote } from "@/lib/community-store";
+import { Link, useSearch } from "wouter";
+import { isPersonId, members, myDrawnFace, people, reactionLabels, type GroupCover, type GroupMessage, type MemberId, type PersonId, type PictureChoice, type QuickTone, type ReactionKind } from "@/content/community-samples";
+import { communityStore, communityViewFromQuery, friendsHref, placeOf, preparePostPhoto, relationship, useCommunity, type NoteDraft, type OwnNote } from "@/lib/community-store";
 import { profileInitial, useProfile } from "@/lib/profile";
 import type { Burst } from "./hooks";
 import { useVoiceNote, voiceSeconds } from "./hooks";
-import { ArrowIcon, CloseIcon, HandIcon, HeartIcon, LockIcon, MicIcon, PhotoIcon, PlayIcon, PulseIcon, StarIcon, StopIcon, ThemeIcon } from "./icons";
+import { ArrowIcon, CheckIcon, CloseIcon, HandIcon, HeartIcon, LockIcon, MicIcon, PhotoIcon, PlayIcon, PulseIcon, StarIcon, StopIcon, ThemeIcon } from "./icons";
 
 /* ------------------------------------------------------------------ faces */
 
@@ -14,10 +15,23 @@ export function Face({ who, size = 40, className = "", style }: { who: PersonId;
   return <span className={`cm-face ${className}`} style={{ width: size, height: size, backgroundColor: person.tint, backgroundImage: `url("${person.face}")`, ...style }} aria-hidden="true" />;
 }
 
-/** The person using the app: their own photo, or the first letter of their name. */
-export function MyFace({ size = 40, className = "", style }: { size?: number; className?: string; style?: CSSProperties }) {
+/** Anyone in My community: an example person's face, or the initial of someone without a drawing (Gary). */
+export function MemberFace({ who, size = 40, className = "", style }: { who: MemberId; size?: number; className?: string; style?: CSSProperties }) {
+  if (isPersonId(who)) return <Face who={who} size={size} className={className} style={style} />;
+  const member = members[who];
+  return <span className={`cm-face cm-face-initial ${className}`} style={{ width: size, height: size, fontSize: Math.round(size * 0.4), fontWeight: 700, backgroundColor: member.tint, color: member.ink, ...style }} aria-hidden="true">{member.initial}</span>;
+}
+
+/**
+ * The person using the app, as they chose in Community settings ("My picture"): the drawn face,
+ * their own photo (their initial until they add one), or their initial. `picture` previews a choice.
+ */
+export function MyFace({ size = 40, className = "", style, picture }: { size?: number; className?: string; style?: CSSProperties; picture?: PictureChoice }) {
   const profile = useProfile();
-  if (profile.photo) return <span className={`cm-face ${className}`} style={{ width: size, height: size, backgroundImage: `url("${profile.photo}")`, ...style }} aria-hidden="true" />;
+  const chosen = useCommunity().settings.picture;
+  const look = picture ?? chosen;
+  if (look === "drawn") return <span className={`cm-face ${className}`} style={{ width: size, height: size, backgroundColor: myDrawnFace.tint, backgroundImage: `url("${myDrawnFace.face}")`, ...style }} aria-hidden="true" />;
+  if (look === "photo" && profile.photo) return <span className={`cm-face ${className}`} style={{ width: size, height: size, backgroundImage: `url("${profile.photo}")`, ...style }} aria-hidden="true" />;
   return <span className={`cm-face cm-face-initial ${className}`} style={{ width: size, height: size, fontSize: Math.round(size * 0.42), ...style }} aria-hidden="true">{profileInitial(profile)}</span>;
 }
 
@@ -74,22 +88,43 @@ const reactionLook: Record<ReactionKind, { tone: "love" | "clap" | "same"; icon:
   metoo: { tone: "same", icon: <HandIcon stroke="#3F86AC" /> },
 };
 
-/** One tap to join in. A second tap takes it back. */
+/** One tap to join in. A second tap takes it back. The count hides when "Show numbers of hearts" is off. */
 export function ReactionButton({ postId, kind, count }: { postId: string; kind: ReactionKind; count: number }) {
-  const on = useCommunity().reactions.includes(`${postId}:${kind}`);
+  const memory = useCommunity();
+  const on = memory.reactions.includes(`${postId}:${kind}`);
   const look = reactionLook[kind];
   return (
     <button type="button" className={`cm-react cm-tone-${look.tone} ${on ? "is-on" : ""}`} aria-pressed={on} onClick={() => communityStore.toggleReaction(postId, kind)}>
-      {look.icon}<span>{reactionLabels[kind]}</span>{" "}<span className="cm-react-count">{count + (on ? 1 : 0)}</span>
+      {look.icon}<span>{reactionLabels[kind]}</span>
+      {memory.settings.showHeartCounts && <>{" "}<span className="cm-react-count">{count + (on ? 1 : 0)}</span></>}
     </button>
   );
 }
 
-export function FriendButton({ who, className = "" }: { who: PersonId; className?: string }) {
-  const on = useCommunity().friends.includes(who);
+/**
+ * Where the person stands with someone, beside their name: "Add friend" sends a request and
+ * "Request sent" cancels it (both show in the Friends drawer's Sent tab), "Wants to be friends"
+ * opens the drawer at their request, and a friend shows "Friends". Nothing shows for someone blocked.
+ * `onLeave` is called as "Wants to be friends" opens the drawer, so a panel it sits in (Find) can close.
+ */
+export function FriendButton({ who, className = "", onLeave }: { who: PersonId; className?: string; onLeave?: () => void }) {
+  const memory = useCommunity();
+  const search = useSearch();
+  const status = relationship(memory, who);
+  const name = people[who].name;
+  if (status === "blocked") return null;
+  if (status === "friend") return <span className={`cm-friend is-friend ${className}`}><CheckIcon size={15} />Friends<span className="cm-sr">{` with ${name}`}</span></span>;
+  if (status === "incoming") {
+    return (
+      <Link className={`cm-friend is-asking ${className}`} href={friendsHref("requests", placeOf(communityViewFromQuery(search)))} onClick={onLeave}>
+        Wants to be friends<span className="cm-sr">{`: see ${name}'s request`}</span>
+      </Link>
+    );
+  }
+  const on = status === "sent";
   return (
-    <button type="button" className={`cm-friend ${on ? "is-on" : ""} ${className}`} onClick={() => communityStore.toggleFriend(who)}>
-      {on ? "Request sent" : "Add friend"}<span className="cm-sr">{` (${people[who].name})`}</span>
+    <button type="button" className={`cm-friend ${on ? "is-on" : ""} ${className}`} onClick={() => (on ? communityStore.cancelRequest(who) : communityStore.requestFriend(who))}>
+      {on ? "Request sent" : "Add friend"}<span className="cm-sr">{on ? ` to ${name}. Press to cancel it` : ` (${name})`}</span>
     </button>
   );
 }
@@ -111,13 +146,36 @@ function waveHeights(words: string, bars = 26): number[] {
 
 /**
  * A voice note with its words written underneath, for anyone who finds listening, speaking or
- * typing hard. Play reads the words aloud in this device's voice where there is one.
+ * typing hard. Play reads the words aloud in this device's voice where there is one. With "Write
+ * out voice notes" off in Community settings, the words wait behind a "Show the words" button.
  */
 export function VoiceNote({ words, seconds, label, mine = false, wordsClassName = "" }: { words: string; seconds?: number; label: string; mine?: boolean; wordsClassName?: string }) {
   const length = seconds ?? voiceSeconds(words);
   const { playing, progress, toggle } = useVoiceNote(words, length);
   const [heights] = useState(() => waveHeights(words));
+  const writeOut = useCommunity().settings.writeOutVoiceNotes;
+  const [showWords, setShowWords] = useState(false);
+  const wordsId = useId();
   const played = Math.round(progress * heights.length);
+  if (!writeOut) {
+    return (
+      <div className={`cm-voice ${mine ? "is-mine" : ""} ${playing ? "is-playing" : ""}`}>
+        <div className="cm-voice-player">
+          <button type="button" className="cm-voice-play" onClick={toggle} aria-label={playing ? `Stop ${label}` : `Play ${label}, ${length} seconds`}>
+            {playing ? <StopIcon size={18} /> : <PlayIcon size={20} />}
+          </button>
+          <span className="cm-voice-wave" aria-hidden="true">
+            {heights.map((height, index) => <i key={index} className={index < played ? "is-played" : ""} style={{ height }} />)}
+          </span>
+          <span className="cm-voice-time" aria-hidden="true">{formatTime(playing ? Math.ceil(length * (1 - progress)) : length)}</span>
+        </div>
+        <button type="button" className="cm-voice-show" aria-expanded={showWords} aria-controls={showWords ? wordsId : undefined} onClick={() => setShowWords(!showWords)}>
+          {showWords ? "Hide the words" : "Show the words"}<span className="cm-sr">{` of ${label}`}</span>
+        </button>
+        {showWords && <p id={wordsId} className={`cm-voice-words ${wordsClassName}`}>{words}</p>}
+      </div>
+    );
+  }
   return (
     <div className={`cm-voice ${mine ? "is-mine" : ""} ${playing ? "is-playing" : ""}`}>
       <div className="cm-voice-player">
@@ -140,7 +198,9 @@ export const toneClass = (tone: QuickTone) => `cm-quick-${tone}`;
 
 /** A message from an example person, with a heart that can be given and taken back. */
 export function TheirMessage({ message, heartKey }: { message: GroupMessage; heartKey: string }) {
-  const on = useCommunity().hearts.includes(heartKey);
+  const memory = useCommunity();
+  const on = memory.hearts.includes(heartKey);
+  const counts = memory.settings.showHeartCounts;
   const name = people[message.who].name;
   return (
     <li className="cm-msg cm-msg-in">
@@ -152,8 +212,8 @@ export function TheirMessage({ message, heartKey }: { message: GroupMessage; hea
           <p>{message.text}</p>
         </div>
       </div>
-      <button type="button" className={`cm-heart ${on ? "is-on" : ""}`} aria-pressed={on} aria-label={`Heart for ${name}'s message, ${message.hearts + (on ? 1 : 0)}`} onClick={() => communityStore.toggleHeart(heartKey)}>
-        <HeartIcon size={15} fill={on ? "#E8795A" : "none"} strokeWidth={2} /><span aria-hidden="true">{message.hearts + (on ? 1 : 0)}</span>
+      <button type="button" className={`cm-heart ${on ? "is-on" : ""}`} aria-pressed={on} aria-label={`Heart for ${name}'s message${counts ? `, ${message.hearts + (on ? 1 : 0)}` : ""}`} onClick={() => communityStore.toggleHeart(heartKey)}>
+        <HeartIcon size={15} fill={on ? "#E8795A" : "none"} strokeWidth={2} />{counts && <span aria-hidden="true">{message.hearts + (on ? 1 : 0)}</span>}
       </button>
     </li>
   );

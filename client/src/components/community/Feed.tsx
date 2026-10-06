@@ -1,10 +1,26 @@
 import { useId, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link } from "wouter";
-import { feedPosts, feelings, people, sampleGroups, type FeelingId, type PersonId, type SamplePost } from "@/content/community-samples";
-import { communityHref, communityStore, preparePostPhoto, timeAgo, useCommunity, type CommunityMemory, type OwnPost } from "@/lib/community-store";
-import { coverForTheme } from "./group-model";
-import { ArrowIcon, ChatIcon, CloseIcon, MicIcon, PhotoIcon, PlusIcon, SmileIcon, StarIcon } from "./icons";
-import { AliraMark, Cover, Face, FriendButton, LiveDot, MyFace, OnlyYou, ReactionButton, TypingDots, VoiceNote } from "./parts";
+import { feedPosts, feelings, isPersonId, members, PERSON_IDS, people, sampleGroups, type FeelingId, type PersonId, type SampleGroup, type SamplePost } from "@/content/community-samples";
+import {
+  canSee,
+  communityHref,
+  communityStore,
+  hiddenThisVisit,
+  isBlocked,
+  listNames,
+  postVisibility,
+  preparePostPhoto,
+  timeAgo,
+  useCommunity,
+  type CommunityMemory,
+  type OpenSafetyMenu,
+  type OwnPost,
+  type PostVisibility,
+} from "@/lib/community-store";
+import { coverForTheme, lastLine, myGroups } from "./group-model";
+import { useVoiceNote, voiceSeconds } from "./hooks";
+import { ArrowIcon, ChatIcon, CloseIcon, DotsIcon, EyeIcon, EyeOffIcon, MicIcon, PhotoIcon, PlusIcon, SmileIcon, SpeakerIcon, StarIcon, StopIcon } from "./icons";
+import { AliraMark, Cover, Face, FriendButton, LiveDot, MemberFace, MyFace, OnlyYou, ReactionButton, TypingDots, VoiceNote } from "./parts";
 
 const feelingLabel = (id: FeelingId | null) => feelings.find(item => item.id === id)?.label.toLowerCase();
 
@@ -161,17 +177,18 @@ function OwnPostCard({ post, name }: { post: OwnPost; name: string }) {
 }
 
 function Thread({ post, id }: { post: SamplePost; id: string }) {
-  const replies = useCommunity().replies[post.id] ?? [];
+  const memory = useCommunity();
+  const replies = memory.replies[post.id] ?? [];
   const [text, setText] = useState("");
   const [status, setStatus] = useState("");
-  const name = people[post.who].name;
+  const name = members[post.who].name;
   const reply = (words: string) => {
     if (communityStore.addReply(post.id, { text: words })) { setText(""); setStatus("Reply added. Only you can see it."); }
   };
   return (
     <div className="cm-thread" id={id}>
       <ul className="cm-comments">
-        {post.comments.map((comment, index) => (
+        {post.comments.filter(comment => canSee(memory, comment.who)).map((comment, index) => (
           <li key={index} className="cm-comment">
             <Face who={comment.who} size={34} />
             <p><strong>{people[comment.who].name}</strong> {comment.text}</p>
@@ -202,19 +219,39 @@ function Thread({ post, id }: { post: SamplePost; id: string }) {
   );
 }
 
-function SamplePostCard({ post, rise }: { post: SamplePost; rise: string }) {
-  const replies = useCommunity().replies[post.id] ?? [];
+/** "Read posts aloud" in Community settings adds this: the device's own voice reads the post. */
+function ListenButton({ text, name }: { text: string; name: string }) {
+  const { playing, toggle } = useVoiceNote(text, voiceSeconds(text));
+  return (
+    <button type="button" className={`cm-listen ${playing ? "is-on" : ""}`} onClick={toggle} aria-label={playing ? `Stop reading ${name}'s post` : `Listen to ${name}'s post`}>
+      {playing ? <StopIcon size={16} /> : <SpeakerIcon size={18} />}<span>{playing ? "Stop" : "Listen"}</span>
+    </button>
+  );
+}
+
+/**
+ * An example post. `acting` is on while the hide, block or report sheet is open about this post:
+ * the post and its ··· button are marked, so it is clear which post the sheet is about.
+ */
+function SamplePostCard({ post, rise, onMore, acting }: { post: SamplePost; rise: string; onMore: OpenSafetyMenu; acting: boolean }) {
+  const memory = useCommunity();
+  const replies = memory.replies[post.id] ?? [];
   const [open, setOpen] = useState(false);
+  // Gentle mode covers a sad or upsetting post until it is shown, for this visit.
+  const [uncovered, setUncovered] = useState(false);
   const headingId = useId();
   const threadId = useId();
-  const person = people[post.who];
+  const person = members[post.who];
   const group = post.group ? sampleGroups.find(item => item.id === post.group) : undefined;
-  const count = post.comments.length + replies.length;
-  const last = post.comments[post.comments.length - 1];
+  const comments = post.comments.filter(comment => canSee(memory, comment.who));
+  const count = comments.length + replies.length;
+  const last = comments[comments.length - 1];
+  const covered = !!post.gentle && memory.settings.gentleMode && !uncovered;
+  const quiet = post.reactions.length === 0 && post.quickReplies.length === 0;
   return (
-    <article className={`cm-card cm-post ${rise}`} aria-labelledby={headingId}>
+    <article className={`cm-card cm-post ${rise}${acting ? " is-acting" : ""}`} aria-labelledby={headingId}>
       <header className="cm-post-head">
-        <Face who={post.who} size={48} />
+        <MemberFace who={post.who} size={48} />
         <div className="cm-post-who">
           <h3 className="cm-post-name" id={headingId}>
             {person.name}
@@ -222,33 +259,90 @@ function SamplePostCard({ post, rise }: { post: SamplePost; rise: string }) {
           </h3>
           <p className="cm-post-meta">{post.where} · {post.when}</p>
         </div>
-        <FriendButton who={post.who} />
-      </header>
-      <PostTags win={!!post.win} feeling={null} />
-      {post.voice
-        ? <VoiceNote words={post.text} seconds={post.voice.seconds} label={`${person.name}'s voice note`} wordsClassName="cm-post-text" />
-        : <p className="cm-post-text">{post.text}</p>}
-      {post.photo && <img className="cm-post-photo" src={post.photo.src} alt={post.photo.alt} style={{ backgroundColor: post.photo.tint }} loading="lazy" />}
-      <div className="cm-reactions">
-        {post.reactions.map(item => <ReactionButton key={item.kind} postId={post.id} kind={item.kind} count={item.count} />)}
-        <button type="button" className="cm-comments-toggle" aria-expanded={open} aria-controls={threadId} onClick={() => setOpen(!open)}>
-          <ChatIcon /><span>{count}</span><span className="cm-sr"> comments</span>
+        {isPersonId(post.who) && <FriendButton who={post.who} />}
+        <button type="button" className="cm-more" aria-label={`More options for ${person.name}'s post`} aria-haspopup="dialog" aria-expanded={acting} onClick={event => onMore({ who: post.who, postId: post.id }, event.currentTarget)}>
+          <DotsIcon size={22} />
         </button>
-      </div>
-      {!open && post.peek && last && (
-        <div className="cm-comment cm-comment-peek">
-          <Face who={last.who} size={34} />
-          <p><strong>{people[last.who].name}</strong> {last.text}</p>
+      </header>
+      {covered ? (
+        <div className="cm-gentle">
+          <span className="cm-gentle-icon" aria-hidden="true"><EyeOffIcon size={22} /></span>
+          <p>{`${person.name} shares ${post.gentle}. Gentle mode keeps it covered until you choose to read it.`}</p>
+          <span className="cm-gentle-actions">
+            <button type="button" className="cm-btn cm-btn-outline cm-btn-small" onClick={() => setUncovered(true)}><EyeIcon size={18} />Show the post<span className="cm-sr">{` from ${person.name}`}</span></button>
+            <Link className="cm-text-button" href={communityHref("settings", null, { section: "see" })}>Gentle mode settings</Link>
+          </span>
         </div>
+      ) : (
+        <>
+          <PostTags win={!!post.win} feeling={null} />
+          {post.voice
+            ? <VoiceNote words={post.text} seconds={post.voice.seconds} label={`${person.name}'s voice note`} wordsClassName="cm-post-text" />
+            : <p className="cm-post-text">{post.text}</p>}
+          {memory.settings.readAloud && !post.voice && <ListenButton text={post.text} name={person.name} />}
+          {post.photo && <img className="cm-post-photo" src={post.photo.src} alt={post.photo.alt} style={{ backgroundColor: post.photo.tint }} loading="lazy" />}
+          {!quiet && (
+            <div className="cm-reactions">
+              {post.reactions.map(item => <ReactionButton key={item.kind} postId={post.id} kind={item.kind} count={item.count} />)}
+              <button type="button" className="cm-comments-toggle" aria-expanded={open} aria-controls={threadId} onClick={() => setOpen(!open)}>
+                <ChatIcon /><span>{count}</span><span className="cm-sr"> comments</span>
+              </button>
+            </div>
+          )}
+          {!open && post.peek && last && (
+            <div className="cm-comment cm-comment-peek">
+              <Face who={last.who} size={34} />
+              <p><strong>{people[last.who].name}</strong> {last.text}</p>
+            </div>
+          )}
+          {open && <Thread post={post} id={threadId} />}
+        </>
       )}
-      {open && <Thread post={post} id={threadId} />}
     </article>
+  );
+}
+
+/** Where a post was, after it was hidden during this visit: what happened, and a way to undo it. */
+function HiddenPostNote({ post, why }: { post: SamplePost; why: "blocked" | "muted" | "post" }) {
+  const name = members[post.who].name;
+  const text = why === "blocked" ? `Post hidden. You blocked ${name}.` : why === "muted" ? `You hid ${name}'s posts.` : `You hid ${name}'s post.`;
+  const undo = () => {
+    if (why === "blocked") communityStore.unblock(post.who);
+    else if (why === "muted") communityStore.unmute(post.who);
+    else communityStore.unhidePost(post.id);
+  };
+  const undoWhat = why === "blocked" ? `, unblock ${name}` : why === "muted" ? `, show ${name}'s posts again` : `, show ${name}'s post again`;
+  return (
+    <div className="cm-hidden-note cm-pop">
+      <span className="cm-hidden-icon" aria-hidden="true"><EyeOffIcon size={20} /></span>
+      <p>{text}</p>
+      <button type="button" className="cm-text-button" onClick={undo}>Undo<span className="cm-sr">{undoWhat}</span></button>
+    </div>
+  );
+}
+
+/** Posts that mention a word the person chose to hide wait behind this note. */
+function HiddenWordsNote({ words, onShow }: { words: string[]; onShow: () => void }) {
+  const count = words.length;
+  return (
+    <div className="cm-words-note">
+      <span className="cm-hidden-icon" aria-hidden="true"><EyeOffIcon size={20} /></span>
+      <p>{`${count === 1 ? "1 post is" : `${count} posts are`} hidden because ${count === 1 ? "it mentions" : "they mention"} ${listNames(Array.from(new Set(words)).map(word => `“${word}”`))}.`}</p>
+      <span className="cm-words-actions">
+        <button type="button" className="cm-text-button" onClick={onShow}>Show {count === 1 ? "it" : "them"} this time</button>
+        <Link className="cm-text-button" href={communityHref("settings", null, { section: "see" })}>Change your hidden words</Link>
+      </span>
+    </div>
   );
 }
 
 /* ------------------------------------------------------------ side column */
 
+// Blocked people are out of sight everywhere in My community, their faces included.
+const loungeFaces: PersonId[] = ["margaret", "david", "tomasz"];
+
 function LoungeCard({ here }: { here: number }) {
+  const memory = useCommunity();
   const titleId = useId();
   return (
     <section className="cm-card cm-side-card cm-rise-2" aria-labelledby={titleId}>
@@ -257,16 +351,20 @@ function LoungeCard({ here }: { here: number }) {
         <div className="cm-card-titles"><h3 id={titleId}>The lounge</h3><p>Drop in for a chat</p></div>
         <span className="cm-live-pill"><LiveDot />Live</span>
       </div>
-      <div className="cm-peek-line">
-        <Face who="anne" size={30} />
-        <p className="cm-peek-bubble"><span className="cm-sr">Anne: </span>It does get lighter, promise.</p>
-      </div>
-      <div className="cm-peek-line">
-        <Face who="priya" size={30} />
-        <span className="cm-typing-pill"><TypingDots /></span><span className="cm-sr">Priya is writing</span>
-      </div>
+      {canSee(memory, "anne") && (
+        <div className="cm-peek-line">
+          <Face who="anne" size={30} />
+          <p className="cm-peek-bubble"><span className="cm-sr">Anne: </span>It does get lighter, promise.</p>
+        </div>
+      )}
+      {canSee(memory, "priya") && (
+        <div className="cm-peek-line">
+          <Face who="priya" size={30} />
+          <span className="cm-typing-pill"><TypingDots /></span><span className="cm-sr">Priya is writing</span>
+        </div>
+      )}
       <div className="cm-card-foot">
-        <span className="cm-face-stack"><Face who="margaret" size={30} /><Face who="david" size={30} /><Face who="tomasz" size={30} /></span>
+        <span className="cm-face-stack">{loungeFaces.filter(who => !isBlocked(memory, who)).map(who => <Face key={who} who={who} size={30} />)}</span>
         <span className="cm-here">{here} here</span>
         <Link className="cm-btn cm-btn-green cm-btn-small" href={communityHref("lounge")}>Jump in<span className="cm-sr"> to the lounge</span></Link>
       </div>
@@ -279,7 +377,7 @@ const miniSeats: { who: PersonId; left: number; top: number }[] = [
   { who: "samuel", left: 25, top: 58 }, { who: "tomasz", left: 205, top: 58 }, { who: "anne", left: 63, top: 72 }, { who: "priya", left: 167, top: 72 },
 ];
 
-function CircleCard({ seated }: { seated: boolean }) {
+function CircleCard({ seated, memory }: { seated: boolean; memory: CommunityMemory }) {
   const titleId = useId();
   return (
     <section className="cm-circle-card cm-rise-3" aria-labelledby={titleId}>
@@ -287,7 +385,7 @@ function CircleCard({ seated }: { seated: boolean }) {
         <span className="cm-mini-glow" />
         <span className="cm-mini-ring" />
         <span className="cm-mini-seat" style={{ left: 115, top: 1 }}><AliraMark size={34} light /></span>
-        {miniSeats.map(seat => <Face key={seat.who} who={seat.who} size={34} className="cm-mini-seat cm-mini-face" style={{ left: seat.left, top: seat.top }} />)}
+        {miniSeats.filter(seat => !isBlocked(memory, seat.who)).map(seat => <Face key={seat.who} who={seat.who} size={34} className="cm-mini-seat cm-mini-face" style={{ left: seat.left, top: seat.top }} />)}
         <span className="cm-mini-seat" style={{ left: 115, top: 77 }}>
           {seated
             ? <MyFace size={34} className="cm-mini-face" />
@@ -301,6 +399,18 @@ function CircleCard({ seated }: { seated: boolean }) {
       <Link className="cm-btn cm-btn-rust" href={communityHref("circle")} onClick={() => communityStore.takeSeat()}>{seated ? "Go to your seat" : "Take your seat"}</Link>
     </section>
   );
+}
+
+/**
+ * The line under an example group: its own preview ("Margaret: First tomatoes!"), unless the person
+ * has blocked or hidden its writer. Then it is the group's last line from someone they still see,
+ * as My groups shows it.
+ */
+function previewLine(group: SampleGroup, memory: CommunityMemory): string {
+  const writer = PERSON_IDS.find(who => group.preview?.startsWith(`${people[who].name}:`));
+  if (group.preview && (!writer || canSee(memory, writer))) return group.preview;
+  const model = myGroups(memory).find(item => item.id === group.id);
+  return model ? lastLine(model, memory, null, who => people[who].name, who => canSee(memory, who)) : "";
 }
 
 function GroupsCard({ memory }: { memory: CommunityMemory }) {
@@ -331,7 +441,7 @@ function GroupsCard({ memory }: { memory: CommunityMemory }) {
             <li key={group.id}>
               <Link className="cm-group-link" href={communityHref("groups", group.id)}>
                 <Cover cover={group.cover} className="cm-cover-thumb" />
-                <span className="cm-group-text"><b>{group.name}</b><span>{mine(group.id) ?? group.preview}</span></span>
+                <span className="cm-group-text"><b>{group.name}</b><span>{mine(group.id) ?? previewLine(group, memory)}</span></span>
                 {unread > 0 && <span className="cm-badge"><span aria-hidden="true">{unread}</span><span className="cm-sr">{`, ${unread} unread`}</span></span>}
               </Link>
             </li>
@@ -345,21 +455,37 @@ function GroupsCard({ memory }: { memory: CommunityMemory }) {
 
 /* ------------------------------------------------------------------- view */
 
-/** F: the feed in the middle, with the lounge, the Sunday circle and my groups alongside. */
-export default function FeedView({ name, here }: { name: string; here: number }) {
+/**
+ * F: the feed in the middle, with the lounge, the Sunday circle and my groups alongside. Posts
+ * from people the person has blocked or hidden, and posts they hid, are left out (with an Undo
+ * where one was hidden during this visit); posts mentioning a hidden word wait behind a note.
+ * `onMore` opens the hide, block or report sheet from a post's ··· button; `openPostId` is the
+ * post that sheet is about while it is open, which is marked.
+ */
+export default function FeedView({ name, here, onMore, openPostId = null }: { name: string; here: number; onMore: OpenSafetyMenu; openPostId?: string | null }) {
   const memory = useCommunity();
+  const [showWords, setShowWords] = useState(false);
+  const seen = feedPosts.map(post => ({ post, state: postVisibility(memory, post) }));
+  const byWords = seen.flatMap(({ state }) => (!state.shown && state.why === "words" && state.word ? [state.word] : []));
+  const shown = (state: PostVisibility) => state.shown || (showWords && state.why === "words");
+  let rise = 0;
   return (
     <div className="cm-layout">
       <div className="cm-lane">
         <h2 className="cm-sr">Feed</h2>
         <PostComposer name={name} />
         {memory.posts.map(post => <OwnPostCard key={post.id} post={post} name={name} />)}
-        {feedPosts.map((post, index) => <SamplePostCard key={post.id} post={post} rise={["cm-rise-2", "cm-rise-3", "cm-rise-4"][index] ?? "cm-rise-4"} />)}
+        {seen.map(({ post, state }) => {
+          if (shown(state)) return <SamplePostCard key={post.id} post={post} onMore={onMore} acting={openPostId === post.id} rise={["cm-rise-2", "cm-rise-3", "cm-rise-4"][rise++] ?? "cm-rise-4"} />;
+          if (!state.shown && state.why !== "words" && hiddenThisVisit(state.at)) return <HiddenPostNote key={post.id} post={post} why={state.why} />;
+          return null;
+        })}
+        {byWords.length > 0 && !showWords && <HiddenWordsNote words={byWords} onShow={() => setShowWords(true)} />}
       </div>
       <aside className="cm-side" aria-labelledby="cm-side-feed">
         <h2 className="cm-sr" id="cm-side-feed">Around the community</h2>
         <LoungeCard here={here} />
-        <CircleCard seated={memory.seated} />
+        <CircleCard seated={memory.seated} memory={memory} />
         <GroupsCard memory={memory} />
       </aside>
     </div>
