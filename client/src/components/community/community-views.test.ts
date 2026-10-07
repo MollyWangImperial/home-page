@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { Router } from "wouter";
 import Community from "@/pages/Community";
+import { createCommunityStore } from "@/lib/community-store";
+import { OwnPostCard } from "./Feed";
 
 vi.mock("@/components/RecoveryShell", () => ({ default: ({ children }: { children: unknown }) => children }));
 
@@ -34,6 +36,21 @@ describe("My community views", () => {
     expect(tagWith(html, "a", 'href="/community?space=groups&amp;group=walk"')).toBe(true);
     expect(tagWith(html, "a", 'href="/community?space=start"')).toBe(true);
     expect(text).toContain("4 unread");
+  });
+
+  it("shows who can see your own posts, and never says only you can see what you share", () => {
+    // A post the person made: its line says who sees it (Friends, until the setting is changed).
+    const post = createCommunityStore(() => null).addPost({ text: "Walked to the post box today." });
+    expect(post).not.toBeNull();
+    const card = words(renderToStaticMarkup(createElement(OwnPostCard, { post: post!, name: "Zak" })));
+    expect(card).toContain("Walked to the post box today.");
+    expect(card).toContain("Seen by Friends");
+    const onlyYou = /only you (can|will) see|only visible to you/i;
+    expect(card).not.toMatch(onlyYou);
+    for (const path of ["/community", "/community?space=lounge", "/community?space=circle", "/community?space=groups", "/community?space=start", "/community?space=settings", "/community?panel=friends"]) {
+      expect(words(page(path)), path).not.toMatch(onlyYou);
+    }
+    expect(words(page("/community?space=settings&section=friends"))).toContain("Who can see my posts");
   });
 
   it("shows the lounge with its people, quick replies and the tea-break poll", () => {

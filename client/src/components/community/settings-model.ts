@@ -1,4 +1,4 @@
-import { settingsChoices, startHiddenWords, suggestedHiddenWords, type BreakChoice, type MessagesFrom, type PersonId } from "@/content/community-samples";
+import { settingsChoices, startHiddenWords, suggestedHiddenWords, type BreakChoice, type MessagesFrom, type PersonId, type PostsSeenBy } from "@/content/community-samples";
 import { canSee, cleanHiddenWord, hiddenWordIn, hourLabel, inQuietHours, LIMITS, onBreak, type CommunityMemory, type CommunitySettings, type SettingsSection } from "@/lib/community-store";
 
 // The wording and small rules behind the Community settings page (F5): the one line under each
@@ -21,6 +21,16 @@ export function dayLabel(at: number, weekday = false): string {
   return `${weekday ? `${WEEKDAYS[date.getDay()]} ` : ""}${date.getDate()} ${MONTHS[date.getMonth()]}`;
 }
 
+/**
+ * Who sees the person's posts, in the words each place uses: the label beside a post and in the
+ * composer, the part of the settings summary, and what is said once a post is made.
+ */
+export function postsAudience(seenBy: PostsSeenBy): { label: string; summary: string; posted: string } {
+  if (seenBy === "everyone") return { label: "Everyone", summary: "posts for everyone", posted: "Posted for everyone in My community." };
+  if (seenBy === "onlyMe") return { label: "Only me", summary: "posts just for you", posted: "Posted. Only you can see it." };
+  return { label: "Friends", summary: "posts for friends", posted: "Posted for your friends." };
+}
+
 /** The break on now: "none" once a break has ended, whatever was chosen. */
 export const breakNow = (settings: CommunitySettings, now = Date.now()): BreakChoice => (onBreak(settings, now) ? settings.breakChoice : "none");
 
@@ -36,6 +46,7 @@ export function settingsSummaries(settings: CommunitySettings, town: string, now
     friends: [
       settings.requestsFrom === "noOne" ? "No new requests" : `Requests from ${labelOf(settingsChoices.requestsFrom, settings.requestsFrom).toLowerCase()}`,
       settings.messagesFrom === "friends" ? "messages from friends only" : "messages from friends and groups",
+      postsAudience(settings.postsSeenBy).summary,
     ],
     see: [settings.gentleMode ? "Gentle mode on" : "Gentle mode off", counted(settings.hiddenWords.length, "hidden word", "hidden words", "no hidden words")],
     read: [settings.readAloud ? "Read aloud on" : "Read aloud off", `${labelOf(settingsChoices.textSize, settings.textSize).toLowerCase()} text`],

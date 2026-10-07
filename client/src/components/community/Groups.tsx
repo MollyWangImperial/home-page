@@ -115,7 +115,7 @@ export default function GroupsView({ active, requested }: { active: boolean; req
 
   const send = (draft: NoteDraft) => {
     const note = communityStore.addMessage(selected.id, draft);
-    if (note) setSentNote(`Sent. Only you can see it: ${note.text || "your photo"}`);
+    if (note) setSentNote(`Sent: ${note.text || "your photo"}`);
   };
   const started = selected.started;
   const invited = (started ? started.friends : invites[selected.id] ?? []).filter(inSight);
@@ -163,7 +163,7 @@ export default function GroupsView({ active, requested }: { active: boolean; req
               </span>
             ) : (
               <>
-                <span>{invited.length ? `${listNames(invited.map(nameOf))} ${invited.length === 1 ? "is an example friend" : "are example friends"}, so only you can see this group.` : "Only you can see this group."}</span>
+                <span>{invited.length ? `You started this group with ${listNames(invited.map(nameOf))}.` : "You started this group."}</span>
                 <button type="button" className="cm-text-button" onClick={() => setClosing(true)}>Close group</button>
               </>
             )}

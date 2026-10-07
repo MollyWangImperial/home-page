@@ -5,7 +5,7 @@ import { circle, people, type CircleSeat, type PersonId } from "@/content/commun
 import { canSee, communityHref, communityStore, isBlocked, useCommunity } from "@/lib/community-store";
 import { useBursts, useLater, usePinnedToEnd } from "./hooks";
 import { CupIcon, HeartIcon, PauseIcon, PlayIcon, PlusIcon, PulseIcon } from "./icons";
-import { AliraMark, Face, FloatingHearts, LiveDot, MyFace, OnlyYou } from "./parts";
+import { AliraMark, Face, FloatingHearts, LiveDot, MyFace } from "./parts";
 
 type Said = { id: number; who: CircleSeat; text: string };
 type CircleState = { at: number; said: Said[]; waiting: boolean; next: number };
@@ -234,7 +234,6 @@ export default function CircleView({ active, name }: { active: boolean; name: st
                 <div className="cm-said-text">
                   <strong>{nameOf(line.who)}</strong>{" "}
                   {line.who === "alira" ? <TypedChatText text={line.text} /> : <span>{line.text}</span>}
-                  {line.who === "you" && <OnlyYou className="cm-only-you-inline" />}
                 </div>
               </li>
             ))}

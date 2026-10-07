@@ -8,6 +8,7 @@ import {
   dayLabel,
   hiddenWordProblem,
   nextSuggestedWord,
+  postsAudience,
   quietEdges,
   quietHint,
   sampleLine,
@@ -26,7 +27,7 @@ describe("Community settings: the line under each section", () => {
   it("sums up the settings as they start", () => {
     expect(settingsSummaries(settings(), "", NOW)).toEqual({
       appear: ["No town added", "online dot on", "drawn face"],
-      friends: ["Requests from everyone", "messages from friends only"],
+      friends: ["Requests from everyone", "messages from friends only", "posts for friends"],
       see: ["Gentle mode on", "2 hidden words"],
       read: ["Read aloud off", "normal text"],
       quiet: ["Quiet from 9 pm to 8 am"],
@@ -35,12 +36,12 @@ describe("Community settings: the line under each section", () => {
 
   it("follows each change", () => {
     const changed = settings({
-      showTown: false, showOnline: false, picture: "initial", requestsFrom: "noOne", messagesFrom: "friendsAndGroups",
+      showTown: false, showOnline: false, picture: "initial", requestsFrom: "noOne", messagesFrom: "friendsAndGroups", postsSeenBy: "everyone",
       gentleMode: false, hiddenWords: ["money"], readAloud: true, textSize: "bigger", quietFrom: 23, breakChoice: "week", breakUntil: NOW + 7 * DAY,
     });
     expect(settingsSummaries(changed, "Leeds", NOW)).toEqual({
       appear: ["Town hidden", "online dot off", "initial"],
-      friends: ["No new requests", "messages from friends and groups"],
+      friends: ["No new requests", "messages from friends and groups", "posts for everyone"],
       see: ["Gentle mode off", "1 hidden word"],
       read: ["Read aloud on", "bigger text"],
       quiet: ["Quiet from 11 pm to 8 am", "on a break until 13 October"],
@@ -48,6 +49,15 @@ describe("Community settings: the line under each section", () => {
     expect(settingsSummaries(settings({ hiddenWords: [], requestsFrom: "friendsOfFriends" }), "Leeds", NOW).see).toEqual(["Gentle mode on", "no hidden words"]);
     expect(settingsSummaries(settings({ requestsFrom: "friendsOfFriends" }), "Leeds", NOW).friends[0]).toBe("Requests from friends of friends");
     expect(settingsSummaries(settings(), "Leeds", NOW).appear[0]).toBe("Town shown");
+    expect(settingsSummaries(settings({ postsSeenBy: "onlyMe" }), "Leeds", NOW).friends[2]).toBe("posts just for you");
+  });
+});
+
+describe("Community settings: who can see my posts", () => {
+  it("names each choice the same way beside a post, in the summary and once posted", () => {
+    expect(postsAudience("friends")).toEqual({ label: "Friends", summary: "posts for friends", posted: "Posted for your friends." });
+    expect(postsAudience("everyone")).toEqual({ label: "Everyone", summary: "posts for everyone", posted: "Posted for everyone in My community." });
+    expect(postsAudience("onlyMe")).toEqual({ label: "Only me", summary: "posts just for you", posted: "Posted. Only you can see it." });
   });
 });
 

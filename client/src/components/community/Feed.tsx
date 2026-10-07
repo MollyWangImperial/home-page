@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link } from "wouter";
-import { feedPosts, feelings, isPersonId, members, PERSON_IDS, people, sampleGroups, type FeelingId, type PersonId, type SampleGroup, type SamplePost } from "@/content/community-samples";
+import { feedPosts, feelings, isPersonId, members, PERSON_IDS, people, sampleGroups, settingsChoices, type FeelingId, type PersonId, type PostsSeenBy, type SampleGroup, type SamplePost } from "@/content/community-samples";
 import {
   canSee,
   communityHref,
@@ -19,8 +19,9 @@ import {
 } from "@/lib/community-store";
 import { coverForTheme, lastLine, myGroups } from "./group-model";
 import { useVoiceNote, voiceSeconds } from "./hooks";
-import { ArrowIcon, ChatIcon, CloseIcon, DotsIcon, EyeIcon, EyeOffIcon, MicIcon, PhotoIcon, PlusIcon, SmileIcon, SpeakerIcon, StarIcon, StopIcon } from "./icons";
-import { AliraMark, Cover, Face, FriendButton, LiveDot, MemberFace, MyFace, OnlyYou, ReactionButton, TypingDots, VoiceNote } from "./parts";
+import { ArrowIcon, ChatIcon, CloseIcon, DotsIcon, EyeIcon, EyeOffIcon, GlobeIcon, LockIcon, MicIcon, PhotoIcon, PlusIcon, SmileIcon, SpeakerIcon, StarIcon, StopIcon, UsersIcon } from "./icons";
+import { AliraMark, Cover, Face, FriendButton, LiveDot, MemberFace, MyFace, ReactionButton, TypingDots, VoiceNote } from "./parts";
+import { postsAudience } from "./settings-model";
 
 const feelingLabel = (id: FeelingId | null) => feelings.find(item => item.id === id)?.label.toLowerCase();
 
@@ -36,11 +37,34 @@ function PostTags({ win, feeling }: { win: boolean; feeling: FeelingId | null })
 
 /* --------------------------------------------------------------- composer */
 
+/** Everyone, Friends or Only me, as a small picture. */
+function AudienceIcon({ seenBy, size = 16 }: { seenBy: PostsSeenBy; size?: number }) {
+  if (seenBy === "everyone") return <GlobeIcon size={size} />;
+  if (seenBy === "onlyMe") return <LockIcon size={size} />;
+  return <UsersIcon size={size} />;
+}
+
 /**
- * "What's new with you?" Photo, Voice, Feeling and Little win shape the post. Whatever is posted
- * stays on this device and is shown only to the person who wrote it.
+ * Who can see the person's posts, chosen right where they write. It is the same choice as "Who can
+ * see my posts" in Community settings, so changing it here changes it there too.
+ */
+function AudiencePicker({ seenBy }: { seenBy: PostsSeenBy }) {
+  return (
+    <label className="cm-audience">
+      <AudienceIcon seenBy={seenBy} />
+      <select aria-label="Who can see my posts" value={seenBy} onChange={event => communityStore.updateSettings({ postsSeenBy: event.target.value as PostsSeenBy })}>
+        {settingsChoices.postsSeenBy.map(choice => <option key={choice.id} value={choice.id}>{choice.label}</option>)}
+      </select>
+    </label>
+  );
+}
+
+/**
+ * "What's new with you?" Photo, Voice, Feeling and Little win shape the post, and the picker beside
+ * Post says who can see it (Community settings holds the same choice).
  */
 function PostComposer({ name }: { name: string }) {
+  const seenBy = useCommunity().settings.postsSeenBy;
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
@@ -77,7 +101,7 @@ function PostComposer({ name }: { name: string }) {
     if (!words && !photo) { setProblem("Write something, or add a photo, before you post."); box.current?.focus(); return; }
     communityStore.addPost({ text: words, photo, voice, feeling, win });
     close();
-    setPosted("Posted. Only you can see it: in this preview, nothing leaves this device.");
+    setPosted(postsAudience(seenBy).posted);
   };
 
   return (
@@ -133,7 +157,7 @@ function PostComposer({ name }: { name: string }) {
         {problem && <p className="cm-problem" role="alert">{problem}</p>}
         {open && (
           <div className="cm-composer-foot">
-            <OnlyYou>Only you will see this post</OnlyYou>
+            <AudiencePicker seenBy={seenBy} />
             <span className="cm-composer-actions">
               <button type="button" className="cm-btn cm-btn-quiet" onClick={close}>Cancel</button>
               <button type="submit" className="cm-btn cm-btn-green">Post</button>
@@ -148,16 +172,20 @@ function PostComposer({ name }: { name: string }) {
 
 /* ------------------------------------------------------------------ posts */
 
-function OwnPostCard({ post, name }: { post: OwnPost; name: string }) {
+export function OwnPostCard({ post, name }: { post: OwnPost; name: string }) {
   const [asking, setAsking] = useState(false);
   const headingId = useId();
+  const seenBy = useCommunity().settings.postsSeenBy;
   return (
     <article className="cm-card cm-post is-mine cm-msg-in" aria-labelledby={headingId}>
       <header className="cm-post-head">
         <MyFace size={48} />
         <div className="cm-post-who">
           <h3 className="cm-post-name" id={headingId}>{name} <span className="cm-post-in">(you)</span></h3>
-          <p className="cm-post-meta">{timeAgo(post.createdAt)}</p>
+          <p className="cm-post-meta">
+            {timeAgo(post.createdAt)} ·{" "}
+            <span className="cm-post-audience"><AudienceIcon seenBy={seenBy} size={14} /><span><span className="cm-sr">Seen by </span>{postsAudience(seenBy).label}</span></span>
+          </p>
         </div>
         {asking ? (
           <span className="cm-confirm" role="group" aria-label="Remove this post?">
@@ -171,7 +199,6 @@ function OwnPostCard({ post, name }: { post: OwnPost; name: string }) {
       <PostTags win={post.win} feeling={post.feeling} />
       {post.voice ? <VoiceNote words={post.text} label="your voice note" wordsClassName="cm-post-text" /> : post.text && <p className="cm-post-text">{post.text}</p>}
       {post.photo && <img className="cm-post-photo is-own" src={post.photo} alt="Your photo" />}
-      <OnlyYou />
     </article>
   );
 }
@@ -183,7 +210,7 @@ function Thread({ post, id }: { post: SamplePost; id: string }) {
   const [status, setStatus] = useState("");
   const name = members[post.who].name;
   const reply = (words: string) => {
-    if (communityStore.addReply(post.id, { text: words })) { setText(""); setStatus("Reply added. Only you can see it."); }
+    if (communityStore.addReply(post.id, { text: words })) { setText(""); setStatus("Reply added."); }
   };
   return (
     <div className="cm-thread" id={id}>
@@ -199,7 +226,7 @@ function Thread({ post, id }: { post: SamplePost; id: string }) {
             <MyFace size={34} />
             <div>
               <p><strong>You</strong> {item.text}</p>
-              <span className="cm-mine-foot"><OnlyYou /><button type="button" className="cm-text-button" onClick={() => communityStore.removeReply(post.id, item.id)}>Remove<span className="cm-sr"> your reply</span></button></span>
+              <span className="cm-mine-foot"><button type="button" className="cm-text-button" onClick={() => communityStore.removeReply(post.id, item.id)}>Remove<span className="cm-sr"> your reply</span></button></span>
             </div>
           </li>
         ))}

@@ -140,7 +140,6 @@
 .cm-said-alira { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 999px; background: var(--cm-green); color: #FFFFFF; }
 .cm-said-text { min-width: 0; padding-top: 4px; color: var(--cm-ink); font-size: 16px; line-height: 1.45; }
 .cm-said-text .chat-thinking { vertical-align: middle; }
-.cm-only-you-inline { display: flex; margin-top: 2px; }
 .cm-upcoming-list { display: flex; flex-direction: column; gap: 10px; padding: 0; list-style: none; }
 .cm-upcoming-list li { display: flex; align-items: center; gap: 10px; }
 .cm-upcoming-text { display: flex; flex: 1; flex-direction: column; gap: 1px; min-width: 0; }

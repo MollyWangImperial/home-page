@@ -4,7 +4,7 @@ import { defaultInvites, GROUP_NAME_LIMIT, groupHellos, groupThemes, inviteFrien
 import { communityHref, communityStore, isBlocked, listNames, useCommunity, type CommunityMemory, type StartedGroup } from "@/lib/community-store";
 import { coverForTheme } from "./group-model";
 import { ArrowIcon, CheckIcon, ShieldIcon, ThemeIcon, UsersIcon } from "./icons";
-import { AliraMark, Cover, Face, MyFace, OnlyYou } from "./parts";
+import { AliraMark, Cover, Face, MyFace } from "./parts";
 
 const helloLabels = ["Hello everyone!", "Welcome to the group", "Who's got news?"];
 const helloTones = ["cm-quick-mint", "cm-quick-amber", "cm-quick-blue"];
@@ -61,8 +61,8 @@ export default function StartGroupView({ name }: { name: string }) {
   const coming = created ? unblocked(memory, created.friends) : friends;
   const going = coming.map(nameOf);
   const inviteLine = going.length === 0
-    ? "It's just you for now. Your group is kept on this device, and you can invite friends whenever you like."
-    : `${listNames(going)} ${going.length === 1 ? "is an example friend" : "are example friends"}, so no invitations go out in this preview. Your group is kept on this device.`;
+    ? "It's just you for now. You can invite friends whenever you like."
+    : `You've invited ${listNames(going)}.`;
 
   return (
     <div className="cm-start">
@@ -130,7 +130,6 @@ export default function StartGroupView({ name }: { name: string }) {
             {created.hello && (
               <div key={created.hello} className="cm-hello-sent cm-pop">
                 <p className="cm-hello-bubble">{created.hello}</p>
-                <OnlyYou />
               </div>
             )}
             <div className="cm-created-actions">

@@ -489,6 +489,7 @@ export default function SettingsView({ name, section = null }: SettingsViewProps
             note={settings.requestsFrom === "noOne" ? { text: "New requests are off. Requests already waiting stay in Friends." } : null}
           />
           <Choice spaced label="Who can message me" options={settingsChoices.messagesFrom} value={settings.messagesFrom} onPick={messagesFrom => update({ messagesFrom })} />
+          <Choice spaced label="Who can see my posts" options={settingsChoices.postsSeenBy} value={settings.postsSeenBy} onPick={postsSeenBy => update({ postsSeenBy })} />
           <Link className="cm-set-link" href={friendsHref("requests", { space: "settings", group: null })}>See requests you have sent and received<NextIcon size={18} /></Link>
         </Section>
 

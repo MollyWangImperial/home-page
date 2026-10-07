@@ -496,6 +496,7 @@ export const ALERT_IDS: AlertId[] = communityAlerts.map(alert => alert.id);
 export type PictureChoice = "drawn" | "photo" | "initial";
 export type RequestsFrom = "everyone" | "friendsOfFriends" | "noOne";
 export type MessagesFrom = "friends" | "friendsAndGroups";
+export type PostsSeenBy = "everyone" | "friends" | "onlyMe";
 export type TextSize = "smaller" | "normal" | "bigger";
 export type BreakChoice = "none" | "day" | "week";
 
@@ -504,6 +505,8 @@ export const settingsChoices = {
   picture: [{ id: "drawn", label: "Drawn face" }, { id: "photo", label: "My photo" }, { id: "initial", label: "Initial" }] as { id: PictureChoice; label: string }[],
   requestsFrom: [{ id: "everyone", label: "Everyone" }, { id: "friendsOfFriends", label: "Friends of friends" }, { id: "noOne", label: "No one" }] as { id: RequestsFrom; label: string }[],
   messagesFrom: [{ id: "friends", label: "Only friends" }, { id: "friendsAndGroups", label: "Friends and my groups" }] as { id: MessagesFrom; label: string }[],
+  /** Who sees the person's own posts in the feed. */
+  postsSeenBy: [{ id: "everyone", label: "Everyone" }, { id: "friends", label: "Friends" }, { id: "onlyMe", label: "Only me" }] as { id: PostsSeenBy; label: string }[],
   /** The size of post text at each choice (normal is the size the feed was designed at). */
   textSize: [{ id: "smaller", label: "Smaller", px: 16 }, { id: "normal", label: "Normal", px: 19 }, { id: "bigger", label: "Bigger", px: 23 }] as { id: TextSize; label: string; px: number }[],
   /** When quiet time can start, as hours of the day (7 pm to 11 pm). It ends at 8 am. */
@@ -513,6 +516,7 @@ export const settingsChoices = {
 export const PICTURE_CHOICES: PictureChoice[] = settingsChoices.picture.map(choice => choice.id);
 export const REQUESTS_FROM: RequestsFrom[] = settingsChoices.requestsFrom.map(choice => choice.id);
 export const MESSAGES_FROM: MessagesFrom[] = settingsChoices.messagesFrom.map(choice => choice.id);
+export const POSTS_SEEN_BY: PostsSeenBy[] = settingsChoices.postsSeenBy.map(choice => choice.id);
 export const TEXT_SIZES: TextSize[] = settingsChoices.textSize.map(choice => choice.id);
 export const BREAK_CHOICES: BreakChoice[] = settingsChoices.breakFor.map(choice => choice.id);
 /** Words hidden to begin with, and some that can be added with one tap. */

@@ -117,7 +117,7 @@ export default function LoungeView({ active, here, onHere }: { active: boolean; 
     if (!text) return;
     setLines(list => [...list, { kind: "mine", id: `mine-${sent}`, note: { text, voice: !!draft.voice } }]);
     setSent(count => count + 1);
-    setSentNote(`Sent. Only you can see it: ${text}`);
+    setSentNote(`Sent: ${text}`);
   };
 
   return (

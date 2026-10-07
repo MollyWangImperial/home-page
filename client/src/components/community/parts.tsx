@@ -5,7 +5,7 @@ import { communityStore, communityViewFromQuery, friendsHref, placeOf, preparePo
 import { profileInitial, useProfile } from "@/lib/profile";
 import type { Burst } from "./hooks";
 import { useVoiceNote, voiceSeconds } from "./hooks";
-import { ArrowIcon, CheckIcon, CloseIcon, HandIcon, HeartIcon, LockIcon, MicIcon, PhotoIcon, PlayIcon, PulseIcon, StarIcon, StopIcon, ThemeIcon } from "./icons";
+import { ArrowIcon, CheckIcon, CloseIcon, HandIcon, HeartIcon, MicIcon, PhotoIcon, PlayIcon, PulseIcon, StarIcon, StopIcon, ThemeIcon } from "./icons";
 
 /* ------------------------------------------------------------------ faces */
 
@@ -60,11 +60,6 @@ export const LiveDot = ({ tone = "red", className = "" }: { tone?: "red" | "gree
 
 export function TypingDots() {
   return <span className="cm-typing-dots" aria-hidden="true"><i /><i /><i /></span>;
-}
-
-/** Said under everything the person writes: in this preview, it goes nowhere. */
-export function OnlyYou({ className = "", children = "Only you can see this" }: { className?: string; children?: string }) {
-  return <span className={`cm-only-you ${className}`}><LockIcon size={14} />{children}</span>;
 }
 
 export function FloatingHearts({ bursts, className = "" }: { bursts: Burst[]; className?: string }) {
@@ -219,7 +214,7 @@ export function TheirMessage({ message, heartKey }: { message: GroupMessage; hea
   );
 }
 
-/** Something the person wrote. It is shown to them only. */
+/** Something the person wrote, with a way to take it back. */
 export function MyMessage({ note, onRemove }: { note: Pick<OwnNote, "text" | "photo" | "voice">; onRemove?: () => void }) {
   return (
     <li className="cm-msg is-mine cm-msg-in">
@@ -227,10 +222,11 @@ export function MyMessage({ note, onRemove }: { note: Pick<OwnNote, "text" | "ph
         {note.photo && <img src={note.photo} alt="Your photo" />}
         {note.voice ? <VoiceNote words={note.text} label="your voice note" mine /> : note.text && <p>{note.text}</p>}
       </div>
-      <span className="cm-mine-foot">
-        <OnlyYou />
-        {onRemove && <button type="button" className="cm-text-button" onClick={onRemove}>Remove<span className="cm-sr"> your message</span></button>}
-      </span>
+      {onRemove && (
+        <span className="cm-mine-foot">
+          <button type="button" className="cm-text-button" onClick={onRemove}>Remove<span className="cm-sr"> your message</span></button>
+        </span>
+      )}
     </li>
   );
 }

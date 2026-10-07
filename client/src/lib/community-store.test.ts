@@ -615,7 +615,7 @@ describe("alerts", () => {
 describe("community settings", () => {
   it("starts with the designed defaults", () => {
     expect(blankCommunityMemory().settings).toEqual({
-      showTown: true, showOnline: true, picture: "drawn", requestsFrom: "everyone", messagesFrom: "friends",
+      showTown: true, showOnline: true, picture: "drawn", requestsFrom: "everyone", messagesFrom: "friends", postsSeenBy: "friends",
       gentleMode: true, showHeartCounts: true, hiddenWords: ["hospital", "falls"], readAloud: false, writeOutVoiceNotes: true,
       textSize: "normal", quietFrom: 21, quietUntil: 8, breakChoice: "none", breakUntil: null,
     });
@@ -628,6 +628,12 @@ describe("community settings", () => {
     store.updateSettings({ textSize: "huge" as never, quietFrom: 3, requestsFrom: "noOne", showOnline: "yes" as never });
     const settings = createCommunityStore(() => storage).load().settings;
     expect(settings).toMatchObject({ gentleMode: false, textSize: "bigger", picture: "initial", quietFrom: 22, requestsFrom: "noOne", showOnline: true });
+    // Who can see my posts: one of Everyone, Friends or Only me, and nothing else.
+    store.updateSettings({ postsSeenBy: "everyone" });
+    store.updateSettings({ postsSeenBy: "strangers" as never });
+    expect(createCommunityStore(() => storage).load().settings.postsSeenBy).toBe("everyone");
+    store.updateSettings({ postsSeenBy: "onlyMe" });
+    expect(createCommunityStore(() => storage).load().settings.postsSeenBy).toBe("onlyMe");
     const before = store.load();
     expect(store.updateSettings({ textSize: "bigger" })).toBe(before);
     store.resetSettings();

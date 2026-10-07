@@ -15,6 +15,7 @@ import {
   MEMBER_IDS,
   MESSAGES_FROM,
   PERSON_IDS,
+  POSTS_SEEN_BY,
   PICTURE_CHOICES,
   POLL_OPTION_IDS,
   REACTION_KINDS,
@@ -39,6 +40,7 @@ import {
   type IncomingRequestId,
   type MemberId,
   type MessagesFrom,
+  type PostsSeenBy,
   type PersonId,
   type PictureChoice,
   type ReactionKind,
@@ -179,9 +181,10 @@ export type CommunitySettings = {
   showTown: boolean;
   showOnline: boolean;
   picture: PictureChoice;
-  /** Friends and messages. */
+  /** Friends and messages, and who sees the person's own posts in the feed. */
   requestsFrom: RequestsFrom;
   messagesFrom: MessagesFrom;
+  postsSeenBy: PostsSeenBy;
   /** What you see: gentle mode covers sad or upsetting posts; heart counts; posts with these words are hidden. */
   gentleMode: boolean;
   showHeartCounts: boolean;
@@ -201,7 +204,8 @@ export type CommunitySettings = {
 export function defaultCommunitySettings(): CommunitySettings {
   return {
     showTown: true, showOnline: true, picture: "drawn",
-    requestsFrom: "everyone", messagesFrom: "friends",
+    // Posts are for friends to begin with: the more private choice, until the person picks another.
+    requestsFrom: "everyone", messagesFrom: "friends", postsSeenBy: "friends",
     gentleMode: true, showHeartCounts: true, hiddenWords: [...startHiddenWords],
     readAloud: false, writeOutVoiceNotes: true, textSize: "normal",
     quietFrom: 21, quietUntil: 8, breakChoice: "none", breakUntil: null,
@@ -383,6 +387,7 @@ function readSettings(value: unknown, base: CommunitySettings = defaultCommunity
   if (oneOf(PICTURE_CHOICES)(value.picture)) settings.picture = value.picture;
   if (oneOf(REQUESTS_FROM)(value.requestsFrom)) settings.requestsFrom = value.requestsFrom;
   if (oneOf(MESSAGES_FROM)(value.messagesFrom)) settings.messagesFrom = value.messagesFrom;
+  if (oneOf(POSTS_SEEN_BY)(value.postsSeenBy)) settings.postsSeenBy = value.postsSeenBy;
   if (oneOf(TEXT_SIZES)(value.textSize)) settings.textSize = value.textSize;
   if (Array.isArray(value.hiddenWords)) settings.hiddenWords = strings((value.hiddenWords as unknown[]).map(cleanHiddenWord), (word): word is string => typeof word === "string" && word.length > 0, LIMITS.hiddenWords);
   if (typeof value.quietFrom === "number" && settingsChoices.quietFrom.includes(value.quietFrom)) settings.quietFrom = value.quietFrom;
