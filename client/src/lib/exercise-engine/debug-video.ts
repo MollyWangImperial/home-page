@@ -50,9 +50,14 @@ export class DebugVideoRecorder {
     ctx.font = "15px sans-serif";
     const measured = (value: number | undefined, unit: string) => value === undefined ? "unknown" : `${value.toFixed(1)}${unit}`;
     ctx.fillText(`${this.session.simulated ? "SIMULATED · " : ""}${snapshot.phase === "warm" ? "Practice" : `Repetition ${snapshot.repIndex}`} · ${snapshot.caption} · hold ${Math.round(snapshot.holdProgress * 100)}%`, 14, this.canvas.height - 63);
-    const mouth = this.session.exerciseId === "ex_h2m";
-    ctx.fillText(`Shoulder ${measured(frame.values.shoulder_flexion, "°")} · ${mouth ? "Elbow bend" : "Elbow"} ${measured(mouth ? frame.values.elbow_flexion : frame.values.elbow_extension, "°")} · Face ${measured(frame.comps.face_approach_pct, "%")} · Shoulder width ${measured(frame.comps.shoulder_approach_pct, "%")}`, 14, this.canvas.height - 39);
-    ctx.fillText(`Shoulder tilt ${measured(frame.comps.shoulder_hike_delta, "°")} · ${mouth ? `Head drop ${measured(frame.comps.head_drop_deg, "°")}` : `Shoulder-to-ear reduction ${measured(frame.comps.shoulder_elevation_pct, "%")}`} · Hand ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
+    if (this.session.exerciseId === "ex_h2m") {
+      // Head lean is in % of shoulder width (down and toward the camera, beyond any trunk lean).
+      ctx.fillText(`Shoulder lift ${measured(frame.values.shoulder_flexion, "°")} · Elbow bend ${measured(frame.values.elbow_flexion, "°")} · Head forward ${measured(frame.comps.head_forward_pct, "%")} (down ${measured(frame.comps.head_drop_pct, "%")}, closer ${measured(frame.comps.head_approach_pct, "%")})`, 14, this.canvas.height - 39);
+      ctx.fillText(`Trunk forward ${measured(frame.comps.trunk_approach_pct, "%")} · Shoulder tilt ${measured(frame.comps.shoulder_hike_delta, "°")} · Hand ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
+    } else {
+      ctx.fillText(`Shoulder ${measured(frame.values.shoulder_flexion, "°")} · Elbow ${measured(frame.values.elbow_extension, "°")} · Face ${measured(frame.comps.face_approach_pct, "%")} · Shoulder width ${measured(frame.comps.shoulder_approach_pct, "%")}`, 14, this.canvas.height - 39);
+      ctx.fillText(`Shoulder tilt ${measured(frame.comps.shoulder_hike_delta, "°")} · Shoulder-to-ear reduction ${measured(frame.comps.shoulder_elevation_pct, "%")} · Hand ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
+    }
     this.segment.sample(snapshot, frame);
   }
 

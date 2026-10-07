@@ -27,4 +27,19 @@ export const reachedTargetsLine = (finalRep: boolean) =>
 export const finalRepAdvice = (say: string) => say.replace("On the next repetition, try", "Try").replace(" on the next try", "");
 export const ELBOW_ADVICE = "Straighten your elbow a little more as you reach toward the circle.";
 export const SHOULDER_ADVICE = "Lift your arm a little more from your shoulder, keeping your chest upright.";
+/** Hand-to-mouth's versions of the two angle hints: elbow bend and shoulder lift toward the mouth circle. */
+export const MOUTH_ELBOW_ADVICE = "Bend your elbow a little more to bring the cup all the way to your mouth.";
+export const MOUTH_SHOULDER_ADVICE = "Lift your elbow a little more from your shoulder, keeping your head up.";
 export const CLOSER_TARGET_LINE = "The next target will be a little closer.";
+
+/** Per-angle hints spoken after a repetition, worded for each seated movement. */
+export const ANGLE_ADVICE: Record<string, Record<string, { review: string; next: string }>> = {
+  ex_reach: {
+    elbow_extension: { review: ELBOW_ADVICE, next: "On the next repetition, straighten your elbow a little more as you reach toward the circle." },
+    shoulder_flexion: { review: SHOULDER_ADVICE, next: "On the next repetition, lift your arm a little more from your shoulder while keeping your chest upright." },
+  },
+  ex_h2m: {
+    elbow_flexion: { review: MOUTH_ELBOW_ADVICE, next: "On the next repetition, bend your elbow a little more to bring the cup all the way to your mouth." },
+    shoulder_flexion: { review: MOUTH_SHOULDER_ADVICE, next: "On the next repetition, lift your elbow a little more from your shoulder while keeping your head up." },
+  },
+};

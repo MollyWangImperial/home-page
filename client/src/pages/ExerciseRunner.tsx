@@ -78,7 +78,8 @@ export default function ExerciseRunner() {
   const bodyProgress = useRef<Record<string, number>>({});
   const bodyLastT = useRef(0);
   const targetCompletion = useRef<{ key: string; startedAt: number } | null>(null);
-  const reachTarget = useRef<{ key: string; x: number; y: number; radius: number; startX: number; startY: number; baseY: number; torso: number; lapX: number; lapY: number } | null>(null);
+  // lapRadius: the lap circle's own size where it differs from the movement circle (the small mouth circle).
+  const reachTarget = useRef<{ key: string; x: number; y: number; radius: number; lapRadius?: number; startX: number; startY: number; baseY: number; torso: number; lapX: number; lapY: number } | null>(null);
   const [said, setSaid] = useState("");
   const [muted, setMuted] = useState(false);
   const [englishAvailable, setEnglishAvailable] = useState(true);
@@ -246,18 +247,25 @@ export default function ExerciseRunner() {
               frame.targetContact = wristVisible && distance <= target.radius;
               frame.targetProgress = frame.targetContact ? 1 : Math.max(0, Math.min(0.98, 1 - (distance - target.radius) / Math.max(0.05, startDistance - target.radius)));
             }
-          } else if (session.cfg.id !== "ex_reach" || now.phase === "setup" || now.phase === "demo") reachTarget.current = null;
+          } else if (!usesSeatedTargets(session.cfg.id) || now.phase === "setup" || now.phase === "demo") reachTarget.current = null;
           if (session.cfg.id === "ex_h2m" && (now.phase === "warm" || now.phase === "reps") && !now.review) {
             const lap = session.lapPoint, mouth = session.mouthPoint;
             if (lap && mouth) {
               // Alira's target size scales the mouth circle and its limits (1 leaves them as before).
               const size = session.tuning.targetSizeScale;
               const radius = Math.max(0.045 * size, Math.min(0.08 * size, lap.bodyScale * 0.18 * size));
-              reachTarget.current = { key: `${now.phase}:${now.repIndex}:${now.rung}`, x: mouth.x, y: mouth.y, radius, baseY: mouth.y, torso: lap.bodyScale, startX: lap.x, startY: lap.y, lapX: lap.x, lapY: lap.y };
+              const key = `${now.phase}:${now.repIndex}:${now.rung}`;
+              // The lap circle is the forward reach's lap circle: the same size rule, fixed for each repetition.
+              const j = poseJoints(opts.side);
+              const shoulderSpan = detection.pose ? Math.abs(detection.pose.landmarks[j.shoulder].x - detection.pose.landmarks[j.shoulderOther].x) : 0;
+              const lapRadius = reachTarget.current?.key === key && reachTarget.current.lapRadius !== undefined ? reachTarget.current.lapRadius
+                : Math.min(Math.max(0.11 * size, shoulderSpan * 0.55 * size), 0.18 * size) * Math.min(video.videoWidth, video.videoHeight) / video.videoHeight;
+              reachTarget.current = { key, x: mouth.x, y: mouth.y, radius, lapRadius, baseY: mouth.y, torso: lap.bodyScale, startX: lap.x, startY: lap.y, lapX: lap.x, lapY: lap.y };
               if (now.kind === "reach") {
                 const points = mouthContactPoints(detection.pose, opts.side);
-                frame.visible = frame.visible && points.length > 0;
-                if (!points.length) frame.missing = `Bring your ${opts.side} hand and fingertips into view.`;
+                // As for the reach, once set up only the affected hand has to stay in view.
+                frame.visible = points.length > 0;
+                frame.missing = points.length ? undefined : "Bring your affected hand back into view.";
                 frame.targetContact = frame.visible && mouthContact(detection.pose, opts.side, mouth, radius, video.videoWidth / video.videoHeight);
                 const distance = Math.min(...points.map(point => Math.hypot((point.x - mouth.x) * video.videoWidth / video.videoHeight, point.y - mouth.y)));
                 const startDistance = Math.hypot((lap.x - mouth.x) * video.videoWidth / video.videoHeight, lap.y - mouth.y);
@@ -271,7 +279,7 @@ export default function ExerciseRunner() {
             const visible = !!wrist && (wrist.visibility ?? 1) >= 0.5 && wrist.x > 0.01 && wrist.x < 0.99 && wrist.y > 0.01 && wrist.y < 0.99;
             frame.visible = visible;
             frame.missing = visible ? undefined : "Bring your affected hand back into view.";
-            frame.targetContact = visible && Math.hypot((wrist.x - target.lapX) * video.videoWidth / video.videoHeight, wrist.y - target.lapY) <= target.radius;
+            frame.targetContact = visible && Math.hypot((wrist.x - target.lapX) * video.videoWidth / video.videoHeight, wrist.y - target.lapY) <= (target.lapRadius ?? target.radius);
           }
           drawOverlay(overlayRef.current, video, detection, session, opts.side);
         } catch (err) {
@@ -288,7 +296,7 @@ export default function ExerciseRunner() {
           targetCompletion.current = null;
           drawReachTarget(overlayRef.current, reachTarget.current, currentSnapshot.targetArmed, frame.targetContact === true, currentSnapshot.holdProgress);
         } else if (currentSnapshot.kind === "return") {
-          drawReachTarget(overlayRef.current, { ...reachTarget.current, x: reachTarget.current.lapX, y: reachTarget.current.lapY }, currentSnapshot.targetArmed, frame.targetContact === true, currentSnapshot.holdProgress);
+          drawReachTarget(overlayRef.current, { x: reachTarget.current.lapX, y: reachTarget.current.lapY, radius: reachTarget.current.lapRadius ?? reachTarget.current.radius }, currentSnapshot.targetArmed, frame.targetContact === true, currentSnapshot.holdProgress);
           if (targetCompletion.current?.key !== reachTarget.current.key) targetCompletion.current = { key: reachTarget.current.key, startedAt: t };
           const canvas = overlayRef.current;
           const ctx = canvas?.getContext("2d");

@@ -2,7 +2,7 @@ import { EXERCISES } from "./exercise-engine/config";
 import { POSE_NEEDS } from "./exercise-engine/metrics";
 import { WARM_REP_LINES } from "./warm-rep-lines";
 import {
-  bestLine, CLOSER_TARGET_LINE, ELBOW_ADVICE, finalRepAdvice, finishedLevelLine, goodRepsLine, keepInViewLine, MAX_SPOKEN_REPS,
+  ANGLE_ADVICE, bestLine, CLOSER_TARGET_LINE, ELBOW_ADVICE, finalRepAdvice, finishedLevelLine, goodRepsLine, keepInViewLine, MAX_SPOKEN_REPS,
   moveFurtherLine, reachedTargetsLine, repCompleteLine, repsAheadLine, repScoreLine, SHOULDER_ADVICE,
 } from "./exercise-engine/spoken";
 
@@ -40,6 +40,8 @@ const adviceLines = [
     ...exercise.romSteps.flatMap(rom => [moveFurtherLine(rom.label, true), moveFurtherLine(rom.label, false)]),
     ...exercise.feedback.map(rule => finalRepAdvice(rule.say)),
   ]),
+  // Per-angle hints for the other seated movement (hand-to-mouth); the reach's are listed with its own lines.
+  ...Object.entries(ANGLE_ADVICE).filter(([id]) => id !== EXERCISES.ex_reach.id).flatMap(([, hints]) => Object.values(hints).flatMap(hint => [hint.review, hint.next])),
 ];
 
 const linesOf = (exercise: (typeof EXERCISES)[string]) => [

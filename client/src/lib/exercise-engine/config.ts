@@ -59,6 +59,11 @@ export type Compensation = {
   minConsecutiveMs?: number;
   /** An alternative confirmation path: all of these measurements must exceed their thresholds. */
   alternative?: { metric: string; threshold: number }[];
+  /**
+   * When the named compensation is also confirmed in the same repetition, this one is reported too only if
+   * it stayed at `minRatio` times its threshold for its sustained window (the movement went clearly beyond it).
+   */
+  yieldsTo?: { id: string; minRatio: number };
   steps?: number[];
   correction: string;
 };
@@ -154,15 +159,24 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     framing: "Front, seated, face to upper thigh",
     tracking: "pose",
     ghost: "mouth",
-    setupVoice: "We will practice hand-to-mouth, an essential daily activity. A cup is drawn on your screen, so you do not need a real one. Sit tall with your back away from the chair and your affected hand resting on your lap. Keep your head up: the cup comes to your mouth, not your mouth to the cup.",
-    calibrationInstruction: "Sit tall with your affected hand resting on the visible part of your lap. Keep your face, both shoulders, your affected arm and the top of your thigh in view, and hold still while I learn your upright position.",
+    // Built like the forward reach's setup speech; the head-up cue comes early because, as for the reach,
+    // the demonstration may begin 12 s in, before a long introduction has finished.
+    setupVoice: "Welcome. We are going to practice hand-to-mouth. Keep your head up: the cup comes to your mouth, not your mouth to the cup. Sit upright, with your back away from the chair. Place your affected hand on your lap. A cup is drawn on your screen, so you do not need a real one.",
+    calibrationInstruction: "Before we begin, sit upright and still with your affected hand resting on the visible part of your lap. Keep your face, shoulders, affected arm, and the top of your affected thigh in view while I learn your upright position.",
     romSteps: [
       { id: "elbow_flexion", label: "Elbow bend", metric: "elbow_flexion", targets: { easy: 65, medium: 80, difficult: 95 }, weight: 0.7 },
       { id: "shoulder_flexion", label: "Shoulder lift", metric: "shoulder_flexion", targets: { easy: 20, medium: 30, difficult: 40 }, weight: 0.3 },
     ],
     compensations: [
-      cr("trunk_forward", "trunk leaning forward", "face_approach_pct", 8, 4, 0, "Bring your hand toward your mouth instead of moving your mouth toward your hand.", { unit: "%", minConsecutiveMs: 200, alternative: [{ metric: "face_mean_growth_pct", threshold: 4 }, { metric: "shoulder_approach_pct", threshold: 6 }] }),
-      cr("head_drop", "head dropping", "head_drop_deg", 15, 4, 0, "Keep your head up and bring the cup all the way to your lips.", { minConsecutiveMs: 400 }),
+      // Debugging defaults, measured against the upright setup posture (metrics.ts headLeanMetrics).
+      // First: the pattern this exercise trains against, and the one the simulator's "leaning" patient uses.
+      // The head travels down/forward to meet the cup while the shoulders stay put: about 4.5 cm (12% of
+      // shoulder width, roughly 13-15° of neck flexion) relative to the trunk, held 0.6 s so a glance down
+      // at the screen does not count. A natural chin dip (up to about 8°) stays below it.
+      // During a confirmed trunk lean it is reported as well only if it stayed at 1.25 times its threshold.
+      cr("head_forward", "head leaning forward", "head_forward_pct", 12, 6, 0, "Keep your head up and bring the cup to your mouth, not your mouth to the cup.", { unit: "%", minConsecutiveMs: 600, yieldsTo: { id: "trunk_forward", minRatio: 1.25 } }),
+      // Whole-trunk lean: the shoulders come toward the camera together with the face (both grow at least 6%).
+      cr("trunk_forward", "trunk leaning forward", "trunk_approach_pct", 6, 4, 0, "Keep your back tall and let your arm bring the cup to your mouth.", { unit: "%", minConsecutiveMs: 200 }),
       // Head lowering also shortens the ear gap: use shoulder tilt here to keep the checks separate.
       cr("shoulder_hike", "shoulder hike", "shoulder_hike_delta", 12, 4, 0, "Relax the shoulder before bending the elbow again.", { minConsecutiveMs: 400 }),
     ],
@@ -171,10 +185,11 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
       ret("Lower the cup and return to your lap", "Now lower the cup and bring your hand back to the same place on your lap."),
     ],
     feedback: [
-      { comp: "trunk_forward", say: "Your trunk leaned to meet your hand. On the next try, keep your back tall and bring your hand to your mouth instead." },
-      { comp: "head_drop", say: "Your head dropped toward the cup. Keep it up and bring the cup to you." },
-      { comp: "shoulder_hike", say: "Your shoulder lifted toward your ear. Relax it before you bend your elbow again." },
-      { attainmentBelow: 0.6, say: "Almost there. On the next try, bend your elbow a bit more to bring your hand closer to your mouth." },
+      // Worded like the reach's advice, so the final repetition's version drops "on the next ..." the same way.
+      { comp: "head_forward", say: "I noticed your head leaned forward to meet the cup. On the next repetition, try keeping your head up while you bring the cup to your mouth, not your mouth to the cup." },
+      { comp: "trunk_forward", say: "I noticed your back leaned forward to meet the cup. On the next repetition, try keeping your back tall and let your arm bring the cup to your mouth." },
+      { comp: "shoulder_hike", say: "Your shoulder lifted toward your ear. Try keeping your shoulder relaxed as you bend your elbow on the next try." },
+      { attainmentBelow: 0.7, say: "You almost reached your mouth. On the next try, bend your elbow a little more to bring the cup all the way to your lips." },
     ],
     praise: "Smooth hand-to-mouth. Keep that quality on the next repetition.",
     bestLabel: "elbow bend",

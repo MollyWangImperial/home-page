@@ -105,7 +105,13 @@ export function poseVisibility(pose: PoseInput | null, side: Side, group: "upper
 }
 
 /** Scalar snapshot of posture; resting values are the median of a few of these. */
-export type Geo = Record<"tx" | "ty" | "tz" | "hx" | "hy" | "hz" | "shoulderTilt" | "hipTilt" | "nosePitch" | "anklePitch" | "rest_shoulder_flexion" | "rest_elbow_interior" | "rest_shoulder_abduction" | "rest_knee_extension", number> & { faceEyeSpan?: number; faceHeight?: number; shoulderWidth?: number; shoulderEarGap?: number };
+export type Geo = Record<"tx" | "ty" | "tz" | "hx" | "hy" | "hz" | "shoulderTilt" | "hipTilt" | "nosePitch" | "anklePitch" | "rest_shoulder_flexion" | "rest_elbow_interior" | "rest_shoulder_abduction" | "rest_knee_extension", number> & {
+  faceEyeSpan?: number; faceHeight?: number; shoulderWidth?: number; shoulderEarGap?: number;
+  /** Image distance between the eye centres. Uses the eyes only, so a hand at the mouth cannot hide it. */
+  eyeSpan?: number;
+  /** Height of the eye line above the unaffected shoulder, in shoulder widths. A lifting affected arm cannot shift it. */
+  headLift?: number;
+};
 
 /** Apparent face size in the image. Both dimensions must grow to indicate camera approach.
  * Shoulder landmarks do not contribute, so a shoulder hike cannot increase this measure.
@@ -147,6 +153,45 @@ export function faceApproachPercent(current: Pick<Geo, "faceEyeSpan" | "faceHeig
   return Math.max(0, (Math.min(current.faceEyeSpan / reference.faceEyeSpan, current.faceHeight / reference.faceHeight) - 1) * 100);
 }
 
+// Seated front camera model behind the hand-to-mouth lean checks (engineering defaults, needs clinician review).
+// Under a rigid forward trunk lean about the hips, the face is farther from the pivot than the shoulders, so
+// its apparent size grows about 1.5 times as fast (log scale) as the shoulder span, and the eye line sinks
+// toward the shoulder line by up to about half the shoulder growth. Both are removed before head movement
+// is measured, so a trunk lean is reported as the trunk, not also as the head.
+const TRUNK_FACE_GROWTH_EXPONENT = 1.6;
+const TRUNK_EYE_DROP_PER_APPROACH = 0.5;
+/** A typical phone or laptop front camera's focal length in image widths (about a 65° field of view). */
+const FRONT_CAMERA_FOCAL = 0.75;
+
+/**
+ * Hand-to-mouth lean measures against the upright setup posture, from image landmarks only (eyes and
+ * shoulders: the hand at the mouth cannot hide them, and the noisy world depth is not used).
+ * - trunk_approach_pct: the shoulders AND the face came closer to the camera (the smaller of the two growths).
+ * - head_drop_pct: the eye line sank toward the unaffected shoulder, in % of shoulder width, beyond a trunk lean.
+ * - head_approach_pct: the face grew beyond what the shoulders' approach explains, in %.
+ * - head_forward_pct: the head's travel relative to the trunk, down and toward the camera, in % of shoulder width
+ *   (12% is about 4.5 cm for an adult).
+ */
+export function headLeanMetrics(geo: Geo, ref: Geo): Frame["comps"] {
+  const out: Frame["comps"] = {};
+  const shoulders = geo.shoulderWidth && ref.shoulderWidth ? geo.shoulderWidth / ref.shoulderWidth : undefined;
+  const face = geo.eyeSpan && ref.eyeSpan ? geo.eyeSpan / ref.eyeSpan : undefined;
+  if (shoulders === undefined || face === undefined) return out;
+  out.trunk_approach_pct = Math.max(0, (Math.min(shoulders, face) - 1) * 100);
+  if (geo.headLift === undefined || ref.headLift === undefined) return out;
+  // A narrowing shoulder span (the affected shoulder rolling forward) must not inflate head movement.
+  const trunk = Math.max(1, shoulders);
+  const down = Math.max(0, ref.headLift - geo.headLift - TRUNK_EYE_DROP_PER_APPROACH * (trunk - 1));
+  const growth = Math.max(0, face / trunk ** TRUNK_FACE_GROWTH_EXPONENT - 1);
+  // Face growth is forward travel over the camera distance; the camera is about focal / apparent width
+  // shoulder widths away, which turns the growth into shoulder widths of forward travel.
+  const forward = growth * Math.max(1, Math.min(3, FRONT_CAMERA_FOCAL / ref.shoulderWidth!));
+  out.head_drop_pct = down * 100;
+  out.head_approach_pct = growth * 100;
+  out.head_forward_pct = Math.hypot(down, forward) * 100;
+  return out;
+}
+
 /** Threshold ratio for the primary signal OR an alternative group of corroborating signals. */
 export function compensationStatus(values: Frame["comps"], rule: Compensation): { ratio: number | undefined; over: boolean } {
   const primary = values[rule.metric];
@@ -175,10 +220,16 @@ export function geoFrom(pose: PoseInput, side: Side): Geo {
   // Divide by shoulder width so camera approach changes size without shortening this gap.
   const shoulderEarGap = shoulderWidth && inView(p[j.shoulder]) && inView(p[j.ear])
     ? (p[j.shoulder].y - p[j.ear].y) / shoulderWidth : undefined;
+  // Head position from the eyes, which stay visible while a hand or cup covers the mouth. The unaffected
+  // shoulder is the vertical reference: the affected shoulder point drifts upward as that arm lifts.
+  const eyes = inView(p[2]) && inView(p[5]) ? { span: Math.hypot(p[2].x - p[5].x, p[2].y - p[5].y), y: (p[2].y + p[5].y) / 2 } : undefined;
+  const headLift = eyes && shoulderWidth && shoulderWidth > 0.02 && inView(p[j.shoulderOther]) ? (p[j.shoulderOther].y - eyes.y) / shoulderWidth : undefined;
   return {
     ...face,
     shoulderWidth: shoulderWidth && shoulderWidth > 0.02 ? shoulderWidth : undefined,
     shoulderEarGap: shoulderEarGap && shoulderEarGap > 0.05 ? shoulderEarGap : undefined,
+    eyeSpan: eyes && eyes.span > 0.005 ? eyes.span : undefined,
+    headLift,
     tx: trunk[0], ty: trunk[1], tz: trunk[2],
     hx: thigh[0], hy: thigh[1], hz: thigh[2],
     // Positive = the affected shoulder / hip sits higher than the other side.
@@ -239,6 +290,7 @@ export function poseFrameValues(pose: PoseInput, side: Side, ref: Geo | null): P
     comps.head_drop_deg = Math.max(0, geo.nosePitch - ref.nosePitch);
     comps.knee_motion_delta = angleBetween([geo.hx, geo.hy, geo.hz], [ref.hx, ref.hy, ref.hz]);
     values.ankle_dorsiflexion = Math.max(0, ref.anklePitch - geo.anklePitch);
+    Object.assign(comps, headLeanMetrics(geo, ref));
   }
   return { values, comps, geo };
 }

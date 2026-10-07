@@ -2,7 +2,7 @@
 // Frame-driven and free of DOM and speech APIs so it can run against camera frames, simulated frames
 // or a test harness. Timing comes from frame.t.
 
-import { bestLine, CLOSER_TARGET_LINE, ELBOW_ADVICE, finalRepAdvice, finishedLevelLine, goodRepsLine, keepInViewLine, moveFurtherLine, reachedTargetsLine, repCompleteLine, repsAheadLine, repScoreLine, SHOULDER_ADVICE, word, cap } from "./spoken";
+import { ANGLE_ADVICE, bestLine, CLOSER_TARGET_LINE, ELBOW_ADVICE, finalRepAdvice, finishedLevelLine, goodRepsLine, keepInViewLine, moveFurtherLine, reachedTargetsLine, repCompleteLine, repsAheadLine, repScoreLine, SHOULDER_ADVICE, word, cap } from "./spoken";
 import { cycleFor, EVERYDAY_EXERCISE_ID, REPS_BY_RUNG, resolveExercise, DOSE_PRESETS, LEVEL_BY_RUNG, usesSeatedTargets, type CycleStep, type ExerciseConfig, type Rung, type Side } from "./config";
 import { compensationStatus, medianGeo, type Frame, type Geo, type LapRest } from "./metrics";
 import { attainment, romAttainment, EXERCISE_SCORE_VERSION, isGoodRep, isMiss, repScore, sessionScore, type HoldOutcome } from "./scoring";
@@ -10,7 +10,7 @@ import { reachAngleProgress, ReachRestCalibration, ReachTargetCalibration } from
 import { TARGET_HOLD_MS } from "./target-timing";
 import { reachDemoDuration } from "./reach-demo";
 import { mouthDemoDuration } from "./mouth-demo";
-import { MouthCalibration, type MouthPoint } from "./mouth-target";
+import { MouthCalibration, simulatedMouthComps, type MouthPoint } from "./mouth-target";
 // Relative on purpose: engine files must also build where the @shared alias is not available.
 import { ADAPTATION_VERSION, DEFAULT_EXERCISE_TUNING, tunedReps, type ExerciseTuning } from "../../../../shared/alira-adaptation";
 
@@ -132,11 +132,14 @@ type RepRun = {
   maxConsec: Record<string, number>;
   consecMs: Record<string, number>;
   maxConsecMs: Record<string, number>;
+  /** Sustained time at a rule's `yieldsTo.minRatio` (well beyond its threshold). */
+  strongMs: Record<string, number>;
+  maxStrongMs: Record<string, number>;
   holds: HoldOutcome[];
   ended: boolean;
 };
 
-const freshRep = (): RepRun => ({ peaks: {}, peakExc: {}, eligible: {}, over: {}, consec: {}, maxConsec: {}, consecMs: {}, maxConsecMs: {}, holds: [], ended: false });
+const freshRep = (): RepRun => ({ peaks: {}, peakExc: {}, eligible: {}, over: {}, consec: {}, maxConsec: {}, consecMs: {}, maxConsecMs: {}, strongMs: {}, maxStrongMs: {}, holds: [], ended: false });
 const worst = (holds: HoldOutcome[]): HoldOutcome => (holds.includes("none") ? "none" : holds.includes("touched") ? "touched" : "full");
 
 export class ExerciseSession {
@@ -385,7 +388,8 @@ export class ExerciseSession {
       this.run.consecMs = {};
       if (usesSeatedTargets(this.cfg.id)) { this.holdAcc = 0; this.restAcc = 0; this.inZone = false; if (this.phase === "warm") this.reachTargetCalibration.reset(); }
       if (this.lostSince === null) this.lostSince = t;
-      if (t - this.lostSince > TIMING.lostMs) this.nag(t, this.cfg.id === "ex_reach" ? "Bring your affected hand back into view." : frame.missing ?? "I can't see you. Move back into view of the camera.");
+      // Seated targets only need the affected hand once set up, so both ask for the same thing.
+      if (t - this.lostSince > TIMING.lostMs) this.nag(t, usesSeatedTargets(this.cfg.id) ? "Bring your affected hand back into view." : frame.missing ?? "I can't see you. Move back into view of the camera.");
       return;
     }
     if (this.lostSince !== null) {
@@ -415,7 +419,8 @@ export class ExerciseSession {
         const missing = frame.missing ?? frame.lapMissing ?? `Rest your ${this.opts.side} hand on the visible top of your ${this.opts.side} thigh.`;
         if (!this.voice.busy(t)) this.nag(t, missing); else this.prompt = missing;
       } else this.prompt = this.cfg.id === "ex_h2m" && !mouth ? "Keep your face in view and your hand on your lap while I learn the mouth target." : "Keep your arm relaxed with your hand on your lap while I learn your starting position.";
-      if (learned.ready && (this.cfg.id !== "ex_h2m" || mouth) && (!this.voice.busy(t) || (this.cfg.id !== "ex_h2m" && t - this.introSpokenAt > 12000))) {
+      // Once the posture is learned, a long introduction may be cut after 12 s, as for every seated target.
+      if (learned.ready && (this.cfg.id !== "ex_h2m" || mouth) && (!this.voice.busy(t) || t - this.introSpokenAt > 12000)) {
         this.restSamples = learned.samples.map(sample => sample.values);
         this.geoSamples = learned.samples.map(sample => sample.geo).filter(Boolean) as Geo[];
         this.learnedLap = learned.lapRest!;
@@ -673,7 +678,8 @@ export class ExerciseSession {
         return this.completeMovement(t, "full");
       }
     } else if (frame.targetContact !== undefined || a < TIMING.zoneExit || !moved) {
-      if (this.cfg.id !== "ex_h2m" && !learningReach && this.touched && this.holdAcc < holdMs && a < 0.55) return this.completeMovement(t, "touched");
+      // Touched, then the arm came most of the way back: the movement ends as touched (not held).
+      if (!learningReach && this.touched && this.holdAcc < holdMs && a < 0.55) return this.completeMovement(t, "touched");
       this.holdAcc = 0;
     }
     if (!this.touched && t - this.stepStart > TIMING.maxWaitMs) this.completeMovement(t, "none");
@@ -696,7 +702,11 @@ export class ExerciseSession {
     for (const comp of this.cfg.compensations) {
       if (comp.steps && !comp.steps.includes(this.stepIdx)) continue;
       const status = compensationStatus(frame.comps, comp);
-      if (status.ratio === undefined) { run.consec[comp.id] = 0; run.consecMs[comp.id] = 0; continue; }
+      if (status.ratio === undefined) { run.consec[comp.id] = 0; run.consecMs[comp.id] = 0; run.strongMs[comp.id] = 0; continue; }
+      if (comp.yieldsTo) {
+        run.strongMs[comp.id] = status.ratio >= comp.yieldsTo.minRatio ? (run.strongMs[comp.id] ?? 0) + dt : 0;
+        run.maxStrongMs[comp.id] = Math.max(run.maxStrongMs[comp.id] ?? 0, run.strongMs[comp.id]);
+      }
       run.eligible[comp.id] = (run.eligible[comp.id] ?? 0) + 1;
       if (status.over) {
         run.over[comp.id] = (run.over[comp.id] ?? 0) + 1;
@@ -754,7 +764,7 @@ export class ExerciseSession {
 
   private finishRep(t: number) {
     const run = this.run;
-    const compsHit: string[] = [];
+    const confirmed: string[] = [];
     for (const comp of this.cfg.compensations) {
       const eligible = run.eligible[comp.id] ?? 0;
       const over = run.over[comp.id] ?? 0;
@@ -763,8 +773,14 @@ export class ExerciseSession {
       const sustained = over >= 24;
       const consecOk = (!comp.minConsecutive || (run.maxConsec[comp.id] ?? 0) >= comp.minConsecutive)
         && (!comp.minConsecutiveMs || (run.maxConsecMs[comp.id] ?? 0) >= comp.minConsecutiveMs);
-      if (over >= comp.minFrames && consecOk && (ratioOk || sustained)) compsHit.push(comp.id);
+      if (over >= comp.minFrames && consecOk && (ratioOk || sustained)) confirmed.push(comp.id);
     }
+    // No double counting: a check that yields to another confirmed one (the head during a trunk lean) also
+    // counts only when it stayed well beyond its threshold for its own sustained window.
+    const compsHit = confirmed.filter(id => {
+      const rule = this.cfg.compensations.find(comp => comp.id === id)!;
+      return !rule.yieldsTo || !confirmed.includes(rule.yieldsTo.id) || (run.maxStrongMs[id] ?? 0) >= Math.max(rule.minConsecutiveMs ?? 0, 1);
+    });
     const targets = this.targets();
     const starts = this.startingAngles();
     const roms = this.cfg.romSteps.map(rom => ({ id: rom.id, weight: rom.weight, target: targets[rom.id], start: usesSeatedTargets(this.cfg.id) ? starts[rom.id] ?? NaN : undefined }));
@@ -801,10 +817,10 @@ export class ExerciseSession {
       this.review = "complete";
       this.reviewStarted = t;
       this.voice.stop();
-      this.reviewAdvice = this.cfg.romSteps.filter(rom => usesSeatedTargets(this.cfg.id) ? reachAngleProgress(run.peaks[rom.id], targets[rom.id], starts[rom.id]) < 1 : (run.peaks[rom.id] ?? 0) < targets[rom.id]).map(rom => rom.id === "elbow_extension"
-        ? ELBOW_ADVICE
+      this.reviewAdvice = this.cfg.romSteps.filter(rom => usesSeatedTargets(this.cfg.id) ? reachAngleProgress(run.peaks[rom.id], targets[rom.id], starts[rom.id]) < 1 : (run.peaks[rom.id] ?? 0) < targets[rom.id]).map(rom => ANGLE_ADVICE[this.cfg.id]?.[rom.id]?.review
+        ?? (rom.id === "elbow_extension" ? ELBOW_ADVICE
         : rom.id === "shoulder_flexion" ? SHOULDER_ADVICE
-        : moveFurtherLine(rom.label, finalRep));
+        : moveFurtherLine(rom.label, finalRep)));
       for (const comp of compsHit) {
         const rule = this.cfg.feedback.find(rule => rule.comp === comp);
         if (rule) this.reviewAdvice.push(finalRep ? finalRepAdvice(rule.say) : rule.say);
@@ -853,17 +869,16 @@ export class ExerciseSession {
     this.arrow = null;
     let key: string | null = null;
     let text = "";
-    if (this.cfg.id === "ex_reach") {
+    // Seated movements name the angle that fell shortest (the reach and hand-to-mouth word it for their movement).
+    const angleAdvice = ANGLE_ADVICE[this.cfg.id];
+    if (angleAdvice) {
       const targets = this.targets();
       const short = this.cfg.romSteps.filter(rom => (rep.peaks[rom.id] ?? 0) < targets[rom.id] * 0.95)
         .sort((a, b) => (rep.peaks[a.id] ?? 0) / targets[a.id] - (rep.peaks[b.id] ?? 0) / targets[b.id]);
       const weakest = short[0];
-      if (weakest?.id === "elbow_extension") {
-        key = "elbow_extension";
-        text = "On the next repetition, straighten your elbow a little more as you reach toward the circle.";
-      } else if (weakest?.id === "shoulder_flexion") {
-        key = "shoulder_flexion";
-        text = "On the next repetition, lift your arm a little more from your shoulder while keeping your chest upright.";
+      if (weakest && angleAdvice[weakest.id]) {
+        key = weakest.id;
+        text = angleAdvice[weakest.id].next;
       }
     }
     for (const rule of this.cfg.feedback) {
@@ -872,7 +887,7 @@ export class ExerciseSession {
       if (rule.attainmentBelow !== undefined && rep.attainment < rule.attainmentBelow) { key = "short"; text = rule.say; break; }
     }
     if (key) {
-      if (key === this.lastCorrection && key !== "elbow_extension" && key !== "shoulder_flexion") this.arrow = key; // second time: show the arrow, stay quiet
+      if (key === this.lastCorrection && !angleAdvice?.[key]) this.arrow = key; // second time: show the arrow, stay quiet
       else this.voice.say(text);
       this.lastCorrection = key;
       this.feedback = text;
@@ -955,8 +970,10 @@ export function simFrame(t: number, cfg: ExerciseConfig, targets: Record<string,
     const rest = SIM_REST[rom.metric] ?? 0;
     values[rom.metric] = rest + input.level * (targets[rom.id] - rest);
   });
-  const comps: Frame["comps"] = {};
-  cfg.compensations.forEach(comp => {
+  // Hand-to-mouth measures a simulated seated body with the camera code, so a simulated head lean is the
+  // real head-forward signal (and not also a trunk lean). Other exercises set each measure directly.
+  const comps: Frame["comps"] = cfg.id === "ex_h2m" ? simulatedMouthComps(input.level, input.compensations) : {};
+  if (cfg.id !== "ex_h2m") cfg.compensations.forEach(comp => {
     comps[comp.metric] = input.compensations.includes(comp.id) ? comp.thresholdDeg + 6 : 1;
   });
   return { t, values, comps, visible: input.visible !== false, missing: input.visible === false ? "Sit in front of the camera so I can see you." : undefined,
