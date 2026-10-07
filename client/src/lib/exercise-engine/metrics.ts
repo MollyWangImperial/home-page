@@ -20,6 +20,8 @@ export type Frame = {
   /** Everything the exercise needs is in view. */
   visible: boolean;
   targetContact?: boolean;
+  /** The hand was at the target moments ago and tracking has briefly lost it: the hold pauses, nothing resets. */
+  targetUnsure?: boolean;
   targetProgress?: number;
   /** What is missing, in the patient's words, when not visible. */
   missing?: string;

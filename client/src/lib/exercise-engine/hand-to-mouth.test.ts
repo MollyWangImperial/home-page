@@ -159,12 +159,13 @@ function patient(side: Side = "right", suppliedVoice?: Voice, reps = 1) {
   const said: string[] = [];
   const session = new ExerciseSession({ exerciseId: "ex_h2m", rung: 1, side, repsOverride: reps, reviewBetweenReps: true }, suppliedVoice ?? { say: text => said.push(text), busy: () => false, stop() {} });
   let t = 0; session.start(t);
-  const push = (options: { level?: number; contact?: boolean; comps?: Frame["comps"]; visible?: boolean; geo?: Geo; simulate?: string[] } = {}) => {
+  const push = (options: { level?: number; contact?: boolean; unsure?: boolean; comps?: Frame["comps"]; visible?: boolean; geo?: Geo; simulate?: string[] } = {}) => {
     const snap = session.snapshot();
     const level = options.level ?? (snap.phase === "setup" || session.currentStep?.kind === "return" ? 0 : 1);
     const frame = simFrame(t += 50, session.cfg, session.targets(), { level, compensations: options.simulate ?? [], visible: options.visible });
     frame.geo = options.geo ?? reference;
     if (snap.phase === "warm" || snap.phase === "reps") frame.targetContact = options.contact ?? true;
+    if (options.unsure) frame.targetUnsure = true;
     if (options.comps) frame.comps = options.comps;
     session.push(frame); return session.snapshot();
   };
@@ -211,6 +212,22 @@ describe("hand-to-mouth level 1 progression and scoring", () => {
     p.push({ contact: false }); expect(p.session.snapshot().holdProgress).toBe(0);
     p.until(() => p.session.snapshot().review === "complete");
     expect(p.session.snapshot().reps[0].score).toBe(100);
+  });
+  it("pauses the mouth hold while tracking has briefly lost a hand that was at the lips", () => {
+    const p = scored();
+    p.push({ contact: false });
+    for (let n = 0; n < 10; n++) p.push();
+    expect(p.session.snapshot().holdProgress).toBeCloseTo(1 / 3);
+    // The tracker shows the arm hanging down: neither counted, reset nor ended as a touch.
+    for (let n = 0; n < 10; n++) {
+      const snap = p.push({ contact: false, unsure: true, level: 0 });
+      expect(snap.holdProgress).toBeCloseTo(1 / 3); expect(snap.inZone).toBe(true);
+    }
+    expect(p.session.currentStep?.kind).toBe("reach");
+    for (let n = 0; n < 20; n++) p.push();
+    expect(p.session.currentStep?.kind).toBe("return");
+    p.until(() => p.session.snapshot().review === "complete");
+    expect(p.session.snapshot().reps[0]).toMatchObject({ score: 100, hold: "full" });
   });
   it.each([["head_forward"], ["trunk_forward"], ["shoulder_hike"], ["head_forward", "shoulder_hike"], ["trunk_forward", "shoulder_hike"]])("confirms sustained %j and gives fixed compensation points", (...expected) => {
     const p = scored();

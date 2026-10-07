@@ -639,7 +639,8 @@ export class ExerciseSession {
     const a = sumW ? sum / sumW : 0;
     this.liveA = frame.targetProgress ?? a;
     const zone = frame.targetContact === undefined ? a >= this.tuned.targetZone && moved : frame.targetContact;
-    this.inZone = zone;
+    const unsure = !zone && frame.targetUnsure === true;
+    this.inZone = zone || unsure;
     if (progress > 0.15) this.lastMoveT = t;
 
     // rep-level peaks + compensation frames (movement frames only)
@@ -657,7 +658,7 @@ export class ExerciseSession {
 
     const holdMs = this.holdMsFor(step, frame.targetContact !== undefined);
     const learningReach = this.phase === "warm" && usesSeatedTargets(this.cfg.id);
-    if (learningReach) {
+    if (learningReach && !unsure) {
       if (zone) this.reachTargetCalibration.observe(frame);
       else this.reachTargetCalibration.reset();
     }
@@ -677,6 +678,8 @@ export class ExerciseSession {
         }
         return this.completeMovement(t, "full");
       }
+    } else if (unsure) {
+      // Paused: neither counted nor reset until the hand is seen again or has left.
     } else if (frame.targetContact !== undefined || a < TIMING.zoneExit || !moved) {
       // Touched, then the arm came most of the way back: the movement ends as touched (not held).
       if (!learningReach && this.touched && this.holdAcc < holdMs && a < 0.55) return this.completeMovement(t, "touched");
