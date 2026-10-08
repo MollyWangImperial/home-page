@@ -187,13 +187,14 @@ function patient(side: Side = "right", suppliedVoice?: Voice, reps = 1) {
   const said: string[] = [];
   const session = new ExerciseSession({ exerciseId: "ex_h2m", rung: 1, side, repsOverride: reps, reviewBetweenReps: true }, suppliedVoice ?? { say: text => said.push(text), busy: () => false, stop() {} });
   let t = 0; session.start(t);
-  const push = (options: { level?: number; contact?: boolean; unsure?: boolean; comps?: Frame["comps"]; visible?: boolean; geo?: Geo; simulate?: string[] } = {}) => {
+  const push = (options: { level?: number; contact?: boolean; unsure?: boolean; progress?: number; comps?: Frame["comps"]; visible?: boolean; geo?: Geo; simulate?: string[] } = {}) => {
     const snap = session.snapshot();
     const level = options.level ?? (snap.phase === "setup" || session.currentStep?.kind === "return" ? 0 : 1);
     const frame = simFrame(t += 50, session.cfg, session.targets(), { level, compensations: options.simulate ?? [], visible: options.visible });
     frame.geo = options.geo ?? reference;
     if (snap.phase === "warm" || snap.phase === "reps") frame.targetContact = options.contact ?? true;
     if (options.unsure) frame.targetUnsure = true;
+    if (options.progress !== undefined) frame.targetProgress = options.progress;
     if (options.comps) frame.comps = options.comps;
     session.push(frame); return session.snapshot();
   };
@@ -240,6 +241,35 @@ describe("hand-to-mouth level 1 progression and scoring", () => {
     p.push({ contact: false }); expect(p.session.snapshot().holdProgress).toBe(0);
     p.until(() => p.session.snapshot().review === "complete");
     expect(p.session.snapshot().reps[0].score).toBe(100);
+  });
+  it("does not count leaning in to the screen while the hand is still far from the mouth", () => {
+    const leaning = { head_forward_pct: 40, trunk_approach_pct: 20, shoulder_hike_rel_delta: 12 };
+    const far = scored();
+    // Two seconds leaning toward the screen with the arm moving but the hand only 40% of the way to the mouth.
+    for (let n = 0; n < 40; n++) far.push({ contact: false, progress: 0.4, level: 0.6, comps: leaning });
+    far.until(() => far.session.snapshot().review === "complete");
+    expect(far.session.snapshot().reps[0]).toMatchObject({ compensations: [], score: 100, unmeasured: [] });
+    // The same lean with the hand most of the way to the mouth is meeting the cup.
+    const near = scored();
+    for (let n = 0; n < 40; n++) near.push({ contact: false, progress: 0.7, level: 0.6, comps: leaning });
+    near.until(() => near.session.snapshot().review === "complete");
+    expect(near.session.snapshot().reps[0].compensations.sort()).toEqual(["head_forward", "shoulder_hike", "trunk_forward"]);
+  });
+  it("keeps a head lean near the mouth running through a one-frame wrist glitch", () => {
+    const leaning = { head_forward_pct: 40, trunk_approach_pct: 0, shoulder_hike_rel_delta: 0 };
+    const p = scored();
+    // Hovering short of the circle with the head leaning in; every sixth frame the tracker drops the wrist to the lap.
+    for (let n = 0; n < 40; n++) p.push({ contact: false, progress: n % 6 === 5 ? 0.05 : 0.7, level: 0.6, comps: leaning });
+    p.until(() => p.session.snapshot().review === "complete");
+    expect(p.session.snapshot().reps[0].compensations).toEqual(["head_forward"]);
+  });
+  it("does not call posture unmeasured when the hand never came near the mouth", () => {
+    const p = scored();
+    p.until(() => p.session.snapshot().review === "complete", { contact: false, progress: 0.3, level: 0.6 });
+    const rep = p.session.snapshot().reps[0];
+    expect(rep.hold).toBe("none");
+    expect(rep.unmeasured).toEqual([]);
+    expect(p.session.snapshot().reviewAdvice.join(" ")).not.toMatch(/in view so I can check your posture/);
   });
   it("pauses the mouth hold while tracking has briefly lost a hand that was at the lips", () => {
     const p = scored();

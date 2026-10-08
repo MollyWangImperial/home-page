@@ -137,9 +137,22 @@ type RepRun = {
   maxStrongMs: Record<string, number>;
   holds: HoldOutcome[];
   ended: boolean;
+  /** Recorded frames in which posture counts (hand-to-mouth: the hand near the mouth). */
+  postureFrames: number;
+  /** How long the hand has been away from the mouth (hand-to-mouth posture). */
+  postureGapMs: number;
 };
 
-const freshRep = (): RepRun => ({ peaks: {}, peakExc: {}, eligible: {}, over: {}, consec: {}, maxConsec: {}, consecMs: {}, maxConsecMs: {}, strongMs: {}, maxStrongMs: {}, holds: [], ended: false });
+const freshRep = (): RepRun => ({ peaks: {}, peakExc: {}, eligible: {}, over: {}, consec: {}, maxConsec: {}, consecMs: {}, maxConsecMs: {}, strongMs: {}, maxStrongMs: {}, holds: [], ended: false, postureFrames: 0, postureGapMs: 0 });
+/**
+ * Hand-to-mouth: leaning the head or trunk, or shrugging, to bring the mouth to the cup happens with the hand
+ * near the mouth. Posture counts once the hand is this far along its path from the lap to the mouth target (or
+ * at the mouth). Measured against the target learned upright, not a mouth that follows the face: on camera,
+ * leaning in to the screen brings the face toward a hand on the lap, which a following mouth would count...
+ */
+const MOUTH_POSTURE_PROGRESS = 0.6;
+/** ...and a running stretch breaks only once the hand has stayed away this long, not on a one-frame wrist glitch. */
+const MOUTH_POSTURE_GAP_MS = 300;
 const worst = (holds: HoldOutcome[]): HoldOutcome => (holds.includes("none") ? "none" : holds.includes("touched") ? "touched" : "full");
 
 export class ExerciseSession {
@@ -736,8 +749,17 @@ export class ExerciseSession {
       } else run.peaks[rom.id] = Math.max(run.peaks[rom.id] ?? -Infinity, v);
       run.peakExc[rom.id] = Math.max(run.peakExc[rom.id] ?? 0, this.excursion(rom.metric, v));
     }
+    // Posture while the hand is still far from the mouth (settling back after the review, leaning in to the
+    // screen) is not a compensation; once the hand has stayed away, it also breaks a running stretch.
+    const postureCounts = this.cfg.id !== "ex_h2m" || frame.targetContact === true || frame.targetUnsure === true || (frame.targetProgress ?? 1) >= MOUTH_POSTURE_PROGRESS;
+    if (postureCounts) { run.postureFrames += 1; run.postureGapMs = 0; } else run.postureGapMs += dt;
+    const breakStretch = !postureCounts && run.postureGapMs >= MOUTH_POSTURE_GAP_MS;
     for (const comp of this.cfg.compensations) {
       if (comp.steps && !comp.steps.includes(this.stepIdx)) continue;
+      if (!postureCounts) {
+        if (breakStretch) { run.consec[comp.id] = 0; run.consecMs[comp.id] = 0; run.strongMs[comp.id] = 0; }
+        continue;
+      }
       const status = compensationStatus(frame.comps, comp);
       if (status.ratio === undefined) { run.consec[comp.id] = 0; run.consecMs[comp.id] = 0; run.strongMs[comp.id] = 0; continue; }
       if (comp.yieldsTo) {
@@ -833,7 +855,9 @@ export class ExerciseSession {
       return this.beginReps(t);
     }
 
-    const unmeasured = this.cfg.compensations.filter(comp => (run.eligible[comp.id] ?? 0) < comp.minFrames).map(comp => comp.id);
+    // A posture check is unmeasured when it could have counted but the camera could not see it; a hand that never
+    // came near the mouth leaves hand-to-mouth posture with nothing to judge, not unmeasured.
+    const unmeasured = this.cfg.compensations.filter(comp => (run.eligible[comp.id] ?? 0) < comp.minFrames && (this.cfg.id !== "ex_h2m" || run.postureFrames >= comp.minFrames)).map(comp => comp.id);
     if (usesSeatedTargets(this.cfg.id)) unmeasured.push(...roms.filter(rom => !Number.isFinite(rom.start) || !Number.isFinite(rom.target)).map(rom => rom.id));
     const result: RepResult = { index: this.repNumber, rung: this.rung, attainment: att, hold, compensations: compsHit, score, good: !unmeasured.length && isGoodRep(att, hold, compsHit.length, this.tuned.goodRepShare), peaks: { ...run.peaks }, unmeasured, startingAngles: { ...starts }, targets: { ...targets } };
     this.reps = [...this.reps, result];
