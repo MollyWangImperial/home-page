@@ -17,6 +17,15 @@
 .xe-beats li.is-on span { color:#285b49; background:#e6eee1; }
 .xe-beats li.is-past { color:#3c6a52; background:#e6eee1; }
 
+/* Hand opening: palm to camera, open, close for each repetition. */
+.xe-hand-steps { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 12px; padding:0; list-style:none; }
+.xe-hand-steps li { display:flex; align-items:center; gap:6px; padding:4px 11px 4px 5px; border:1px solid #dde5d6; border-radius:20px; color:#6b806f; background:#fff; font-size:13px; font-weight:700; }
+.xe-hand-steps li span { display:grid; place-items:center; width:20px; height:20px; border-radius:50%; background:#eef1e8; font-size:11px; font-weight:800; }
+.xe-hand-steps li.is-on { color:#fffefa; border-color:#285b49; background:#285b49; }
+.xe-hand-steps li.is-on span { color:#285b49; background:#e6eee1; }
+.xe-hand-steps li.is-done { color:#3c6a52; background:#e6eee1; }
+.xe-countdown-note { display:flex; align-items:center; justify-content:center; gap:8px; margin:14px 0 0; color:#285b49; font-size:15px; font-weight:700; }
+
 .xe-card { max-width:1180px; margin:0 auto 14px; padding:20px 22px; border:1px solid #e1e7da; border-radius:18px; background:#fffefa; box-shadow:0 2px 10px #24493308; }
 .xe-card h2 { margin:0 0 8px; font:600 25px/1.2 "Newsreader",Georgia,serif; letter-spacing:-.3px; }
 .xe-card p { margin:8px 0; }

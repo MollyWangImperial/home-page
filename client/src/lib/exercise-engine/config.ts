@@ -86,6 +86,10 @@ export type CycleStep = {
   holdMs: number;
   /** Pinch only: which finger the thumb meets (index 0 .. little 3). */
   finger?: number;
+  /** The step starts only once the camera says the hand is ready (hand opening: palm to the camera in the shaded area). */
+  readyGate?: boolean;
+  /** A short cue said as this step starts in each scored repetition; the full voice line is said in practice only. */
+  cue?: string;
 };
 
 export type FeedbackRule = { comp?: string; attainmentBelow?: number; say: string };
@@ -246,12 +250,12 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     domain: "hand",
     chain: "Hand opens and relaxes",
     dailyTask: "Letting go of a cup, putting on a glove",
-    framing: "Front, elbow on the table, palm to the camera",
+    framing: "Front, elbow on an armrest or table, hand up beside the body at chest height, palm to the camera",
     // The hand every frame; the body every third frame, for the trunk and shoulder checks (tracker.ts).
     tracking: "pose+hand",
     ghost: "hand_open",
-    setupVoice: "Welcome. We are going to practise opening your hand. Rest your affected elbow on a table, with your hand up beside your shoulder and your palm facing the camera. Keep your face and both shoulders in view. A ring is drawn around your hand: open your fingers out to it, keeping your wrist straight and your palm facing the camera.",
-    calibrationInstruction: "Before we begin, rest your elbow on the table with your affected hand up and your palm facing the camera. Let your fingers relax, and keep your face, both shoulders and your whole hand in view while I learn your starting position.",
+    setupVoice: "Welcome. We are going to practise opening and closing your hand. Rest your affected elbow on an armrest or a table, and hold your hand up in the shaded area beside your body, at chest height, with your palm facing the camera. Keeping your hand there leaves your face and both shoulders in view.",
+    calibrationInstruction: "Before we begin, hold your hand in the shaded area with your palm facing the camera, and let your fingers relax and curl gently. Do not open your hand yet. Hold still while I learn your starting position.",
     romSteps: [{ id: "finger_extension", label: "Finger opening", metric: "finger_extension", targets: { easy: 130, medium: 145, difficult: 158 }, weight: 1 }],
     compensations: [
       // Engineering defaults (hand-target.ts), measured against the relaxed hand learned at set-up.
@@ -265,8 +269,9 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
       cr("shoulder_hike", "shoulder hike", "shoulder_hike_rel_delta", 7, 4, 0, "Relax the shoulder before opening your hand again.", { minConsecutiveMs: 300 }),
     ],
     cycle: [
-      { caption: "Open your hand to the ring and hold", voice: "Slowly open your fingers out to the ring, as wide as is comfortable, and hold. Keep your wrist straight and your palm facing the camera.", kind: "open", gate: ["finger_extension"], holdMs: 1500 },
-      ret("Let your fingers relax", "Now let your fingers relax into the small circle."),
+      // Each step starts once the palm faces the camera in the shaded area; scored repetitions say only the short cue.
+      { caption: "Open your hand to the ring and hold", voice: "Slowly open your fingers out to the ring, as wide as is comfortable, and hold. Keep your wrist straight and your palm facing the camera.", kind: "open", gate: ["finger_extension"], holdMs: 1500, readyGate: true, cue: "Open your hand." },
+      { ...ret("Close your hand gently", "Now gently close your hand, letting your fingers curl back into the small circle."), cue: "Now close it gently." },
     ],
     feedback: [
       // Worded like the reach's advice, so the final repetition's version drops "on the next ..." the same way.

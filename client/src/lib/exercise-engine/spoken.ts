@@ -24,6 +24,9 @@ export const moveFurtherLine = (romLabel: string, finalRep: boolean) =>
   `Move a little further through ${romLabel.toLowerCase()}${finalRep ? "." : " on your next repetition."}`;
 export const keepInViewLine = (finalRep: boolean) =>
   `Keep your face and both shoulders in view so I can check your posture${finalRep ? "." : " on the next repetition."}`;
+/** Hand opening's version: the hand in the shaded area leaves the face and both shoulders in view. */
+export const handInViewLine = (finalRep: boolean) =>
+  `Keep your hand in the shaded area, clear of your face and shoulders, so I can check your posture${finalRep ? "." : " on the next repetition."}`;
 export const reachedTargetsLine = (finalRep: boolean) =>
   finalRep ? "You reached the movement targets with a smooth movement." : "You reached the movement targets. Keep the same smooth movement on your next repetition.";
 export const finalRepAdvice = (say: string) => say.replace("On the next repetition, try", "Try").replace(" on the next try", "");

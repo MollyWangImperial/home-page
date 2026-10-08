@@ -14,7 +14,7 @@ import { drawMouthDemo, mouthDemoState, mouthGhostTarget } from "@/lib/exercise-
 import { mouthContact, mouthContactPoints, observedMouth, mouthCompensations } from "@/lib/exercise-engine/mouth-target";
 import { MouthHold, type MouthHoldResult } from "@/lib/exercise-engine/mouth-hold";
 import { CupTrack } from "@/lib/exercise-engine/cup-track";
-import { drawHandDemo, handDemoState, handGhostContact, handGhostTarget, handOpenFrame, handOpenness, handRingTarget, palmFacing, palmRing } from "@/lib/exercise-engine/hand-target";
+import { affectedHand, drawHandDemo, drawHandZone, drawRingLabel, followZone, handCovers, handDemoState, handGhostContact, handGhostTarget, handOpenFrame, handOpenness, handRingTarget, handZone, inHandZone, palmFacing, palmRing, REST_OPEN_MAX, startLimit, waiveLimit, type HandZone } from "@/lib/exercise-engine/hand-target";
 import { NEXT_REP_COUNTDOWN_LINE } from "@/lib/exercise-engine/spoken";
 import { compensationStatus, HAND_LINES, POSE_LINES, handFrameValues, handVisible, POSE_NEEDS, poseFrameValues, poseJoints, poseVisibility, reachLapRest, type Frame } from "@/lib/exercise-engine/metrics";
 import { ExerciseSession, simFrame, type Snapshot } from "@/lib/exercise-engine/session";
@@ -94,6 +94,7 @@ export default function ExerciseRunner() {
   const mouthHold = useRef(new MouthHold());
   const mouthHoldKey = useRef("");
   const cupTrack = useRef(new CupTrack());
+  const handZoneRef = useRef<HandZone | null>(null);
   const [said, setSaid] = useState("");
   const [muted, setMuted] = useState(false);
   const [englishAvailable, setEnglishAvailable] = useState(true);
@@ -178,7 +179,7 @@ export default function ExerciseRunner() {
     if (canvas && ctx) {
       const pose = state.phase === "setup" || state.phase === "demo" || !state.targetArmed || state.kind === "return" ? 0 : 1;
       drawGhost(ctx, cfg.ghost, pose, canvas.width, canvas.height);
-      if ((state.phase === "warm" || state.phase === "reps") && !state.review) drawTestingTarget(ctx, { ...ghostTargetFor(cfg.id)(canvas.width, canvas.height, state.kind === "return"), armed: state.targetArmed, contact: state.inZone && state.targetArmed, progress: state.holdProgress, now: performance.now(), reducedMotion: true });
+      if ((state.phase === "warm" || state.phase === "reps") && !state.review && !state.awaitingReady) drawTestingTarget(ctx, { ...ghostTargetFor(cfg.id)(canvas.width, canvas.height, state.kind === "return"), armed: state.targetArmed, contact: state.inZone && state.targetArmed, progress: state.holdProgress, now: performance.now(), reducedMotion: true });
     }
     const demo = ghostRef.current;
     const demoContext = demo?.getContext("2d");
@@ -237,11 +238,16 @@ export default function ExerciseRunner() {
             hold = mouthHold.current.update(t, tracked.pose, opts.side, { mouth, radius: mouthRadius, aspect: video.videoWidth / video.videoHeight, torso: lap.bodyScale });
           }
           const detection = hold?.held ? { ...tracked, pose: hold.pose } : tracked;
-          frame = buildFrame(session, detection, opts.side, t, video.videoWidth / video.videoHeight);
+          // Hand opening's shaded area follows the body during set-up and stays where it was learned afterwards.
+          // While a repetition waits for the palm it slowly re-centres on the shoulders, unless the hand hides one.
+          if (session.cfg.id === "ex_handopen" && (now.phase === "setup" || (now.awaitingReady && !handCovers(affectedHand(tracked, opts.side), tracked.pose, opts.side, video.videoWidth / video.videoHeight)))) {
+            handZoneRef.current = followZone(handZoneRef.current, handZone(tracked.pose, opts.side, video.videoWidth / video.videoHeight), now.phase === "setup" ? 0.2 : 0.05);
+          }
+          frame = buildFrame(session, detection, opts.side, t, video.videoWidth / video.videoHeight, handZoneRef.current);
           if (now.phase === "setup") {
             const dt = Math.min(100, Math.max(0, t - (bodyLastT.current || t)));
             bodyLastT.current = t;
-            setBodyChecks(cameraBodyChecks(session, detection, opts.side).map(check => {
+            setBodyChecks(cameraBodyChecks(session, detection, opts.side, handZoneRef.current, video.videoWidth / video.videoHeight).map(check => {
               const progress = Math.max(0, Math.min(1, (bodyProgress.current[check.id] ?? 0) + dt / (check.visible ? 1400 : -550)));
               bodyProgress.current[check.id] = progress;
               return { ...check, progress };
@@ -306,9 +312,9 @@ export default function ExerciseRunner() {
             // they relax back into. The practice ring sits a little beyond the relaxed hand; scored rings at the
             // opening held there (hand-target.ts). Both follow the palm, sized by its length.
             const aspect = video.videoWidth / video.videoHeight;
-            const hand = chooseHand(detection.hands, detection.pose?.landmarks[poseJoints(opts.side).wrist]);
+            const hand = affectedHand(detection, opts.side);
             const palm = palmRing(hand, aspect);
-            const openness = handOpenness(hand, aspect);
+            const openness = handOpenness(hand);
             const rest = session.restValues().hand_openness;
             const key = `${now.phase}:${now.repIndex}:${now.rung}`;
             if (palm && openness !== undefined && Number.isFinite(rest)) {
@@ -317,7 +323,9 @@ export default function ExerciseRunner() {
               const x = follow(last?.x, palm.x), y = follow(last?.y, palm.y), scale = follow(last?.torso, palm.scale);
               const target = handRingTarget(openness, rest, now.phase === "reps" ? session.learnedValue("hand_openness") : undefined, now.kind === "return");
               reachTarget.current = { key, x, y, radius: target.ring * scale, lapRadius: target.relax * scale, startX: x, startY: y, baseY: y, torso: scale, lapX: x, lapY: y };
-              frame.targetContact = frame.visible && target.contact;
+              // Opening counts only with the hand in its area (an open hand laid on the lap is not on the ring);
+              // closing counts anywhere, the lap included.
+              frame.targetContact = frame.visible && target.contact && (now.kind === "return" || frame.placed !== false);
               frame.targetProgress = frame.targetContact ? 1 : Math.min(0.98, target.progress);
             } else {
               frame.visible = false;
@@ -355,12 +363,30 @@ export default function ExerciseRunner() {
     if (frame) {
       session.push(frame);
       const currentSnapshot = session.snapshot();
-      if (!opts.sim && !currentSnapshot.review && reachTarget.current) {
+      const handOpening = session.cfg.id === "ex_handopen";
+      if (!opts.sim && handOpening && handZoneRef.current && !currentSnapshot.review && ["setup", "warm", "reps"].includes(currentSnapshot.phase)) {
+        // The shaded area: emphasised at set-up and while a step waits for the palm, then a faint reminder.
+        const canvas = overlayRef.current, ctx = canvas?.getContext("2d");
+        const setup = currentSnapshot.phase === "setup";
+        // Green only while waiting for the palm: during the movement the area is just a faint reminder.
+        try {
+          if (canvas && ctx) drawHandZone(ctx, handZoneRef.current, canvas.width, canvas.height, { emphasis: setup || currentSnapshot.awaitingReady, ready: setup ? Boolean(frame.lapRest) : currentSnapshot.awaitingReady && frame.ready === true, side: opts.side, now: t, reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
+        } catch (err) {
+          console.warn("Shaded area drawing failed", err);
+        }
+      }
+      if (!opts.sim && !currentSnapshot.review && reachTarget.current && !currentSnapshot.awaitingReady) {
+        const label = (text: string, target: { x: number; y: number; radius: number }) => {
+          const canvas = overlayRef.current, ctx = canvas?.getContext("2d");
+          if (handOpening && canvas && ctx) drawRingLabel(ctx, (1 - target.x) * canvas.width, target.y * canvas.height, target.radius * canvas.height, text, canvas.height, currentSnapshot.targetArmed);
+        };
         if (currentSnapshot.kind === "reach" || currentSnapshot.kind === "open") {
           targetCompletion.current = null;
           drawReachTarget(overlayRef.current, reachTarget.current, currentSnapshot.targetArmed, frame.targetContact === true || frame.targetUnsure === true, currentSnapshot.holdProgress);
+          label("Open", reachTarget.current);
         } else if (currentSnapshot.kind === "return") {
           drawReachTarget(overlayRef.current, { x: reachTarget.current.lapX, y: reachTarget.current.lapY, radius: reachTarget.current.lapRadius ?? reachTarget.current.radius }, currentSnapshot.targetArmed, frame.targetContact === true, currentSnapshot.holdProgress);
+          label("Close", { x: reachTarget.current.lapX, y: reachTarget.current.lapY, radius: reachTarget.current.radius });
           if (targetCompletion.current?.key !== reachTarget.current.key) targetCompletion.current = { key: reachTarget.current.key, startedAt: t };
           const canvas = overlayRef.current;
           const ctx = canvas?.getContext("2d");
@@ -415,6 +441,7 @@ export default function ExerciseRunner() {
     savedRecord.current = null;
     reachTarget.current = null;
     cupTrack.current.reset();
+    handZoneRef.current = null;
     mouthHold.current.reset();
     mouthHoldKey.current = "";
     bodyProgress.current = {};
@@ -615,11 +642,12 @@ export default function ExerciseRunner() {
               {snap.phase === "setup" && <div className="xe-meter"><i style={{ width: `${snap.calibrationProgress * 100}%` }} /></div>}
               {(snap.phase === "warm" || snap.phase === "reps") && (
                 <>
+                  {cfg.id === "ex_handopen" && !snap.review && <HandSteps current={snap.awaitingReady ? 0 : snap.kind === "return" ? 2 : 1} />}
                   <div className={`xe-gauge ${snap.inZone ? "is-zone" : ""}`} aria-label="Hold on target" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(snap.holdProgress * 100)}>
                     <i className="fill" style={{ width: `${snap.holdProgress * 100}%` }} />
 
                   </div>
-                  <p className="xe-hint">{!snap.targetArmed ? "Listen to the instruction. Wait for the circle to become active." : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Let your fingers relax into the small circle and pause" : snap.inZone ? "Hold it there..." : "Open your fingers out to the ring, keeping your wrist straight" : snap.kind === "return" || snap.kind === "close" ? "Return your hand to the lap circle and pause" : snap.inZone ? "Hold it there..." : cfg.id === "ex_h2m" ? "Bring your hand to the mouth circle, keeping your head up" : "Reach your hand into the target ring"}</p>
+                  <p className="xe-hint">{snap.awaitingReady ? "Show me your palm in the shaded area to begin" : !snap.targetArmed ? "Listen to the instruction. Wait for the circle to become active." : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Close your hand into the small circle and pause" : snap.inZone ? "Hold it there..." : "Open your fingers out to the ring, keeping your wrist straight" : snap.kind === "return" || snap.kind === "close" ? "Return your hand to the lap circle and pause" : snap.inZone ? "Hold it there..." : cfg.id === "ex_h2m" ? "Bring your hand to the mouth circle, keeping your head up" : "Reach your hand into the target ring"}</p>
                 </>
               )}
               {snap.feedback && <p className="xe-feedback" role="status">{snap.feedback}</p>}
@@ -707,6 +735,7 @@ export default function ExerciseRunner() {
             <b>{Math.max(1, Math.ceil(3 * (1 - snap.countdownProgress)))}</b>
             <p>Next repetition starts in {Math.max(1, Math.ceil(3 * (1 - snap.countdownProgress)))} {snap.countdownProgress >= 2 / 3 ? "second" : "seconds"}</p>
           </div>
+          {cfg.id === "ex_handopen" && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Hand up in the shaded area, fingers relaxed.</p>}
         </div>
       </div>}
 
@@ -774,7 +803,7 @@ function Intro(props: { base: (typeof EXERCISES)[string]; cfg: ReturnType<typeof
         <label className="xe-check"><input type="checkbox" checked={muted} onChange={e => setMuted(e.target.checked)} /> Mute the voice (subtitles only)</label>
         </>}
       </div>
-      {cfg.tracking !== "pose" && !opts.sim && <p className="xe-note"><Hand size={14} aria-hidden="true" /> {base.id === "ex_handopen" ? "Rest your elbow on a table and hold your hand up beside your shoulder, palm to the camera. Keep your face, both shoulders and every fingertip in view." : "Hold the hand close to the camera with every fingertip in view."}</p>}
+      {cfg.tracking !== "pose" && !opts.sim && <p className="xe-note"><Hand size={14} aria-hidden="true" /> {base.id === "ex_handopen" ? "Rest your elbow on an armrest or table and hold your hand up in the shaded area beside your body, at chest height, palm to the camera. That keeps your face and both shoulders in view." : "Hold the hand close to the camera with every fingertip in view."}</p>}
       {base.domain === "lower_limb" && !opts.sim && <p className="xe-note">Lower-limb tracking seated and front-on is unverified. If the angles look unstable, try the simulator or a side-on phone position.</p>}
       <div className="xe-actions">
         <button className="xe-primary" onClick={onStart}>{opts.sim ? <Play size={16} aria-hidden="true" /> : <Camera size={16} aria-hidden="true" />} Start · {reps} reps · {LEVEL_LABEL[opts.rung]}</button>
@@ -880,9 +909,14 @@ function HowItFelt({ onSave }: { onSave: (answer: FeltAnswer) => void }) {
 
 // ---------- camera frame building and drawing ----------
 
-function buildFrame(session: ExerciseSession, det: Detection, side: Side, t: number, aspect: number): Frame {
+function buildFrame(session: ExerciseSession, det: Detection, side: Side, t: number, aspect: number, zone: HandZone | null = null): Frame {
   const cfg = session.cfg;
-  if (cfg.id === "ex_handopen") return handOpenFrame(det, side, t, aspect, session.reference);
+  if (cfg.id === "ex_handopen") {
+    // Each repetition starts from a relaxed hand, at most as open as the close circle (hand-target.ts).
+    const rest = session.restValues().hand_openness;
+    const learned = session.learnedValue("hand_openness");
+    return handOpenFrame(det, side, t, aspect, session.reference, Number.isFinite(rest) ? { zone, startLimit: startLimit(rest, learned), waiveLimit: waiveLimit(rest, learned) } : { zone });
+  }
   const usesPose = cfg.tracking !== "hand";
   const usesHand = cfg.tracking !== "pose";
   let visible = true;
@@ -959,7 +993,7 @@ function drawOverlay(canvas: HTMLCanvasElement | null, video: HTMLVideoElement, 
   }
   if (tracking !== "pose" && det.hands.length) {
     const wrist = det.pose ? det.pose.landmarks[j.wrist] : undefined;
-    const hand = chooseHand(det.hands, tracking === "pose+hand" ? wrist : undefined);
+    const hand = handOpen ? affectedHand(det, side) : chooseHand(det.hands, tracking === "pose+hand" ? wrist : undefined);
     if (hand) {
       ctx.strokeStyle = "rgba(127,229,163,.95)";
       ctx.lineWidth = Math.max(2, w / 320);
@@ -1002,18 +1036,20 @@ function drawGhostFor(canvas: HTMLCanvasElement | null, session: ExerciseSession
 }
 
 
-function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Detection, side: Side): Omit<BodyCheck, "progress">[] {
+function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Detection, side: Side, zone: HandZone | null = null, aspect = 4 / 3): Omit<BodyCheck, "progress">[] {
   const labels: Record<string, string> = { nose: "Face", shoulder: `${side === "right" ? "Right" : "Left"} shoulder`, shoulderOther: "Other shoulder", elbow: `${side === "right" ? "Right" : "Left"} elbow`, wrist: `${side === "right" ? "Right" : "Left"} hand`, hip: "Top of thigh", knee: "Knee", ankle: "Ankle", foot: "Foot & toes" };
   const joints = poseJoints(side);
   if (session.cfg.id === "ex_handopen") {
-    // Face and shoulders for the posture checks; the hand up with its palm to the camera.
-    const hand = chooseHand(detection.hands, detection.pose?.landmarks[joints.wrist]);
+    // Face and shoulders for the posture checks; the hand in the shaded area, palm to the camera, fingers relaxed.
+    const hand = affectedHand(detection, side);
+    const placed = handVisible(hand).ok && inHandZone(palmRing(hand, aspect), zone, aspect);
     return [
       ...POSE_NEEDS.upper.filter(need => need.joint === "nose" || need.joint === "shoulder" || need.joint === "shoulderOther").map(need => {
         const point = detection.pose?.landmarks[joints[need.joint]];
         return { id: need.joint, label: labels[need.joint], visible: !!point && (point.visibility ?? 1) >= 0.5 && point.x > 0.01 && point.x < 0.99 && point.y > 0.01 && point.y < 0.99, hint: need.say };
       }),
-      { id: "wrist", label: `${labels.wrist}, palm to camera`, visible: handVisible(hand).ok && palmFacing(hand) >= 0.5, hint: `Hold your ${side} hand up beside your shoulder with your palm facing the camera, every fingertip in view.` },
+      { id: "wrist", label: `${labels.wrist} in the shaded area`, visible: placed, hint: zone?.hint ?? `Rest your elbow on an armrest or table and hold your ${side} hand up in the shaded area beside your body.` },
+      { id: "fingers", label: "Palm to camera, fingers relaxed", visible: placed && palmFacing(hand, side) >= 0.5 && (handOpenness(hand) ?? Infinity) <= REST_OPEN_MAX, hint: "Turn your palm to the camera and let your fingers relax and curl gently. Don't open your hand yet." },
     ];
   }
   const checks: Omit<BodyCheck, "progress">[] = session.cfg.tracking === "hand" ? [] : POSE_NEEDS[session.cfg.domain === "lower_limb" ? "lower" : "upper"].map(need => {
@@ -1032,6 +1068,16 @@ function drawReachTarget(canvas: HTMLCanvasElement | null, target: { x: number; 
   const ctx = canvas?.getContext("2d");
   if (!ctx || !canvas) return;
   drawTestingTarget(ctx, { x: (1 - target.x) * canvas.width, y: target.y * canvas.height, radius: target.radius * canvas.height, armed, contact, progress, now: performance.now(), reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
+}
+
+/** Hand opening's three steps for each repetition: palm to the camera, open, close. */
+const HAND_STEPS = ["Palm to camera", "Open", "Close"];
+function HandSteps({ current }: { current: number }) {
+  return <ol className="xe-hand-steps" aria-label="Steps for this repetition">
+    {HAND_STEPS.map((label, i) => <li key={label} className={i < current ? "is-done" : i === current ? "is-on" : ""} aria-current={i === current ? "step" : undefined}>
+      <span aria-hidden="true">{i < current ? "✓" : i + 1}</span>{label}
+    </li>)}
+  </ol>;
 }
 
 function MetricBar({ label, value, threshold, start = 0, ready, limit = false, personalized = false, pending = "Keep reaching" }: { label: string; value: number | undefined; threshold: number; start?: number; ready: boolean; limit?: boolean; personalized?: boolean; pending?: string }) {

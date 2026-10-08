@@ -53,7 +53,7 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
     rung, rungStart: rung, repIndex: phase === "warm" ? 0 : final ? planned : 2, repsPlanned: planned,
     stepIndex: returning ? 1 : 0, stepCount: 2, caption: cfg.cycle[returning ? 1 : 0].caption, kind: returning ? "return" : hand ? "open" : "reach",
     liveAttainment: 0.78, inZone: !waiting, targetArmed: !waiting && phase !== "setup", holdProgress: waiting ? 0 : 0.48,
-    prompt: screen === "setup" ? hand ? `Hold your ${side} hand up beside your shoulder with your palm facing the camera.` : `Bring your ${side} hand into view and rest it on your lap.` : "",
+    prompt: screen === "setup" ? hand ? `Hold your ${side} hand up in the shaded area with your palm facing the camera.` : `Bring your ${side} hand into view and rest it on your lap.` : "",
     idlePrompt: screen === "idle", rescued: screen === "rescue", arrow: screen === "rescue" ? lean : null,
     feedback: screen === "rescue" ? "Let's bring the target a little closer." : "",
     reps: final ? reps : complete || screen === "countdown" ? reps.slice(0, 3) : scored ? [reps[0]] : [],
@@ -68,12 +68,14 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
     paused: false, review: complete ? "complete" : screen === "countdown" ? "countdown" : null,
     reviewAdvice: final ? ["You reached the movement targets. Keep that smooth, steady movement."] : advice,
     countdownProgress: 0.5,
+    awaitingReady: hand && screen === "warm-waiting",
   };
   const bodyChecks = (hand ? [
     { id: "nose", label: "Face" },
     { id: "shoulder", label: `${side === "right" ? "Right" : "Left"} shoulder` },
     { id: "shoulderOther", label: "Other shoulder" },
-    { id: "wrist", label: `${side === "right" ? "Right" : "Left"} hand, palm to camera` },
+    { id: "wrist", label: `${side === "right" ? "Right" : "Left"} hand in the shaded area` },
+    { id: "fingers", label: "Palm to camera, fingers relaxed" },
   ] : [
     { id: "nose", label: "Face" },
     { id: "shoulder", label: `${side === "right" ? "Right" : "Left"} shoulder` },
@@ -81,7 +83,7 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
     { id: "elbow", label: `${side === "right" ? "Right" : "Left"} elbow` },
     { id: "wrist", label: `${side === "right" ? "Right" : "Left"} hand` },
     { id: "hip", label: "Top of thigh" },
-  ]).map(check => ({ ...check, visible: check.id !== "wrist", progress: check.id === "wrist" ? 0.2 : 1, hint: hand ? `Hold your ${side} hand up beside your shoulder with your palm facing the camera.` : `Bring your ${side} hand into view.` }));
+  ]).map(check => ({ ...check, visible: check.id !== "wrist" && check.id !== "fingers", progress: check.id === "wrist" || check.id === "fingers" ? 0.2 : 1, hint: hand ? `Rest your elbow on an armrest or table and hold your ${side} hand up in the shaded area beside your body.` : `Bring your ${side} hand into view.` }));
   return {
     snapshot,
     // Scored repetitions are not instructed again: only their countdown speaks.

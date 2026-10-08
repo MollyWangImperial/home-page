@@ -32,6 +32,14 @@ export type Frame = {
   lapMissing?: string;
   /** Observed mouth midpoint during seated setup, before an approaching hand can occlude it. */
   mouthPoint?: { x: number; y: number };
+  /** Hand opening: the hand is ready to start a step (palm to the camera in the shaded area, fingers relaxed). Undefined: no such check. */
+  ready?: boolean;
+  /** Hand opening: the hand is still where a started step needs it (looser than ready, so a flicker cannot pause it). */
+  placed?: boolean;
+  /** Hand opening: ready but for the fingers not yet being relaxed (the session waives that after a while). */
+  readyAlmost?: boolean;
+  /** What to do to get ready, in the patient's words. */
+  readyHint?: string;
 };
 
 const RAD = 180 / Math.PI;

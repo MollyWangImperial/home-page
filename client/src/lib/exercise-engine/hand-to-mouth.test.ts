@@ -479,9 +479,14 @@ describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
       if (snap.phase === "reps" && snap.review === null && !snap.targetArmed) inactive++;
       previous = snap.review;
     }
-    expect(inactive).toBe(0);
-    expect(countdowns).toBe(3);
     const [reach, back] = EXERCISES[id].cycle;
+    if (reach.cue || back.cue) {
+      // Hand opening says a short cue as each scored step starts ("Open your hand."): inactive only while it
+      // starts (two 50 ms frames per step).
+      expect(inactive).toBeLessThanOrEqual(4 * 3);
+      for (const cue of [reach.cue, back.cue]) expect(said.filter(line => line === cue)).toHaveLength(3);
+    } else expect(inactive).toBe(0);
+    expect(countdowns).toBe(3);
     expect(said.filter(line => line === reach.voice)).toHaveLength(1);
     expect(said.filter(line => line === back.voice)).toHaveLength(1);
     expect(said.filter(line => line === "The next repetition starts in three seconds.")).toHaveLength(3);

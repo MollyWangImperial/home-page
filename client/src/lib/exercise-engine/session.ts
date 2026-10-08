@@ -2,7 +2,7 @@
 // Frame-driven and free of DOM and speech APIs so it can run against camera frames, simulated frames
 // or a test harness. Timing comes from frame.t.
 
-import { ANGLE_ADVICE, bestLine, CLOSER_TARGET_LINE, ELBOW_ADVICE, finalRepAdvice, finishedLevelLine, goodRepsLine, keepInViewLine, moveFurtherLine, NEXT_REP_COUNTDOWN_LINE, reachedTargetsLine, repCompleteLine, repsAheadLine, repScoreLine, SHOULDER_ADVICE, word, cap } from "./spoken";
+import { ANGLE_ADVICE, bestLine, CLOSER_TARGET_LINE, ELBOW_ADVICE, finalRepAdvice, finishedLevelLine, goodRepsLine, keepInViewLine, handInViewLine, moveFurtherLine, NEXT_REP_COUNTDOWN_LINE, reachedTargetsLine, repCompleteLine, repsAheadLine, repScoreLine, SHOULDER_ADVICE, word, cap } from "./spoken";
 import { cycleFor, EVERYDAY_EXERCISE_ID, REPS_BY_RUNG, resolveExercise, DOSE_PRESETS, LEVEL_BY_RUNG, usesTargetFlow, type CycleStep, type ExerciseConfig, type Rung, type Side } from "./config";
 import { compensationStatus, medianGeo, type Frame, type Geo, type LapRest } from "./metrics";
 import { attainment, romAttainment, EXERCISE_SCORE_VERSION, isGoodRep, isMiss, repScore, sessionScore, type HoldOutcome } from "./scoring";
@@ -102,6 +102,8 @@ export type Snapshot = {
   review: "complete" | "countdown" | null;
   reviewAdvice: string[];
   countdownProgress: number;
+  /** Hand opening: the step waits for the palm to face the camera in the shaded area. */
+  awaitingReady: boolean;
 };
 
 // engineering default, needs clinician review
@@ -145,6 +147,12 @@ type RepRun = {
 };
 
 /** The resting posture each target exercise learns at set-up (the reach's default: shoulder and elbow). */
+/** Hand opening: what to do before a step can start, when the camera does not say more precisely. */
+const READY_HINT = "Hold your hand up in the shaded area with your palm facing the camera.";
+/** The hand must be ready this long before a step starts, away this long before it counts as gone, and the hint is spoken after this long. */
+const READY_HOLD_MS = 500, READY_AWAY_MS = 700, READY_SPEAK_MS = 5000, READY_WAIVE_MS = 8000;
+/** A step's short cue is not said again within this long. */
+const CUE_REPEAT_MS = 4000;
 const restCalibrationFor = (id: string) => new ReachRestCalibration(id === "ex_h2m" ? ["shoulder_flexion", "elbow_flexion"] : id === "ex_handopen" ? ["finger_extension"] : undefined, id === "ex_handopen" ? 0.25 : undefined);
 /** What the practice hold learns: the goal angles, and for hand opening also how open the hand was (for its ring). */
 const targetCalibrationFor = (id: string) => new ReachTargetCalibration(id === "ex_h2m" ? ["elbow_flexion", "shoulder_flexion"] : id === "ex_handopen" ? ["finger_extension", "hand_openness"] : undefined);
@@ -205,6 +213,17 @@ export class ExerciseSession {
   private restAcc = 0;
   private pauseUntil = 0;
   private started = false;
+  /** Hand opening: since when the hand has been ready to start the step, and since when it has been away from the shaded area. */
+  private readySince: number | null = null;
+  private awaySince: number | null = null;
+  /** The last short cue said, so a step that restarts within a few seconds does not say it again. */
+  private lastCue: { key: string; t: number } | null = null;
+  /** The ready-gated step whose full instruction was given (a restart after the hand left says only the cue). */
+  private instructedKey: string | null = null;
+  /** Since when the hand has been ready but for the fingers, wrist or palm turn (waived after READY_WAIVE_MS). */
+  private almostSince: number | null = null;
+  /** Since when the current step's ready gate has been waiting. */
+  private gateSince: number | null = null;
   private lastMoveT = 0;
   private idleAsked = false;
   private repNumber = 0;
@@ -374,6 +393,8 @@ export class ExerciseSession {
       review: this.review,
       reviewAdvice: this.reviewAdvice,
       countdownProgress: this.review === "countdown" && !this.countdownQueued ? Math.min(1, (this.lastT - this.reviewStarted) / 3000) : 0,
+      // Only when the camera reports readiness (the no-camera simulator has no shaded area to wait for).
+      awaitingReady: (this.phase === "warm" || this.phase === "reps") && !this.review && Boolean(step?.readyGate) && !this.started && this.recent[this.recent.length - 1]?.ready !== undefined,
     };
   }
 
@@ -404,14 +425,33 @@ export class ExerciseSession {
     if (this.phase === "setup") return this.setupFrame(frame);
     if (this.phase === "demo") return this.demoFrame(t);
     if (this.phase === "done") return;
-    // warm + reps
-    if (!frame.visible) {
+    // warm + reps. Hand opening: once the opening step has started, a hand that has left the shaded area, turned its
+    // palm away or gone out of view for 0.7 s goes back to waiting for the palm if the ring was not touched yet: no
+    // miss, and the abandoned attempt leaves no posture or peak evidence (the open step is step 0, so no hold is lost).
+    // After a touch it pauses the step as a hand out of view does. A hand resting on the lap cannot trigger a target.
+    const gated = Boolean(this.cycle()[this.stepIdx]?.readyGate);
+    const placedOff = gated && this.started && frame.ready !== undefined && (!frame.visible || frame.placed === false);
+    this.awaySince = placedOff ? this.awaySince ?? t : null;
+    const away = placedOff && t - this.awaySince! >= READY_AWAY_MS;
+    if (away && !this.touched) {
+      this.run = freshRep();
+      this.startStep(t, 0);
+      this.awaySince = null;
+      if (this.lostSince !== null) this.lostSince = null;
+      return this.stepFrame(frame, dt);
+    }
+    // A step still waiting for the hand handles a hand out of view itself, with its own quieter hint.
+    if (gated && !this.started && frame.ready !== undefined) {
+      if (this.lostSince !== null) this.lostSince = null;
+      return this.stepFrame(frame, dt);
+    }
+    if (!frame.visible || away) {
       this.run.consec = {};
       this.run.consecMs = {};
       if (usesTargetFlow(this.cfg.id)) { this.holdAcc = 0; this.restAcc = 0; this.inZone = false; if (this.phase === "warm") this.reachTargetCalibration.reset(); }
       if (this.lostSince === null) this.lostSince = t;
       // Seated targets only need the affected hand once set up, so both ask for the same thing.
-      if (t - this.lostSince > TIMING.lostMs) this.nag(t, usesTargetFlow(this.cfg.id) ? "Bring your affected hand back into view." : frame.missing ?? "I can't see you. Move back into view of the camera.");
+      if (t - this.lostSince > TIMING.lostMs) this.nag(t, away ? frame.readyHint ?? READY_HINT : usesTargetFlow(this.cfg.id) ? "Bring your affected hand back into view." : frame.missing ?? "I can't see you. Move back into view of the camera.");
       return;
     }
     if (this.lostSince !== null) {
@@ -438,10 +478,10 @@ export class ExerciseSession {
       const mouth = this.cfg.id === "ex_h2m" ? this.mouthCalibration.observe(frame) : null;
       this.reachCalibrationProgress = learned.progress;
       if (!frame.visible || !frame.lapRest) {
-        const missing = frame.missing ?? frame.lapMissing ?? (this.cfg.id === "ex_handopen" ? `Hold your ${this.opts.side} hand up beside your shoulder with your palm facing the camera.` : `Rest your ${this.opts.side} hand on the visible top of your ${this.opts.side} thigh.`);
+        const missing = frame.missing ?? frame.lapMissing ?? (this.cfg.id === "ex_handopen" ? `Hold your ${this.opts.side} hand up in the shaded area with your palm facing the camera.` : `Rest your ${this.opts.side} hand on the visible top of your ${this.opts.side} thigh.`);
         if (!this.voice.busy(t)) this.nag(t, missing); else this.prompt = missing;
       } else this.prompt = this.cfg.id === "ex_h2m" && !mouth ? "Keep your face in view and your hand on your lap while I learn the mouth target."
-        : this.cfg.id === "ex_handopen" ? "Keep your fingers relaxed and your palm facing the camera while I learn your starting position."
+        : this.cfg.id === "ex_handopen" ? "Keep your fingers relaxed and gently curled, palm to the camera, while I learn your starting position."
         : "Keep your arm relaxed with your hand on your lap while I learn your starting position.";
       // Once the posture is learned, a long introduction may be cut after 12 s, as for every seated target.
       if (learned.ready && (this.cfg.id !== "ex_h2m" || mouth) && (!this.voice.busy(t) || t - this.introSpokenAt > 12000)) {
@@ -561,7 +601,7 @@ export class ExerciseSession {
     this.prompt = "";
     this.voice.say(this.cfg.id === "ex_reach" ? "Now one practice repetition. It is not scored. Reach to the circle and hold while I learn your movement, then return to your lap."
       : this.cfg.id === "ex_h2m" ? "Now one practice repetition. It is not scored. Bring your hand to the mouth circle and hold while I learn your movement, then return to your lap."
-      : this.cfg.id === "ex_handopen" ? "Now one practice repetition. It is not scored. Open your fingers out to the ring and hold while I learn your movement, then let your fingers relax."
+      : this.cfg.id === "ex_handopen" ? "Now one practice repetition. It is not scored. Show me your palm in the shaded area. Then open your fingers out to the ring and hold while I learn your movement, and then close your hand gently."
       : "Now one practice repetition. It is not scored, and it helps me learn your starting position.");
     this.resetRep(t);
   }
@@ -606,6 +646,7 @@ export class ExerciseSession {
 
   private resetRep(t: number) {
     this.run = freshRep();
+    this.instructedKey = null;
     this.stepIdx = 0;
     this.startStep(t, 1200);
     this.cycleCache = cycleFor(this.opts.exerciseId, this.rung);
@@ -615,6 +656,10 @@ export class ExerciseSession {
     this.stepStart = t;
     this.armed = false;
     this.started = false;
+    this.readySince = null;
+    this.awaySince = null;
+    this.almostSince = null;
+    this.gateSince = null;
     this.touched = false;
     this.holdAcc = 0;
     this.restAcc = 0;
@@ -625,7 +670,8 @@ export class ExerciseSession {
     this.idleAsked = false;
     // A scored seated step that starts at once is not instructed: its target is live in this very frame, so
     // the inactive circle and "Listen to the instruction" never flash between the countdown and the movement.
-    if (this.phase === "reps" && this.countdownReps() && pause === 0 && !this.review && !this.voice.busy(t)) {
+    const step = this.cycle()[this.stepIdx];
+    if (this.phase === "reps" && this.countdownReps() && pause === 0 && !this.review && !this.voice.busy(t) && !step?.cue && !step?.readyGate) {
       this.started = true;
       this.armed = true;
     }
@@ -659,12 +705,46 @@ export class ExerciseSession {
     if (!this.started) {
       if (t < this.pauseUntil) return;
       if (this.voice.busy(t)) return;
+      // Hand opening: each step starts once the hand has been ready for 0.5 s (palm to the camera in the shaded
+      // area, fingers relaxed). The hint shows at once and is spoken only after 5 s, then every few seconds. A hand
+      // ready but for fingers that will not relax further starts anyway after 8 s.
+      if (step.readyGate && frame.ready !== undefined) {
+        // Timed from when the gate starts waiting, not from the step's start (which includes any instruction).
+        this.gateSince ??= t;
+        this.almostSince = frame.readyAlmost ? this.almostSince ?? t : null;
+        const ready = frame.ready || (this.almostSince !== null && t - this.almostSince >= READY_WAIVE_MS);
+        if (!ready) {
+          this.readySince = null;
+          if (t - this.gateSince > READY_SPEAK_MS) this.nag(t, frame.readyHint ?? READY_HINT);
+          else this.prompt = frame.readyHint ?? READY_HINT;
+          if (!this.idleAsked && t - this.gateSince > TIMING.idleMs) {
+            this.idleAsked = true;
+            this.voice.say("Do you want to skip this one for today?");
+          }
+          return;
+        }
+        this.readySince ??= t;
+        this.prompt = "";
+        if (t - this.readySince < READY_HOLD_MS) return;
+        this.readySince = null;
+      }
       this.started = true;
       this.stepStart = t;
       this.lastMoveT = t;
-      // A scored seated repetition is not instructed again (the countdown was its cue): its target arms now.
-      if (this.phase !== "reps" || !this.countdownReps()) {
+      // A scored seated repetition is not instructed again (the countdown was its cue): its target arms now,
+      // after at most a short cue ("Open your hand."). A hand-opening step restarted after the hand left is not
+      // instructed again either: at most its short cue.
+      const stepKey = `${this.phase}:${this.repNumber}:${this.stepIdx}`;
+      if ((this.phase !== "reps" || !this.countdownReps()) && !(step.readyGate && this.instructedKey === stepKey)) {
+        if (step.readyGate) this.instructedKey = stepKey;
         this.voice.say(step.voice);
+        return;
+      }
+      // The short cue, unless this same step said it moments ago (the hand dipped out of place and came back).
+      const cueKey = stepKey;
+      if (step.cue && !(this.lastCue?.key === cueKey && t - this.lastCue.t < CUE_REPEAT_MS)) {
+        this.lastCue = { key: cueKey, t };
+        this.voice.say(step.cue);
         return;
       }
     }
@@ -696,13 +776,17 @@ export class ExerciseSession {
     }
     const a = sumW ? sum / sumW : 0;
     this.liveA = frame.targetProgress ?? a;
-    const zone = frame.targetContact === undefined ? a >= this.tuned.targetZone && moved : frame.targetContact;
+    // A hand out of its shaded area (hand opening) is never on target, however open it is: it cannot hold the ring.
+    const zone = frame.placed === false ? false : frame.targetContact === undefined ? a >= this.tuned.targetZone && moved : frame.targetContact;
     const unsure = !zone && frame.targetUnsure === true;
     this.inZone = zone || unsure;
     if (progress > 0.15) this.lastMoveT = t;
 
-    // rep-level peaks + compensation frames (movement frames only)
-    if (progress > 0.25 || frame.targetContact === true) this.recordFrame(frame, step, dt);
+    // rep-level peaks + compensation frames (movement frames only). Hand opening judges posture through the
+    // whole opening step: the hand is held up from its start, and a hand that barely opens still has a posture.
+    // A hand leaving the shaded area is not posture evidence, and it breaks a running stretch.
+    if (frame.placed === false) { this.run.consec = {}; this.run.consecMs = {}; }
+    else if (progress > 0.25 || frame.targetContact === true || this.cfg.id === "ex_handopen") this.recordFrame(frame, step, dt);
 
     // idle prompt: 20 s without movement
     if (!this.idleAsked && t - this.lastMoveT > TIMING.idleMs) {
@@ -897,7 +981,7 @@ export class ExerciseSession {
         const rule = this.cfg.feedback.find(rule => rule.comp === comp);
         if (rule) this.reviewAdvice.push(finalRep ? finalRepAdvice(rule.say) : rule.say);
       }
-      if (unmeasured.length) this.reviewAdvice.push(keepInViewLine(finalRep));
+      if (unmeasured.length) this.reviewAdvice.push(this.cfg.id === "ex_handopen" ? handInViewLine(finalRep) : keepInViewLine(finalRep));
       if (!this.reviewAdvice.length) this.reviewAdvice = [reachedTargetsLine(finalRep)];
       if (result.rung !== this.rung) this.reviewAdvice.push(CLOSER_TARGET_LINE);
       this.feedback = this.reviewAdvice.join(" ");
