@@ -89,7 +89,7 @@ describe("Seated Knee Extension on the shared target flow", () => {
     for (const knee of [90, 125, 150, 175]) expect(kneeFrame({ pose: kneeBody(side, { knee }) }, side, 0, ASPECT, null).values.knee_extension!).toBeCloseTo(knee, 0);
   });
   it.each(SIDES)("learns the resting foot once the whole seated body is in view with both feet flat (%s side)", side => {
-    const pose = kneeBody(side);
+    const pose = kneeBody(side), j = poseJoints(side);
     const rest = kneeRestCheck(pose, side, ASPECT);
     expect(rest.lapRest).toBeDefined();
     expect(rest.lapRest!.x).toBeCloseTo(at(pose, poseJoints(side).ankle).x);
@@ -101,8 +101,13 @@ describe("Seated Knee Extension on the shared target flow", () => {
     // A foot out in front that the picture still shows below the knee: the knee's 3D angle gives it away.
     const forward = { landmarks: pose.landmarks, world: kneeBody(side, { knee: 140 }).world };
     expect(kneeRestCheck(forward, side, ASPECT).lapMissing).toBe("Put your foot flat on the floor, below your knee.");
-    // The camera too high: the feet at the bottom edge.
-    expect(kneeRestCheck(kneeBody(side, { camera: { y: 0.28, z: 2.2 } }), side, ASPECT).lapMissing).toBe("Tilt the camera down a little so there is space below your feet.");
+    // The camera a little high: the toes out of the picture are fine, the ankles near the bottom edge are not.
+    const toesOut = kneeBody(side, { camera: { y: 0.3, z: 2.2 } });
+    expect(toesOut.landmarks[j.foot].y).toBeGreaterThan(0.97);
+    expect(kneeRestCheck(toesOut, side, ASPECT).lapRest).toBeDefined();
+    expect(kneeRestCheck(kneeBody(side, { camera: { y: 0.42, z: 2.2 } }), side, ASPECT).lapMissing).toBe("Tilt the camera down a little so there is space below your feet.");
+    // Standing up (both knees straight): asked to sit down.
+    expect(kneeRestCheck(kneeBody(side, { knee: 178, otherKnee: 178 }), side, ASPECT).lapMissing).toBe("Sit down on a chair facing the camera, with your knees bent and both feet flat on the floor.");
     expect(kneeRestCheck(null, side, ASPECT).lapMissing).toBeDefined();
   });
   it.each(SIDES)("puts the knee dial beside the affected knee, outside the legs and inside the picture (%s side)", side => {

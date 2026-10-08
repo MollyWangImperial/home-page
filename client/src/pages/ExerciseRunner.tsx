@@ -1271,7 +1271,7 @@ function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Dete
       { id: "shoulders", label: "Both shoulders", visible: both(joints.shoulder, joints.shoulderOther), hint: "Move the camera back so I can see both shoulders." },
       { id: "hips", label: "Both hips", visible: both(joints.hip, joints.hipOther), hint: "Sit facing the camera so I can see both hips." },
       { id: "knees", label: "Both knees", visible: both(joints.knee, joints.kneeOther), hint: "Move the camera back so I can see both knees." },
-      { id: "feet", label: "Both feet", visible: both(joints.ankle, joints.ankleOther) && inViewCheck(joints.foot), hint: "Move the camera back, or tilt it down, so I can see both feet." },
+      { id: "feet", label: "Both feet", visible: both(joints.ankle, joints.ankleOther), hint: "Move the camera back, or tilt it down, so I can see both feet." },
       // Set-up also waits for room beside the knee for the knee dial: the row says so rather than showing green.
       { id: "position", label: "Feet flat, space around you", visible: Boolean(position.lapRest) && lightingInfo?.dialFits !== false, hint: position.lapMissing ?? (lightingInfo?.dialFits === false ? KNEE_DIAL_HINT : "Sit tall with both feet flat on the floor.") },
       { id: "lighting", label: lightingInfo?.waived && light && !light.ok ? "Lighting (could be better)" : "Lighting", visible: Boolean(light?.ok || lightingInfo?.waived), hint: light?.hint ?? "Checking the light..." },

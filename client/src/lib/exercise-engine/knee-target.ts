@@ -77,6 +77,8 @@ export function kneeComps(pose: PoseInput, geo: Geo, ref: Geo | null, side: Side
 
 /** A resting knee reads at most this (3D, degrees): beyond it the foot is out in front, not below the knee. */
 const REST_KNEE_MAX_DEG = 130;
+/** Both knees straighter than this (3D, degrees): the patient is standing. */
+const STANDING_KNEE_DEG = 150;
 
 /** What set-up waits for, in the patient's words: head to feet in view with some space round them, both feet flat. */
 export function kneeRestCheck(pose: PoseInput | null, side: Side, aspect: number): { lapRest?: LapRest; lapMissing?: string } {
@@ -87,11 +89,19 @@ export function kneeRestCheck(pose: PoseInput | null, side: Side, aspect: number
   if (!seen(j.shoulder, j.shoulderOther)) return { lapMissing: "Move the camera back so I can see both shoulders." };
   if (!seen(j.hip, j.hipOther)) return { lapMissing: "Sit facing the camera so I can see both hips." };
   if (!seen(j.knee, j.kneeOther)) return { lapMissing: "Move the camera back so I can see both knees." };
-  if (!seen(j.ankle, j.ankleOther, j.foot)) return { lapMissing: "Move the camera back, or tilt it down, so I can see both feet." };
-  const knee = lm[j.knee], ankle = lm[j.ankle], otherAnkle = lm[j.ankleOther], foot = lm[j.foot];
-  // Room round the body: the raised foot first comes lower in the picture as it nears the camera.
+  // The ankles, not the toes: everything the exercise measures uses the ankle.
+  if (!seen(j.ankle, j.ankleOther)) return { lapMissing: "Move the camera back, or tilt it down, so I can see both feet." };
+  const knee = lm[j.knee], ankle = lm[j.ankle], otherAnkle = lm[j.ankleOther];
+  // Standing up: both knees straight. The exercise is done sitting down.
+  const w = pose.world;
+  const angle = (hip: number, kneeAt: number, ankleAt: number) => (w[hip] && w[kneeAt] && w[ankleAt] ? angleAt(w[hip], w[kneeAt], w[ankleAt]) : undefined);
+  const bentAngle = angle(j.hip, j.knee, j.ankle), otherAngle = angle(j.hipOther, j.kneeOther, j.ankleOther);
+  if (bentAngle !== undefined && otherAngle !== undefined && Math.min(bentAngle, otherAngle) > STANDING_KNEE_DEG) {
+    return { lapMissing: "Sit down on a chair facing the camera, with your knees bent and both feet flat on the floor." };
+  }
+  // Room round the body: the ankle first comes a little lower in the picture as the knee starts to straighten.
   if (lm[j.nose].y < 0.05) return { lapMissing: "Tilt the camera up a little so there is space above your head." };
-  if (Math.max(ankle.y, otherAnkle.y, foot.y) > 0.92) return { lapMissing: "Tilt the camera down a little so there is space below your feet." };
+  if (Math.max(ankle.y, otherAnkle.y) > 0.94) return { lapMissing: "Tilt the camera down a little so there is space below your feet." };
   if ([j.shoulder, j.shoulderOther, j.knee, j.kneeOther, j.ankle, j.ankleOther].some(index => lm[index].x < 0.04 || lm[index].x > 0.96)) {
     return { lapMissing: "Move the camera so you are in the middle of the picture." };
   }
@@ -99,8 +109,6 @@ export function kneeRestCheck(pose: PoseInput | null, side: Side, aspect: number
   if (shin < 0.06) return { lapMissing: "Move the camera a little closer." };
   // Feet flat on the floor: each lower leg hangs down from its knee, and both ankles are level. From the front a foot
   // placed forward still looks below its knee, so the knee's 3D angle (generously, for its jitter) says it is bent.
-  const w = pose.world;
-  const bentAngle = w[j.hip] && w[j.knee] && w[j.ankle] ? angleAt(w[j.hip], w[j.knee], w[j.ankle]) : undefined;
   if (ankle.y - knee.y < 0.6 * shin || (bentAngle !== undefined && bentAngle > REST_KNEE_MAX_DEG)) return { lapMissing: "Put your foot flat on the floor, below your knee." };
   if (Math.abs(ankle.y - otherAnkle.y) > 0.25 * shin) return { lapMissing: "Put both feet flat on the floor, about hip-width apart." };
   return { lapRest: { x: ankle.x, y: ankle.y, bodyScale: shin } };
