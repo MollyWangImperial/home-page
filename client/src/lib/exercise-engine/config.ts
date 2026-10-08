@@ -177,8 +177,12 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
       cr("head_forward", "head leaning forward", "head_forward_pct", 12, 6, 0, "Keep your head up and bring the cup to your mouth, not your mouth to the cup.", { unit: "%", minConsecutiveMs: 600, yieldsTo: { id: "trunk_forward", minRatio: 1.25 } }),
       // Whole-trunk lean: the shoulders come toward the camera together with the face (both grow at least 6%).
       cr("trunk_forward", "trunk leaning forward", "trunk_approach_pct", 6, 4, 0, "Keep your back tall and let your arm bring the cup to your mouth.", { unit: "%", minConsecutiveMs: 200 }),
-      // Head lowering also shortens the ear gap: use shoulder tilt here to keep the checks separate.
-      cr("shoulder_hike", "shoulder hike", "shoulder_hike_delta", 12, 4, 0, "Relax the shoulder before bending the elbow again.", { minConsecutiveMs: 400 }),
+      // Head lowering also shortens the ear gap: use shoulder tilt here to keep the checks separate, measured
+      // against the trunk so a sideways lean of the whole upper body is not called a shrug.
+      // Measured on camera: a natural shrug to reach the mouth stays above 7 degrees for well over a second of
+      // the hold; normal movement stays within 1-3 and a head-lean repetition under 5. So 7 degrees for 0.3 s
+      // flags a shrug used to reach the mouth without flagging a normal movement.
+      cr("shoulder_hike", "shoulder hike", "shoulder_hike_rel_delta", 7, 4, 0, "Relax the shoulder before bending the elbow again.", { minConsecutiveMs: 300 }),
     ],
     cycle: [
       { caption: "Bring the cup to your mouth and hold, as if taking a sip", voice: "Bend your elbow and bring the cup up to your mouth, slowly and smoothly. Hold it at your lips as if taking a sip. Head up, shoulder relaxed.", kind: "reach", gate: ["elbow_flexion", "shoulder_flexion"], holdMs: 1500 },

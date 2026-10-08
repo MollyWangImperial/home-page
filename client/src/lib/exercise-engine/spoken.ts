@@ -13,6 +13,8 @@ export const MAX_SPOKEN_REPS = 15;
 export const repCompleteLine = (rep: number) => `Repetition ${rep} complete.`;
 export const repScoreLine = (score: number) => `Your score is ${score} out of 100.`;
 export const repsAheadLine = (planned: number) => `Good. Now ${word(planned)} repetitions.`;
+/** Said as each scored repetition's 3-2-1 countdown starts (recorded once in Alira's voice). */
+export const NEXT_REP_COUNTDOWN_LINE = "The next repetition starts in three seconds.";
 export const goodRepsLine = (good: number, planned: number) => `${cap(word(good))} of ${word(planned)} good reps.`;
 export const bestLine = (label: string, degrees: number) => `Your best ${label} was ${Math.round(degrees)} degrees.`;
 export const finishedLevelLine = (rung: number) => `You finished at level ${rung} of 3.`;

@@ -1,5 +1,6 @@
 import { EXERCISES, REPS_BY_RUNG, type Rung, type Side } from "./config";
 import type { RepResult, Snapshot } from "./session";
+import { NEXT_REP_COUNTDOWN_LINE } from "./spoken";
 
 export const EXERCISE_PREVIEW_SCREENS = [
   { id: "intro", label: "Exercise introduction" },
@@ -10,7 +11,6 @@ export const EXERCISE_PREVIEW_SCREENS = [
   { id: "warm-waiting", label: "3 · Learn movement — listen first" },
   { id: "warm-reach", label: "3 · Learn movement — hold target" },
   { id: "warm-return", label: "3 · Learn movement — return to lap" },
-  { id: "reps-waiting", label: "4 · Scored repetition — listen first" },
   { id: "reps-reach", label: "4 · Scored repetition — hold target" },
   { id: "reps-return", label: "4 · Scored repetition — return to lap" },
   { id: "complete", label: "Repetition score and feedback" },
@@ -78,7 +78,8 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
   ].map(check => ({ ...check, visible: check.id !== "wrist", progress: check.id === "wrist" ? 0.2 : 1, hint: `Bring your ${side} hand into view.` }));
   return {
     snapshot,
-    said: phase === "setup" ? cfg.calibrationInstruction : phase === "demo" ? `${snapshot.caption}.` : returning ? cfg.cycle[1].voice : cfg.cycle[0].voice,
+    // Scored repetitions are not instructed again: only their countdown speaks.
+    said: phase === "setup" ? cfg.calibrationInstruction : phase === "demo" ? `${snapshot.caption}.` : screen === "countdown" ? NEXT_REP_COUNTDOWN_LINE : scored ? "" : returning ? cfg.cycle[1].voice : cfg.cycle[0].voice,
     bodyChecks,
     live: {
       roms: cfg.romSteps.map(rom => ({ label: rom.label, value: returning ? startingAngles[rom.id as keyof typeof targets] : targets[rom.id as keyof typeof targets], target: targets[rom.id as keyof typeof targets], start: startingAngles[rom.id as keyof typeof targets], unit: "°" })),

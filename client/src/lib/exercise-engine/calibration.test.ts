@@ -44,7 +44,7 @@ it("keeps lap posture separate and scores against the practice target without ad
   expect(session.snapshot().startingAngles).toEqual({ shoulder_flexion: 20, elbow_extension: 120 });
   expect(session.targets()).toEqual({ shoulder_flexion: 37.5, elbow_extension: 136.2 });
   // Half of each personalized excursion gives 50%, even though the absolute angles are much higher.
-  while (!session.snapshot().review) {
+  while (session.snapshot().review !== "complete") {
     t += 33;
     const reaching = session.currentStep?.kind === "reach";
     const frame = simFrame(t, session.cfg, session.targets(), { level: 0, compensations: [] });

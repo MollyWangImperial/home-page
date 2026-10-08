@@ -313,7 +313,7 @@ it("speaks feedback in one completion popup, then counts down three seconds befo
   const session = new ExerciseSession({ exerciseId: "ex_reach", rung: 1, side: "right", reviewBetweenReps: true, repsOverride: 3 }, voice);
   session.start(0); session.skipAhead(1); session.skipAhead(2);
   let t = 2;
-  for (let n = 0; n < 3000 && !session.snapshot().review; n++) {
+  for (let n = 0; n < 3000 && session.snapshot().review !== "complete"; n++) {
     t += 33;
     session.push(simFrame(t, session.cfg, session.targets(), { level: session.currentStep?.kind === "reach" && session.snapshot().holdProgress < 1 ? 1 : 0, compensations: [] }));
   }
@@ -358,7 +358,7 @@ it("shows and speaks final-repetition feedback before the summary without anothe
   const session = new ExerciseSession({ exerciseId: "ex_reach", rung: 1, side: "right", reviewBetweenReps: true, repsOverride: 1 }, voice);
   session.start(0); session.skipAhead(1); session.skipAhead(2);
   let t = 2;
-  for (let n = 0; n < 3000 && !session.snapshot().review; n++) {
+  for (let n = 0; n < 3000 && session.snapshot().review !== "complete"; n++) {
     t += 33;
     const reaching = session.currentStep?.kind === "reach";
     const scored = session.snapshot().phase === "reps";
@@ -380,7 +380,9 @@ it("shows and speaks final-repetition feedback before the summary without anothe
   expect(session.snapshot().phase).toBe("done");
   expect(session.snapshot().review).toBeNull();
   expect(session.snapshot().record?.score).toBe(15);
-  expect(spoken.some(line => line.includes("next repetition starts"))).toBe(false);
+  // Only the first repetition's countdown, before it started; none after the final repetition.
+  expect(spoken.filter(line => line.includes("next repetition starts"))).toHaveLength(1);
+  expect(spoken.slice(spoken.indexOf("Repetition 1 complete.")).some(line => line.includes("next repetition starts"))).toBe(false);
 });
 
 it("speaks each missed movement target and confirmed compensation in the completion popup", () => {
@@ -391,7 +393,7 @@ it("speaks each missed movement target and confirmed compensation in the complet
   session.push(simFrame(1, session.cfg, session.targets(), { level: 0, compensations: [] }));
   session.skipAhead(2); session.skipAhead(3);
   let t = 3;
-  for (let n = 0; n < 3000 && !session.snapshot().review; n++) {
+  for (let n = 0; n < 3000 && session.snapshot().review !== "complete"; n++) {
     t += 33;
     const reaching = session.currentStep?.kind === "reach";
     const scored = session.snapshot().phase === "reps";
@@ -419,7 +421,7 @@ it.each([[6, []], [7, ["trunk_lean"]], [12, ["trunk_lean"]], [13, ["trunk_lean",
   session.start(0); session.skipAhead(1); session.skipAhead(2);
   let t = 2;
   let scoredFrames = 0;
-  for (let n = 0; n < 3000 && !session.snapshot().review; n++) {
+  for (let n = 0; n < 3000 && session.snapshot().review !== "complete"; n++) {
     t += 33;
     const reaching = session.currentStep?.kind === "reach";
     const scored = session.snapshot().phase === "reps";
@@ -429,4 +431,53 @@ it.each([[6, []], [7, ["trunk_lean"]], [12, ["trunk_lean"]], [13, ["trunk_lean",
     session.push(frame);
   }
   expect(session.snapshot().reps[0].compensations).toEqual(detected);
+});
+
+it("starts every seated scored repetition from the 3-2-1 countdown without repeating the step instructions", () => {
+  let now = 0, busyUntil = 0;
+  const spoken: string[] = [];
+  const voice: Voice = { say: line => { spoken.push(line); busyUntil = Math.max(busyUntil, now) + 2000; }, busy: t => t < busyUntil, stop: () => { busyUntil = 0; } };
+  const session = new ExerciseSession({ exerciseId: "ex_reach", rung: 1, side: "right", reviewBetweenReps: true, repsOverride: 2 }, voice);
+  let t = 0;
+  const push = () => {
+    now = t += 50;
+    const snap = session.snapshot();
+    session.push({ ...simFrame(t, session.cfg, session.targets(), { level: session.currentStep?.kind === "reach" ? 1 : 0, compensations: [] }), targetContact: snap.targetArmed });
+    return session.snapshot();
+  };
+  session.start(0);
+  let snap = push();
+  for (let n = 0; n < 5000 && snap.phase !== "reps"; n++) snap = push();
+  // "Good. Now two repetitions." plays over a still countdown; the ring and its line follow.
+  expect(snap).toMatchObject({ review: "countdown", repIndex: 0, countdownProgress: 0, targetArmed: false });
+  expect(spoken.at(-1)).toBe("Good. Now two repetitions.");
+  for (let n = 0; n < 200 && snap.countdownProgress === 0; n++) snap = push();
+  expect(spoken.at(-1)).toBe("The next repetition starts in three seconds.");
+  for (let n = 0; n < 200 && snap.review === "countdown"; n++) snap = push();
+  snap = push();
+  expect(snap).toMatchObject({ review: null, repIndex: 1, kind: "reach", targetArmed: true });
+  for (let n = 0; n < 5000 && snap.phase !== "done"; n++) snap = push();
+  const [reach, back] = session.cfg.cycle;
+  expect(spoken.filter(line => line === reach.voice)).toHaveLength(1);
+  expect(spoken.filter(line => line === back.voice)).toHaveLength(1);
+  expect(spoken.filter(line => line === "The next repetition starts in three seconds.")).toHaveLength(2);
+  expect(session.snapshot().record?.repetition_scores).toEqual([100, 100]);
+});
+
+it("keeps instructing every repetition of exercises without seated targets", () => {
+  const spoken: string[] = [];
+  const voice: Voice = { say: line => spoken.push(line), busy: () => false, stop: () => {} };
+  const session = new ExerciseSession({ exerciseId: "ex_wallslide", rung: 1, side: "right", reviewBetweenReps: true, repsOverride: 2 }, voice);
+  session.start(0); session.skipAhead(1); session.skipAhead(2);
+  let t = 2;
+  for (let n = 0; n < 6000 && session.snapshot().phase !== "done"; n++) {
+    t += 33;
+    const snap = session.snapshot();
+    if (snap.phase === "reps" && snap.review === null && snap.repIndex === 1 && !snap.targetArmed) expect(snap.countdownProgress).toBe(0);
+    session.push(simFrame(t, session.cfg, session.targets(), { level: session.currentStep?.kind === "reach" && session.snapshot().holdProgress < 1 ? 1 : 0, compensations: [] }));
+  }
+  const reachVoice = session.cfg.cycle[0].voice;
+  // The practice repetition and both scored repetitions say it, and the first scored one has no countdown.
+  expect(spoken.filter(line => line === reachVoice).length).toBe(3);
+  expect(spoken.filter(line => line === "The next repetition starts in three seconds.")).toHaveLength(1);
 });

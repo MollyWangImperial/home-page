@@ -2,7 +2,7 @@
 // Frame-driven and free of DOM and speech APIs so it can run against camera frames, simulated frames
 // or a test harness. Timing comes from frame.t.
 
-import { ANGLE_ADVICE, bestLine, CLOSER_TARGET_LINE, ELBOW_ADVICE, finalRepAdvice, finishedLevelLine, goodRepsLine, keepInViewLine, moveFurtherLine, reachedTargetsLine, repCompleteLine, repsAheadLine, repScoreLine, SHOULDER_ADVICE, word, cap } from "./spoken";
+import { ANGLE_ADVICE, bestLine, CLOSER_TARGET_LINE, ELBOW_ADVICE, finalRepAdvice, finishedLevelLine, goodRepsLine, keepInViewLine, moveFurtherLine, NEXT_REP_COUNTDOWN_LINE, reachedTargetsLine, repCompleteLine, repsAheadLine, repScoreLine, SHOULDER_ADVICE, word, cap } from "./spoken";
 import { cycleFor, EVERYDAY_EXERCISE_ID, REPS_BY_RUNG, resolveExercise, DOSE_PRESETS, LEVEL_BY_RUNG, usesSeatedTargets, type CycleStep, type ExerciseConfig, type Rung, type Side } from "./config";
 import { compensationStatus, medianGeo, type Frame, type Geo, type LapRest } from "./metrics";
 import { attainment, romAttainment, EXERCISE_SCORE_VERSION, isGoodRep, isMiss, repScore, sessionScore, type HoldOutcome } from "./scoring";
@@ -194,6 +194,8 @@ export class ExerciseSession {
   private rescued = false;
   private review: "complete" | "countdown" | null = null;
   private reviewStarted = 0;
+  /** The first scored repetition's countdown is shown, but its ring and line wait for "Good. Now N repetitions." to finish. */
+  private countdownQueued = false;
   private reviewAdvice: string[] = [];
   private lastCorrection: string | null = null;
   private arrow: string | null = null;
@@ -279,6 +281,7 @@ export class ExerciseSession {
     if (this.phase === "done" || beat < 1 || beat > 3 || beat >= this.snapshot().beat) return false;
     this.voice.stop();
     this.review = null;
+    this.countdownQueued = false;
     this.lostSince = null;
     this.idleAsked = false;
     this.arrow = null;
@@ -351,7 +354,7 @@ export class ExerciseSession {
       paused: this.lostSince !== null,
       review: this.review,
       reviewAdvice: this.reviewAdvice,
-      countdownProgress: this.review === "countdown" ? Math.min(1, (this.lastT - this.reviewStarted) / 3000) : 0,
+      countdownProgress: this.review === "countdown" && !this.countdownQueued ? Math.min(1, (this.lastT - this.reviewStarted) / 3000) : 0,
     };
   }
 
@@ -367,9 +370,9 @@ export class ExerciseSession {
           this.review = null;
           return this.finish(t, false);
         }
-        this.review = "countdown";
-        this.reviewStarted = t;
-        this.voice.say("The next repetition starts in three seconds.");
+        this.startCountdown(t);
+      } else if (this.review === "countdown" && this.countdownQueued) {
+        if (!this.voice.busy(t)) this.startCountdown(t);
       } else if (this.review === "countdown" && t - this.reviewStarted >= 3000 && !this.voice.busy(t)) {
         this.review = null;
         this.voice.stop();
@@ -548,7 +551,29 @@ export class ExerciseSession {
     this.prompt = "";
     this.voice.say(repsAheadLine(this.plannedReps));
     this.resetRep(t);
+    if (this.countdownReps()) {
+      // The first scored repetition gets the same 3-2-1 countdown as the others; its end numbers the repetition.
+      this.review = "countdown";
+      this.reviewStarted = t;
+      this.countdownQueued = true;
+      return;
+    }
     this.nextRepNumber();
+  }
+
+  /**
+   * Seated targets with the between-repetition review: every scored repetition starts after the 3-2-1
+   * countdown and is not instructed again. The demonstration and the practice repetition say each step.
+   */
+  private countdownReps(): boolean {
+    return usesSeatedTargets(this.cfg.id) && Boolean(this.opts.reviewBetweenReps);
+  }
+
+  private startCountdown(t: number) {
+    this.review = "countdown";
+    this.reviewStarted = t;
+    this.countdownQueued = false;
+    this.voice.say(NEXT_REP_COUNTDOWN_LINE);
   }
 
   private nextRepNumber() {
@@ -574,6 +599,12 @@ export class ExerciseSession {
     this.pauseUntil = t + pause;
     this.lastMoveT = t;
     this.idleAsked = false;
+    // A scored seated step that starts at once is not instructed: its target is live in this very frame, so
+    // the inactive circle and "Listen to the instruction" never flash between the countdown and the movement.
+    if (this.phase === "reps" && this.countdownReps() && pause === 0 && !this.review && !this.voice.busy(t)) {
+      this.started = true;
+      this.armed = true;
+    }
   }
 
   private romById(id: string) {
@@ -607,8 +638,11 @@ export class ExerciseSession {
       this.started = true;
       this.stepStart = t;
       this.lastMoveT = t;
-      this.voice.say(step.voice);
-      return;
+      // A scored seated repetition is not instructed again (the countdown was its cue): its target arms now.
+      if (this.phase !== "reps" || !this.countdownReps()) {
+        this.voice.say(step.voice);
+        return;
+      }
     }
     if (this.waitForSpeech(t)) return;
     if (!this.armed) {

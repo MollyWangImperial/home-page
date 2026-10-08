@@ -13,6 +13,8 @@ import { drawReachDemo, reachDemoState, reachGhostTarget } from "@/lib/exercise-
 import { drawMouthDemo, mouthDemoState, mouthGhostTarget } from "@/lib/exercise-engine/mouth-demo";
 import { mouthContact, mouthContactPoints, observedMouth, mouthCompensations } from "@/lib/exercise-engine/mouth-target";
 import { MouthHold, type MouthHoldResult } from "@/lib/exercise-engine/mouth-hold";
+import { CupTrack } from "@/lib/exercise-engine/cup-track";
+import { NEXT_REP_COUNTDOWN_LINE } from "@/lib/exercise-engine/spoken";
 import { compensationStatus, HAND_LINES, POSE_LINES, handFrameValues, handVisible, POSE_NEEDS, poseFrameValues, poseJoints, poseVisibility, reachLapRest, type Frame } from "@/lib/exercise-engine/metrics";
 import { ExerciseSession, simFrame, type Snapshot } from "@/lib/exercise-engine/session";
 import { chooseHand, createTracker, openCamera, type Detection, type Tracker } from "@/lib/exercise-engine/tracker";
@@ -83,6 +85,7 @@ export default function ExerciseRunner() {
   const reachTarget = useRef<{ key: string; x: number; y: number; radius: number; lapRadius?: number; startX: number; startY: number; baseY: number; torso: number; lapX: number; lapY: number } | null>(null);
   const mouthHold = useRef(new MouthHold());
   const mouthHoldKey = useRef("");
+  const cupTrack = useRef(new CupTrack());
   const [said, setSaid] = useState("");
   const [muted, setMuted] = useState(false);
   const [englishAvailable, setEnglishAvailable] = useState(true);
@@ -299,7 +302,15 @@ export default function ExerciseRunner() {
             frame.missing = visible ? undefined : "Bring your affected hand back into view.";
             frame.targetContact = visible && Math.hypot((wrist.x - target.lapX) * video.videoWidth / video.videoHeight, wrist.y - target.lapY) <= (target.lapRadius ?? target.radius);
           }
-          drawOverlay(overlayRef.current, video, detection, session, opts.side);
+          if (session.cfg.id === "ex_h2m") {
+            // Hand-to-mouth draws the cup and the affected arm from a steadied track (cup-track.ts): display only.
+            // The track reads the tracker's own pose so it can time the forearm flips; while MouthHold holds, its held arm is drawn.
+            const j = poseJoints(opts.side);
+            const shoulder = tracked.pose?.landmarks[j.shoulder], hip = tracked.pose?.landmarks[j.hip];
+            const torso = lap?.bodyScale ?? (shoulder && hip ? Math.max(0.18, Math.abs(hip.y - shoulder.y)) : 0.4);
+            const shown = cupTrack.current.update(t, tracked.pose, opts.side, { torso, aspect: video.videoWidth / video.videoHeight }, { held: hold?.held ? hold.pose : null, lowering: now.kind === "return" });
+            drawOverlay(overlayRef.current, video, { ...detection, pose: shown.pose }, session, opts.side, shown.cup);
+          } else drawOverlay(overlayRef.current, video, detection, session, opts.side);
         } catch (err) {
           console.warn("Exercise tracking frame failed", err);
         }
@@ -368,6 +379,9 @@ export default function ExerciseRunner() {
     writeLabOptions({ side: opts.side, quick: opts.quick, sim: opts.sim, chairBack: opts.chairBack, assisted: opts.assisted });
     savedRecord.current = null;
     reachTarget.current = null;
+    cupTrack.current.reset();
+    mouthHold.current.reset();
+    mouthHoldKey.current = "";
     bodyProgress.current = {};
     bodyLastT.current = 0;
     setBodyChecks(cameraBodyChecks({ cfg }, { pose: null, hands: [] } as unknown as Detection, opts.side).map(check => ({ ...check, progress: 0 })));
@@ -561,7 +575,7 @@ export default function ExerciseRunner() {
               <h2>{snap.phase === "setup" ? (snap.calibrationProgress > 0 ? "Hold still..." : "Get in view") : snap.phase === "demo" && !snap.demoReady ? "Watch the demonstration on the right" : snap.caption || (snap.phase === "demo" ? "Watch the movement" : "Get ready")}</h2>
               {snap.phase === "demo" && (snap.demoReady || usesSeatedTargets(cfg.id)) && (preview || !opts.sim) && <canvas ref={ghostRef} className="xe-ghost" width={300} height={240} aria-label={reachDemo ? `Movement demonstration: ${reachDemo.instruction}` : "Movement ghost"} />}
               {reachDemo && <p className="xe-hint">{reachDemo.instruction}</p>}
-              <p className="xe-said" aria-live="polite">{viewSaid ? `"${viewSaid}"` : ""}</p>
+              <p className="xe-said" aria-live="polite">{viewSaid && !(viewSaid === NEXT_REP_COUNTDOWN_LINE && !snap.review) ? `"${viewSaid}"` : ""}</p>
               {snap.phase === "setup" && <div className="xe-meter"><i style={{ width: `${snap.calibrationProgress * 100}%` }} /></div>}
               {(snap.phase === "warm" || snap.phase === "reps") && (
                 <>
@@ -864,7 +878,7 @@ function buildFrame(session: ExerciseSession, det: Detection, side: Side, t: num
   return { t, values, comps, visible, missing, geo, ...(usesSeatedTargets(cfg.id) ? reachLapRest(det.pose, side) : {}), ...(cfg.id === "ex_h2m" ? { mouthPoint: observedMouth(det.pose) } : {}) };
 }
 
-function drawOverlay(canvas: HTMLCanvasElement | null, video: HTMLVideoElement, det: Detection, session: ExerciseSession, side: Side) {
+function drawOverlay(canvas: HTMLCanvasElement | null, video: HTMLVideoElement, det: Detection, session: ExerciseSession, side: Side, cup?: { x: number; y: number } | null) {
   if (!canvas) return;
   if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
     canvas.width = video.videoWidth;
@@ -895,7 +909,7 @@ function drawOverlay(canvas: HTMLCanvasElement | null, video: HTMLVideoElement, 
   }
   const tracking = session.cfg.tracking;
   if (session.cfg.id === "ex_h2m") {
-    const hand = mouthContactPoints(det.pose, side)[0];
+    const hand = cup !== undefined ? cup : mouthContactPoints(det.pose, side)[0];
     if (hand) {
       const size = Math.max(12, h * 0.03), x = X(hand.x), y = Y(hand.y);
       ctx.strokeStyle = "#fffefa"; ctx.fillStyle = "rgba(225,142,109,.4)"; ctx.lineWidth = Math.max(2, w / 320);

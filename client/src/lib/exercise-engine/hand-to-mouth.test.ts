@@ -63,10 +63,15 @@ describe("hand-to-mouth compensation independence", () => {
     expect(head.minConsecutiveMs).toBeGreaterThanOrEqual(500);
     for (const rule of rules) expect(EXERCISES.ex_h2m.feedback.some(feedback => feedback.comp === rule.id)).toBe(true);
   });
+  it("flags a shrug of 7 degrees held for 0.3 s, while the reach keeps its own shoulder rule", () => {
+    expect(hike).toMatchObject({ metric: "shoulder_hike_rel_delta", thresholdDeg: 7, minConsecutiveMs: 300 }); expect(hike.alternative).toBeUndefined();
+    expect(EXERCISES.ex_reach.compensations.find(rule => rule.id === "shoulder_hike")).toMatchObject({ thresholdDeg: 12, minConsecutiveMs: 400 });
+  });
   it("does not turn shoulder depth noise into trunk lean, and permits modest shoulder motion", () => {
-    const input = pose(); Object.assign(input.world[12], { y: .35, z: -.4 });
+    const input = pose(); Object.assign(input.world[12], { y: .38, z: -.4 });
     const values = poseFrameValues(input, "right", reference).comps;
     expect(values.trunk_lean_delta).toBeGreaterThan(10);
+    expect(values.shoulder_hike_delta).toBeCloseTo(3.8, 1);
     expect(compensationStatus(values, lean).over).toBe(false);
     expect(compensationStatus(values, hike).over).toBe(false);
     expect(compensationStatus(values, head).over).toBe(false);
@@ -135,6 +140,8 @@ describe("hand-to-mouth posture classification from landmarks", () => {
     expect(comps.face_approach_pct).toBeUndefined(); // mouth corners covered
     expect(over).toEqual([]);
     expect(compensationStatus(comps, head).ratio).toBeLessThan(.7);
+    // The shoulder point drifting up as the arm lifts stays well under the shrug threshold.
+    expect(compensationStatus(comps, hike).ratio).toBeLessThan(.25);
   });
   it.each(cases)("head-only lean to meet the cup: head_forward only ($side side, $name camera)", ({ side, camera }) => {
     expect(flagged(side, { hand: 1, headFlexDeg: 20 }, camera).over).toEqual(["head_forward"]);
@@ -152,6 +159,27 @@ describe("hand-to-mouth posture classification from landmarks", () => {
   });
   it.each(cases)("shoulder hike: shoulder_hike only ($side side, $name camera)", ({ side, camera }) => {
     expect(flagged(side, { hand: 1, headFlexDeg: 4, shoulderHikeM: .11 }, camera).over).toEqual(["shoulder_hike"]);
+  });
+  it.each(SIDES)("a sideways lean of the whole upper body toward the stronger side is not a shrug; a shrug while leaning still is (%s)", side => {
+    const upright = geoFrom(seatedPose(side), side);
+    /** Lean the world landmarks about the hip centre toward the unaffected side (world x is the patient's left). */
+    const leaning = (posture: SeatedPosture, degrees: number) => {
+      const pose = seatedPose(side, posture);
+      const a = degrees * Math.PI / 180 * (side === "right" ? 1 : -1);
+      pose.world = pose.world.map(point => ({ ...point, x: point.x * Math.cos(a) - point.y * Math.sin(a), y: point.x * Math.sin(a) + point.y * Math.cos(a) }));
+      return poseFrameValues(pose, side, upright).comps;
+    };
+    for (const degrees of [6, 8, 10]) {
+      const comps = leaning({ hand: 1, headFlexDeg: 4 }, degrees);
+      expect(comps.shoulder_hike_delta).toBeGreaterThan(7); // the plain tilt would have called it a shrug
+      expect(compensationStatus(comps, hike).over).toBe(false);
+    }
+    expect(compensationStatus(leaning({ hand: 1, headFlexDeg: 4, shoulderHikeM: .055 }, 6), hike).over).toBe(true);
+  });
+  it.each(cases)("a natural shrug to reach the mouth (about 5.5 cm, 10°): shoulder_hike only ($side side, $name camera)", ({ side, camera }) => {
+    const { comps, over } = flagged(side, { hand: 1, headFlexDeg: 4, shoulderHikeM: .055 }, camera);
+    expect(over).toEqual(["shoulder_hike"]);
+    expect(comps.shoulder_hike_rel_delta).toBeGreaterThan(9);
   });
 });
 
@@ -242,7 +270,7 @@ describe("hand-to-mouth level 1 progression and scoring", () => {
   it("reports a head lean during a trunk lean only when the head goes clearly beyond the trunk", () => {
     for (const [headPct, expected] of [[13, ["trunk_forward"]], [16, ["head_forward", "trunk_forward"]]] as const) {
       const p = scored();
-      p.until(() => p.session.currentStep?.kind === "return", { comps: { head_forward_pct: headPct, trunk_approach_pct: 9, shoulder_hike_delta: 0 } });
+      p.until(() => p.session.currentStep?.kind === "return", { comps: { head_forward_pct: headPct, trunk_approach_pct: 9, shoulder_hike_rel_delta: 0 } });
       p.until(() => p.session.snapshot().review === "complete");
       expect(p.session.snapshot().reps[0].compensations.sort()).toEqual([...expected]);
       expect(p.session.snapshot().reps[0].score).toBe(expected.length === 1 ? 30 : 15);
@@ -250,7 +278,7 @@ describe("hand-to-mouth level 1 progression and scoring", () => {
   });
   it("rejects brief compensation spikes and never labels wholly unmeasured posture as a good rep", () => {
     const p = scored();
-    for (let n = 0; n < 3; n++) p.push({ comps: { trunk_approach_pct: 10, shoulder_hike_delta: 15, head_forward_pct: 20 } });
+    for (let n = 0; n < 3; n++) p.push({ comps: { trunk_approach_pct: 10, shoulder_hike_rel_delta: 15, head_forward_pct: 20 } });
     p.until(() => p.session.snapshot().review === "complete");
     expect(p.session.snapshot().reps[0].compensations).toEqual([]);
     const unknown = scored(); unknown.until(() => unknown.session.currentStep?.kind === "return", { comps: {} });
@@ -258,13 +286,15 @@ describe("hand-to-mouth level 1 progression and scoring", () => {
     expect(unknown.session.snapshot().reps[0].unmeasured).toEqual(["head_forward", "trunk_forward", "shoulder_hike"]);
     expect(unknown.session.snapshot().reps[0].good).toBe(false);
   });
-  it("shows feedback for all six reps, separate countdowns, then the summary", () => {
-    const p = scored("right", 6); let completionCount = 0, countdownCount = 0, previous = "";
-    for (let n = 0; n < 2500 && p.session.snapshot().phase !== "done"; n++) {
+  it("shows feedback for all six reps, a countdown before each, then the summary", () => {
+    const p = patient("right", undefined, 6);
+    p.until(() => p.session.snapshot().phase === "demo"); p.session.skipAhead(3000);
+    let completionCount = 0, countdownCount = 0, previous = "";
+    for (let n = 0; n < 3000 && p.session.snapshot().phase !== "done"; n++) {
       const snap = p.push(); const state = `${snap.review}:${snap.reps.length}`;
       if (state !== previous) { if (snap.review === "complete") completionCount++; if (snap.review === "countdown") countdownCount++; previous = state; }
     }
-    expect(completionCount).toBe(6); expect(countdownCount).toBe(5);
+    expect(completionCount).toBe(6); expect(countdownCount).toBe(6);
     expect(p.session.snapshot().record?.repetition_scores).toEqual([100, 100, 100, 100, 100, 100]);
     expect(p.session.snapshot().phase).toBe("done");
   });
@@ -327,6 +357,13 @@ describe("hand-to-mouth posture over a scored repetition (landmark measures)", (
   it.each(SIDES)("a shoulder hike is shoulder_hike alone (%s)", side => {
     expect(repWith(side, () => ({ headFlexDeg: 4, shoulderHikeM: .11 })).compensations).toEqual(["shoulder_hike"]);
   });
+  it.each(SIDES)("a natural shrug held at the mouth is shoulder_hike (%s)", side => {
+    expect(repWith(side, ms => ({ headFlexDeg: 4, shoulderHikeM: ms >= 200 ? .055 : 0 }))).toMatchObject({ compensations: ["shoulder_hike"], score: 30 });
+  });
+  it.each(SIDES)("a shrug shorter than 0.3 s, or a small shoulder rise, is not a compensation (%s)", side => {
+    expect(repWith(side, ms => ({ headFlexDeg: 4, shoulderHikeM: ms >= 300 && ms < 500 ? .055 : 0 })).compensations).toEqual([]);
+    expect(repWith(side, () => ({ headFlexDeg: 4, shoulderHikeM: .03 })).compensations).toEqual([]);
+  });
 });
 
 describe("hand-to-mouth simulator", () => {
@@ -382,6 +419,25 @@ function seated(exerciseId: string, voice: Voice = quiet(), reps = 1) {
 const SEATED = ["ex_reach", "ex_h2m"];
 
 describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
+  it.each(SEATED)("%s: each scored repetition starts after the countdown, with each step instructed only in practice", id => {
+    const said: string[] = [];
+    const p = seated(id, quiet(said), 3);
+    let countdowns = 0, previous: string | null = null, inactive = 0;
+    for (let n = 0; n < 4000 && p.session.snapshot().phase !== "done"; n++) {
+      const snap = p.push();
+      if (snap.review === "countdown" && previous !== "countdown") { countdowns++; expect(snap.repIndex).toBe(snap.reps.length); }
+      // Every scored step is live from its first frame: nothing is said, nothing flashes inactive.
+      if (snap.phase === "reps" && snap.review === null && !snap.targetArmed) inactive++;
+      previous = snap.review;
+    }
+    expect(inactive).toBe(0);
+    expect(countdowns).toBe(3);
+    const [reach, back] = EXERCISES[id].cycle;
+    expect(said.filter(line => line === reach.voice)).toHaveLength(1);
+    expect(said.filter(line => line === back.voice)).toHaveLength(1);
+    expect(said.filter(line => line === "The next repetition starts in three seconds.")).toHaveLength(3);
+    expect(p.session.snapshot().record?.repetition_scores).toEqual([100, 100, 100]);
+  });
   it.each(SEATED)("%s: touching the target and lowering the arm before the hold ends the movement as touched", id => {
     const p = seated(id);
     p.toScoredRep();

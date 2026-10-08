@@ -288,6 +288,11 @@ export function poseFrameValues(pose: PoseInput, side: Side, ref: Geo | null): P
     comps.trunk_side_lean_delta = Math.abs(side2d(trunk) - side2d(refTrunk));
     const joints = poseJoints(side);
     comps.shoulder_hike_delta = inView(pose.landmarks[joints.shoulder]) && inView(pose.landmarks[joints.shoulderOther]) ? Math.max(0, geo.shoulderTilt - ref.shoulderTilt) : undefined;
+    // The same tilt measured against the trunk: leaning the whole upper body sideways tilts the shoulder line
+    // and the trunk together, a shrug only the shoulder line. Trunk tilt within 2 degrees is hip-landmark noise.
+    const trunkRoll = (side2d(trunk) - side2d(refTrunk)) * (side === "right" ? 1 : -1);
+    comps.shoulder_hike_rel_delta = comps.shoulder_hike_delta === undefined ? undefined
+      : Math.max(0, geo.shoulderTilt - ref.shoulderTilt - Math.sign(trunkRoll) * Math.max(0, Math.abs(trunkRoll) - 2));
     comps.hip_hike_delta = Math.max(0, geo.hipTilt - ref.hipTilt);
     comps.head_drop_deg = Math.max(0, geo.nosePitch - ref.nosePitch);
     comps.knee_motion_delta = angleBetween([geo.hx, geo.hy, geo.hz], [ref.hx, ref.hy, ref.hz]);

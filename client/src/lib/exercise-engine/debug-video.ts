@@ -53,7 +53,7 @@ export class DebugVideoRecorder {
     if (this.session.exerciseId === "ex_h2m") {
       // Head lean is in % of shoulder width (down and toward the camera, beyond any trunk lean).
       ctx.fillText(`Shoulder lift ${measured(frame.values.shoulder_flexion, "°")} · Elbow bend ${measured(frame.values.elbow_flexion, "°")} · Head forward ${measured(frame.comps.head_forward_pct, "%")} (down ${measured(frame.comps.head_drop_pct, "%")}, closer ${measured(frame.comps.head_approach_pct, "%")})`, 14, this.canvas.height - 39);
-      ctx.fillText(`Trunk forward ${measured(frame.comps.trunk_approach_pct, "%")} · Shoulder tilt ${measured(frame.comps.shoulder_hike_delta, "°")} · Hand ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
+      ctx.fillText(`Trunk forward ${measured(frame.comps.trunk_approach_pct, "%")} · Shoulder hike ${measured(frame.comps.shoulder_hike_rel_delta, "°")} (tilt ${measured(frame.comps.shoulder_hike_delta, "°")}) · Hand ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
     } else {
       ctx.fillText(`Shoulder ${measured(frame.values.shoulder_flexion, "°")} · Elbow ${measured(frame.values.elbow_extension, "°")} · Face ${measured(frame.comps.face_approach_pct, "%")} · Shoulder width ${measured(frame.comps.shoulder_approach_pct, "%")}`, 14, this.canvas.height - 39);
       ctx.fillText(`Shoulder tilt ${measured(frame.comps.shoulder_hike_delta, "°")} · Shoulder-to-ear reduction ${measured(frame.comps.shoulder_elevation_pct, "%")} · Hand ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
