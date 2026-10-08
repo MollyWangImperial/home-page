@@ -109,7 +109,7 @@ export function poseVisibility(pose: PoseInput | null, side: Side, group: "upper
 /** Scalar snapshot of posture; resting values are the median of a few of these. */
 export type Geo = Record<"tx" | "ty" | "tz" | "hx" | "hy" | "hz" | "shoulderTilt" | "hipTilt" | "nosePitch" | "anklePitch" | "rest_shoulder_flexion" | "rest_elbow_interior" | "rest_shoulder_abduction" | "rest_knee_extension", number> & {
   faceEyeSpan?: number; faceHeight?: number; shoulderWidth?: number; shoulderEarGap?: number;
-  /** Image distance between the eye centres. Uses the eyes only, so a hand at the mouth cannot hide it. */
+  /** Image distance between the outer eye corners. Uses the eyes only, so a hand at the mouth cannot hide it. */
   eyeSpan?: number;
   /** Height of the eye line above the unaffected shoulder, in shoulder widths. A lifting affected arm cannot shift it. */
   headLift?: number;
@@ -177,18 +177,21 @@ const FRONT_CAMERA_FOCAL = 0.75;
 export function headLeanMetrics(geo: Geo, ref: Geo): Frame["comps"] {
   const out: Frame["comps"] = {};
   const shoulders = geo.shoulderWidth && ref.shoulderWidth ? geo.shoulderWidth / ref.shoulderWidth : undefined;
+  if (shoulders === undefined) return out;
+  // The outer eye corners (face size) can drop out while the eye centres, and so the eye line, stay measurable.
   const face = geo.eyeSpan && ref.eyeSpan ? geo.eyeSpan / ref.eyeSpan : undefined;
-  if (shoulders === undefined || face === undefined) return out;
-  out.trunk_approach_pct = Math.max(0, (Math.min(shoulders, face) - 1) * 100);
+  if (face !== undefined) out.trunk_approach_pct = Math.max(0, (Math.min(shoulders, face) - 1) * 100);
   if (geo.headLift === undefined || ref.headLift === undefined) return out;
   // A narrowing shoulder span (the affected shoulder rolling forward) must not inflate head movement.
   const trunk = Math.max(1, shoulders);
   const down = Math.max(0, ref.headLift - geo.headLift - TRUNK_EYE_DROP_PER_APPROACH * (trunk - 1));
+  out.head_drop_pct = down * 100;
+  // Without the face size only the drop is known: a lower bound on head travel that cannot fake a lean.
+  if (face === undefined) { out.head_forward_pct = down * 100; return out; }
   const growth = Math.max(0, face / trunk ** TRUNK_FACE_GROWTH_EXPONENT - 1);
   // Face growth is forward travel over the camera distance; the camera is about focal / apparent width
   // shoulder widths away, which turns the growth into shoulder widths of forward travel.
   const forward = growth * Math.max(1, Math.min(3, FRONT_CAMERA_FOCAL / ref.shoulderWidth!));
-  out.head_drop_pct = down * 100;
   out.head_approach_pct = growth * 100;
   out.head_forward_pct = Math.hypot(down, forward) * 100;
   return out;
@@ -224,13 +227,17 @@ export function geoFrom(pose: PoseInput, side: Side): Geo {
     ? (p[j.shoulder].y - p[j.ear].y) / shoulderWidth : undefined;
   // Head position from the eyes, which stay visible while a hand or cup covers the mouth. The unaffected
   // shoulder is the vertical reference: the affected shoulder point drifts upward as that arm lifts.
-  const eyes = inView(p[2]) && inView(p[5]) ? { span: Math.hypot(p[2].x - p[5].x, p[2].y - p[5].y), y: (p[2].y + p[5].y) / 2 } : undefined;
+  const eyes = inView(p[2]) && inView(p[5]) ? { y: (p[2].y + p[5].y) / 2 } : undefined;
   const headLift = eyes && shoulderWidth && shoulderWidth > 0.02 && inView(p[j.shoulderOther]) ? (p[j.shoulderOther].y - eyes.y) / shoulderWidth : undefined;
+  // Face size from the outer eye corners. On camera the eye-centre points shift when a hand comes up near the
+  // face (clean hand-to-mouth repetitions moved them by up to 4%, which the head check turns into 12% of
+  // "forward travel"); the outer corners stayed within 1%, while a real head lean still shows.
+  const eyeSpan = inView(p[3]) && inView(p[6]) ? Math.hypot(p[3].x - p[6].x, p[3].y - p[6].y) : undefined;
   return {
     ...face,
     shoulderWidth: shoulderWidth && shoulderWidth > 0.02 ? shoulderWidth : undefined,
     shoulderEarGap: shoulderEarGap && shoulderEarGap > 0.05 ? shoulderEarGap : undefined,
-    eyeSpan: eyes && eyes.span > 0.005 ? eyes.span : undefined,
+    eyeSpan: eyeSpan && eyeSpan > 0.005 ? eyeSpan : undefined,
     headLift,
     tx: trunk[0], ty: trunk[1], tz: trunk[2],
     hx: thigh[0], hy: thigh[1], hz: thigh[2],

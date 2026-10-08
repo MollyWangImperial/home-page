@@ -11,7 +11,7 @@ import { exerciseScreenPreview } from "./screen-preview";
 
 function pose(): PoseInput {
   const landmarks: Pt[] = Array.from({ length: 33 }, () => ({ x: 0.5, y: 0.5, z: 0, visibility: 1 }));
-  for (const [index, x, y] of [[0, .5, .3], [2, .44, .25], [5, .56, .25], [9, .47, .35], [10, .53, .35], [7, .42, .3], [8, .58, .3], [11, .35, .5], [12, .65, .5], [23, .4, .8], [24, .6, .8]]) Object.assign(landmarks[index], { x, y });
+  for (const [index, x, y] of [[0, .5, .3], [2, .44, .25], [3, .41, .25], [5, .56, .25], [6, .59, .25], [9, .47, .35], [10, .53, .35], [7, .42, .3], [8, .58, .3], [11, .35, .5], [12, .65, .5], [23, .4, .8], [24, .6, .8]]) Object.assign(landmarks[index], { x, y });
   const world = landmarks.map(point => ({ ...point }));
   Object.assign(world[11], { y: .4 }); Object.assign(world[12], { y: .4 });
   return { landmarks, world };
@@ -102,6 +102,23 @@ describe("hand-to-mouth compensation independence", () => {
     expect(compensationStatus(values, hike).over).toBe(true);
     expect(compensationStatus(values, lean).over).toBe(false);
     expect(compensationStatus(values, head).over).toBe(false);
+  });
+  it("sizes the face from the outer eye corners, so eye-centre points nudged by a hand near the face are not a head lean", () => {
+    // On camera the eye-centre points shifted apart by up to 4% as the hand came up; the outer corners did not.
+    const input = pose(); input.landmarks[2].x -= .005; input.landmarks[5].x += .005;
+    const values = poseFrameValues(input, "right", reference).comps;
+    expect(values.head_approach_pct).toBe(0);
+    expect(compensationStatus(values, head).over).toBe(false);
+    // The face really coming closer moves the outer corners too.
+    const closer = pose(); closer.landmarks[3].x -= .01; closer.landmarks[6].x += .01;
+    expect(poseFrameValues(closer, "right", reference).comps.head_approach_pct).toBeCloseTo(100 * .02 / .18, 0);
+  });
+  it("still measures the eye line dropping when an outer eye corner is hidden", () => {
+    const input = pose(); input.landmarks[2].y += .05; input.landmarks[5].y += .05; input.landmarks[6].visibility = .4;
+    const values = poseFrameValues(input, "right", reference).comps;
+    expect(values.head_drop_pct).toBeCloseTo(100 * .05 / .3);
+    expect(values.head_approach_pct).toBeUndefined(); expect(values.trunk_approach_pct).toBeUndefined();
+    expect(compensationStatus(values, head).over).toBe(true);
   });
   it("measures the head from the unaffected shoulder, so the lifting arm's shoulder point cannot fake a head lean", () => {
     const input = pose(); input.landmarks[12].y -= .06; // the right (affected) shoulder point drifts up
