@@ -5,7 +5,7 @@ import { ArrowLeft, Camera, Check, Eye, Hand, LoaderCircle, Mic, MicOff, Play, R
 import { useSettings } from "@/components/AccountSettings";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { buildRung, EVERYDAY_EXERCISE_ID, EXERCISES, DOMAIN_LABEL, LEVEL_BY_RUNG, resolveExercise, usesSeatedTargets, usesTargetFlow, type Rung, type Side } from "@/lib/exercise-engine/config";
-import { reachAngleProgress } from "@/lib/exercise-engine/calibration";
+import { metricUnit, reachAngleProgress } from "@/lib/exercise-engine/calibration";
 import { EXERCISE_PREVIEW_SCREENS, exercisePreviewScreen, exerciseScreenPreview, type ExercisePreviewScreen } from "@/lib/exercise-engine/screen-preview";
 import { TARGET_HOLD_MS } from "@/lib/exercise-engine/target-timing";
 import { drawGhost, reachGhostPose, mouthGhostPose } from "@/lib/exercise-engine/ghost";
@@ -15,6 +15,9 @@ import { mouthContact, mouthContactPoints, observedMouth, mouthCompensations } f
 import { MouthHold, type MouthHoldResult } from "@/lib/exercise-engine/mouth-hold";
 import { CupTrack } from "@/lib/exercise-engine/cup-track";
 import { affectedHand, drawHandDemo, drawHandZone, drawRingLabel, followZone, handCovers, handDemoState, handGhostContact, handGhostTarget, handOpenFrame, handOpenness, handRingTarget, handZone, inHandZone, palmFacing, palmRing, REST_OPEN_MAX, startLimit, waiveLimit, type HandZone } from "@/lib/exercise-engine/hand-target";
+import { CupCarry, drawCup, drawGraspDemo, drawGraspGhost, followLayout, graspDemoState, GRASP_STEP, graspFrame, graspGhostContact, graspGhostTarget, graspHand, graspLapRadius, graspLayout, graspPoint, graspRings, graspTarget, type GraspLayout } from "@/lib/exercise-engine/grasp-target";
+import { LightingProbe, type Lighting } from "@/lib/exercise-engine/lighting";
+import { TARGET_COMPLETION_MS } from "@/lib/exercise-engine/target-timing";
 import { NEXT_REP_COUNTDOWN_LINE } from "@/lib/exercise-engine/spoken";
 import { compensationStatus, HAND_LINES, POSE_LINES, handFrameValues, handVisible, POSE_NEEDS, poseFrameValues, poseJoints, poseVisibility, reachLapRest, type Frame } from "@/lib/exercise-engine/metrics";
 import { ExerciseSession, simFrame, type Snapshot } from "@/lib/exercise-engine/session";
@@ -39,7 +42,7 @@ const AUTO_LEVEL: Record<Exclude<AutoMode, "off">, number> = { good: 1, short: 0
 
 type BodyCheck = { id: string; label: string; visible: boolean; progress: number; hint: string };
 
-type Live = { label: string; value: number | undefined; target: number; start: number; unit: string }[];
+type Live = { label: string; value: number | undefined; target: number; start: number; unit: string; scale?: number }[];
 type CompLive = { label: string; value: number | undefined; limit: number }[];
 
 // The target flow's demonstration, its states and the simulator's target, for each exercise that uses it.
@@ -48,6 +51,11 @@ const drawDemoFor = (id: string) => (id === "ex_h2m" ? drawMouthDemo : id === "e
 const demoStateFor = (id: string) => (id === "ex_h2m" ? mouthDemoState : id === "ex_handopen" ? handDemoState : reachDemoState);
 /** Hand opening's rings follow the palm, steadied so landmark jitter does not shake them. */
 const RING_FOLLOW = 0.35;
+/** Grasp and transport: each step's label beside its circle, and the step names in the coach card. */
+const GRASP_LABELS = ["Cup", "Grasp", "Across", "Let go", "Lap"];
+const GRASP_STEPS = ["Reach & open", "Grasp", "Carry", "Let go", "Back"];
+const GRASP_HINTS = ["Reach to the cup, opening your hand", "Close your hand around the cup and hold", "Carry the cup across to the other circle", "Open your hand to let go of the cup", "Bring your hand back to the lap circle and pause"];
+const GRASP_HAND_HINT = "Rest your hand on your thigh where the camera can see your whole hand.";
 
 export default function ExerciseRunner() {
   const [, params] = useRoute("/exercise/:id");
@@ -95,6 +103,15 @@ export default function ExerciseRunner() {
   const mouthHoldKey = useRef("");
   const cupTrack = useRef(new CupTrack());
   const handZoneRef = useRef<HandZone | null>(null);
+  // Grasp and transport: the cup's pick-up and put-down circles (learned at set-up), the cup through a repetition,
+  // the circle that just completed (for its animation), and the lighting check at set-up.
+  const graspLayoutRef = useRef<GraspLayout | null>(null);
+  const cupCarry = useRef(new CupCarry());
+  const graspCup = useRef<{ at: { x: number; y: number }; tilt: number; inHand: boolean } | null>(null);
+  const graspDone = useRef<{ key: string; step: number; at: { x: number; y: number }; startedAt: number } | null>(null);
+  const graspLast = useRef<{ key: string; step: number } | null>(null);
+  const lightingProbe = useRef(new LightingProbe());
+  const lighting = useRef<Lighting | null>(null);
   const [said, setSaid] = useState("");
   const [muted, setMuted] = useState(false);
   const [englishAvailable, setEnglishAvailable] = useState(true);
@@ -118,7 +135,7 @@ export default function ExerciseRunner() {
   const rafRef = useRef(0);
   const lastVideoTime = useRef(-1);
   const lastUi = useRef(0);
-  const simRef = useRef({ level: 0, manual: false, sliderLevel: 0, comps: [] as string[], auto: "good" as AutoMode, lastT: 0 });
+  const simRef = useRef({ level: 0, manual: false, sliderLevel: 0, comps: [] as string[], auto: "good" as AutoMode, lastT: 0, stepKey: "" });
   const savedRecord = useRef<string | null>(null);
   const debugSessionRef = useRef<DebugVideoSession | null>(null);
   const debugRecorderRef = useRef<DebugVideoRecorder | null>(null);
@@ -176,14 +193,20 @@ export default function ExerciseRunner() {
     const canvas = previewCanvasRef.current;
     const ctx = canvas?.getContext("2d");
     const state = preview.snapshot;
+    const grasp = cfg.id === "ex_grasp";
     if (canvas && ctx) {
       const pose = state.phase === "setup" || state.phase === "demo" || !state.targetArmed || state.kind === "return" ? 0 : 1;
-      drawGhost(ctx, cfg.ghost, pose, canvas.width, canvas.height);
-      if ((state.phase === "warm" || state.phase === "reps") && !state.review && !state.awaitingReady) drawTestingTarget(ctx, { ...ghostTargetFor(cfg.id)(canvas.width, canvas.height, state.kind === "return"), armed: state.targetArmed, contact: state.inZone && state.targetArmed, progress: state.holdProgress, now: performance.now(), reducedMotion: true });
+      if (grasp) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawGraspGhost(ctx, state.stepIndex, pose, canvas.width, canvas.height); }
+      else drawGhost(ctx, cfg.ghost, pose, canvas.width, canvas.height);
+      const target = grasp ? graspGhostTarget(canvas.width, canvas.height, state.stepIndex) : ghostTargetFor(cfg.id)(canvas.width, canvas.height, state.kind === "return");
+      if ((state.phase === "warm" || state.phase === "reps") && !state.review && !state.awaitingReady) drawTestingTarget(ctx, { ...target, armed: state.targetArmed, contact: state.inZone && state.targetArmed, progress: state.holdProgress, now: performance.now(), reducedMotion: true });
     }
     const demo = ghostRef.current;
     const demoContext = demo?.getContext("2d");
-    if (state.phase === "demo" && demo && demoContext) drawDemoFor(cfg.id)(demoContext, state.demoStepElapsedMs, state.kind === "return", demo.width, demo.height, performance.now(), true, state.targetArmed);
+    if (state.phase === "demo" && demo && demoContext) {
+      if (grasp) drawGraspDemo(demoContext, state.demoStepElapsedMs, Math.max(0, state.demoStepIndex), demo.width, demo.height, performance.now(), true, state.targetArmed);
+      else drawDemoFor(cfg.id)(demoContext, state.demoStepElapsedMs, state.kind === "return", demo.width, demo.height, performance.now(), true, state.targetArmed);
+    }
   }, [preview, cfg]);
 
   // ---------- the frame loop ----------
@@ -200,8 +223,14 @@ export default function ExerciseRunner() {
       const dt = Math.min(0.1, (t - (s.lastT || t)) / 1000);
       s.lastT = t;
       const snapNow = session.snapshot();
+      // Grasp and transport: every step is a movement from where the last one ended, so each starts from 0.
+      const grasp = session.cfg.id === "ex_grasp";
+      if (grasp) {
+        const key = `${snapNow.phase}:${snapNow.repIndex}:${snapNow.stepIndex}`;
+        if (s.stepKey !== key) { s.stepKey = key; s.level = 0; }
+      }
       if (s.auto !== "off" && !s.manual) {
-        const moving = (snapNow.phase === "warm" || snapNow.phase === "reps") && step && (step.kind === "reach" || step.kind === "open" || step.kind === "pinch");
+        const moving = (snapNow.phase === "warm" || snapNow.phase === "reps") && step && (grasp || step.kind === "reach" || step.kind === "open" || step.kind === "pinch");
         const want = !snapNow.targetArmed && (snapNow.phase === "warm" || snapNow.phase === "reps") ? s.level : moving && snapNow.holdProgress < 1 ? (snapNow.phase === "warm" ? 1 : AUTO_LEVEL[s.auto]) : 0;
         s.level += Math.sign(want - s.level) * Math.min(Math.abs(want - s.level), dt * 1.6);
       } else s.level = s.sliderLevel;
@@ -210,6 +239,7 @@ export default function ExerciseRunner() {
       if (usesTargetFlow(session.cfg.id) && (session.snapshot().phase === "warm" || session.snapshot().phase === "reps")) {
         const level = Math.min(1, Math.max(0, s.level));
         if (session.cfg.id === "ex_handopen") frame.targetContact = handGhostContact(level, step?.kind === "return");
+        else if (grasp) frame.targetContact = graspGhostContact(level, snapNow.stepIndex);
         else {
           const hand = (session.cfg.id === "ex_h2m" ? mouthGhostPose : reachGhostPose)(level).wrist;
           const target = ghostTargetFor(session.cfg.id)(300, 270, step?.kind === "return");
@@ -243,11 +273,24 @@ export default function ExerciseRunner() {
           if (session.cfg.id === "ex_handopen" && (now.phase === "setup" || (now.awaitingReady && !handCovers(affectedHand(tracked, opts.side), tracked.pose, opts.side, video.videoWidth / video.videoHeight)))) {
             handZoneRef.current = followZone(handZoneRef.current, handZone(tracked.pose, opts.side, video.videoWidth / video.videoHeight), now.phase === "setup" ? 0.2 : 0.05);
           }
-          frame = buildFrame(session, detection, opts.side, t, video.videoWidth / video.videoHeight, handZoneRef.current);
+          // Grasp and transport: the cup's circles follow the body during set-up and stay where they were learned;
+          // the lighting is checked there too, and set-up waits for good light (or, after a long wait, carries on).
+          const graspNow = session.cfg.id === "ex_grasp";
+          if (graspNow && now.phase === "setup") {
+            graspLayoutRef.current = followLayout(graspLayoutRef.current, graspLayout(tracked.pose, opts.side, video.videoWidth / video.videoHeight, now.rung));
+            lighting.current = lightingProbe.current.sample(video, tracked.pose, t);
+          }
+          frame = buildFrame(session, detection, opts.side, t, video.videoWidth / video.videoHeight, { zone: handZoneRef.current, gripAxis: cupCarry.current.grip });
+          if (graspNow && now.phase === "setup") {
+            const light = lighting.current;
+            if (!graspLayoutRef.current) { frame.lapRest = undefined; frame.lapMissing = "Sit back so your shoulders and both hips are in view."; }
+            else if (handOpenness(graspHand(detection, opts.side)) === undefined) { frame.lapRest = undefined; frame.lapMissing = GRASP_HAND_HINT; }
+            else if (light && !light.ok && !lightingProbe.current.waived()) { frame.lapRest = undefined; frame.lapMissing = light.hint; }
+          }
           if (now.phase === "setup") {
             const dt = Math.min(100, Math.max(0, t - (bodyLastT.current || t)));
             bodyLastT.current = t;
-            setBodyChecks(cameraBodyChecks(session, detection, opts.side, handZoneRef.current, video.videoWidth / video.videoHeight).map(check => {
+            setBodyChecks(cameraBodyChecks(session, detection, opts.side, handZoneRef.current, video.videoWidth / video.videoHeight, graspNow ? { lighting: lighting.current, waived: lightingProbe.current.waived() } : undefined).map(check => {
               const progress = Math.max(0, Math.min(1, (bodyProgress.current[check.id] ?? 0) + dt / (check.visible ? 1400 : -550)));
               bodyProgress.current[check.id] = progress;
               return { ...check, progress };
@@ -332,6 +375,35 @@ export default function ExerciseRunner() {
               frame.missing = frame.missing ?? "Bring your affected hand back into view.";
             }
           }
+          if (graspNow && (now.phase === "warm" || now.phase === "reps") && !now.review) {
+            // Grasp and transport: the pick-up circle (reach with the hand opening, then close around the cup), the
+            // put-down circle across the midline (carry the cup there, then open to let go), then the lap circle.
+            const aspect = video.videoWidth / video.videoHeight;
+            const layout = graspLayoutRef.current, lapPoint = session.lapPoint;
+            const hand = graspHand(detection, opts.side);
+            const point = graspPoint(hand, detection.pose, opts.side, aspect);
+            const key = `${now.phase}:${now.repIndex}:${now.rung}`;
+            if (layout && lapPoint) {
+              if (now.stepIndex === GRASP_STEP.back) {
+                const wrist = detection.pose?.landmarks[poseJoints(opts.side).wrist];
+                const lapRadius = graspLapRadius(layout, aspect, session.tuning.targetSizeScale);
+                const at = wrist && (wrist.visibility ?? 1) >= 0.5 ? wrist : point;
+                frame.targetContact = frame.visible && !!at && Math.hypot((at.x - lapPoint.x) * aspect, at.y - lapPoint.y) <= lapRadius;
+                frame.targetProgress = frame.targetContact ? 1 : 0;
+              } else {
+                const rings = graspRings(session.restValues().hand_openness, now.phase === "reps" ? session.learnedValue("hand_openness") : undefined);
+                const start = now.stepIndex === GRASP_STEP.reach ? lapPoint : now.stepIndex === GRASP_STEP.carry ? layout.pick : undefined;
+                const target = graspTarget(now.stepIndex, point, handOpenness(hand), layout, rings, aspect, start);
+                frame.targetContact = frame.visible && target.contact;
+                frame.targetProgress = target.progress;
+              }
+              graspCup.current = cupCarry.current.update(key, now.stepIndex, frame.targetContact === true, hand, point, layout);
+            } else { frame.visible = false; frame.missing = "Go back to Set up so I can place the cup."; }
+          } else if (graspNow && (now.phase === "setup" || now.phase === "demo")) {
+            // Back to the demonstration or set-up: the practice starts again with the cup at the pick-up circle.
+            cupCarry.current.reset();
+            graspCup.current = graspDone.current = graspLast.current = null;
+          }
           if (!now.review && reachTarget.current && now.kind === "return" && hold?.atMouth) {
             // The cup has not left the mouth yet: a forearm flickering down is not the hand on the lap.
             frame.visible = true;
@@ -375,6 +447,30 @@ export default function ExerciseRunner() {
           console.warn("Shaded area drawing failed", err);
         }
       }
+      const layout = graspLayoutRef.current, lapPoint = session.lapPoint;
+      if (!opts.sim && session.cfg.id === "ex_grasp" && layout && lapPoint && !currentSnapshot.review && (currentSnapshot.phase === "warm" || currentSnapshot.phase === "reps")) {
+        // Grasp and transport: the active circle with its label, the circle just completed, and the cup.
+        const canvas = overlayRef.current, ctx = canvas?.getContext("2d");
+        if (canvas && ctx) {
+          try {
+            const aspect = canvas.width / canvas.height, step = currentSnapshot.stepIndex, reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            const circle = (index: number) => ({ at: index <= GRASP_STEP.grasp ? layout.pick : index <= GRASP_STEP.release ? layout.put : lapPoint, radius: index === GRASP_STEP.back ? graspLapRadius(layout, aspect, session.tuning.targetSizeScale) : layout.radius });
+            const repKey = `${currentSnapshot.phase}:${currentSnapshot.repIndex}`;
+            if (graspLast.current?.key === repKey && graspLast.current.step !== step) graspDone.current = { key: repKey, step: graspLast.current.step, at: circle(graspLast.current.step).at, startedAt: t };
+            graspLast.current = { key: repKey, step };
+            const active = circle(step);
+            const x = (1 - active.at.x) * canvas.width, y = active.at.y * canvas.height, radius = active.radius * canvas.height;
+            drawTestingTarget(ctx, { x, y, radius, armed: currentSnapshot.targetArmed, contact: frame.targetContact === true, progress: currentSnapshot.holdProgress, now: t, reducedMotion: reduced });
+            drawRingLabel(ctx, x, y, radius, GRASP_LABELS[step] ?? "", canvas.height, currentSnapshot.targetArmed);
+            const done = graspDone.current;
+            if (done?.key === repKey && t - done.startedAt < TARGET_COMPLETION_MS) drawTargetCompletion(ctx, { x: (1 - done.at.x) * canvas.width, y: done.at.y * canvas.height, radius: circle(done.step).radius * canvas.height, elapsed: t - done.startedAt, reducedMotion: reduced });
+            const cup = graspCup.current;
+            if (cup) drawCup(ctx, (1 - cup.at.x) * canvas.width, cup.at.y * canvas.height, layout.radius * canvas.height * 0.9, -cup.tilt);
+          } catch (err) {
+            console.warn("Cup drawing failed", err);
+          }
+        }
+      }
       if (!opts.sim && !currentSnapshot.review && reachTarget.current && !currentSnapshot.awaitingReady) {
         const label = (text: string, target: { x: number; y: number; radius: number }) => {
           const canvas = overlayRef.current, ctx = canvas?.getContext("2d");
@@ -400,7 +496,7 @@ export default function ExerciseRunner() {
         setSnap(snapshot);
         const targets = session.targets();
         setLive({
-          roms: session.cfg.romSteps.map(rom => ({ label: rom.label, value: frame!.values[rom.metric], target: targets[rom.id], start: usesTargetFlow(session.cfg.id) ? snapshot.startingAngles[rom.id] ?? NaN : 0, unit: "°" })),
+          roms: session.cfg.romSteps.map(rom => ({ label: rom.label, value: frame!.values[rom.metric], target: targets[rom.id], start: usesTargetFlow(session.cfg.id) ? snapshot.startingAngles[rom.id] ?? NaN : 0, unit: "°", scale: metricUnit(rom.metric) })),
           comps: session.cfg.compensations.map(comp => ({ label: comp.label, value: compensationStatus(frame!.comps, comp).ratio, limit: 1 })),
         });
         drawGhostFor(ghostRef.current, session, snapshot, opts.sim ? simRef.current.level : snapshot.liveAttainment);
@@ -442,6 +538,13 @@ export default function ExerciseRunner() {
     reachTarget.current = null;
     cupTrack.current.reset();
     handZoneRef.current = null;
+    graspLayoutRef.current = null;
+    cupCarry.current = new CupCarry();
+    graspCup.current = null;
+    graspDone.current = null;
+    graspLast.current = null;
+    lightingProbe.current.reset();
+    lighting.current = null;
     mouthHold.current.reset();
     mouthHoldKey.current = "";
     bodyProgress.current = {};
@@ -456,7 +559,7 @@ export default function ExerciseRunner() {
     voice.onAvailability = setEnglishAvailable;
     voiceRef.current = voice;
     lastVideoTime.current = -1;
-    simRef.current = { ...simRef.current, level: 0, manual: false, sliderLevel: 0, lastT: 0 };
+    simRef.current = { ...simRef.current, level: 0, manual: false, sliderLevel: 0, lastT: 0, stepKey: "" };
     setSimLevel(0);
     // Alira's exercise settings are read once here, so nothing changes mid-session.
     const session = new ExerciseSession({ exerciseId: base.id, rung: opts.rung, side: opts.side, chairBack: opts.chairBack, repsOverride: opts.quick ? 3 : undefined, assisted: opts.assisted, reviewBetweenReps: true, tuning: loadExerciseTuning(base.id) }, voice);
@@ -468,7 +571,7 @@ export default function ExerciseRunner() {
       setStage("loading");
       try {
         // Hand opening tracks the hand every frame (on the graphics processor when it can) and the body every third.
-        const tracker = await createTracker(cfg.tracking, cfg.id === "ex_handopen" ? { poseEvery: 3, handGpu: true } : undefined);
+        const tracker = await createTracker(cfg.tracking, cfg.id === "ex_handopen" ? { poseEvery: 3, handGpu: true } : cfg.id === "ex_grasp" ? { poseEvery: 2, handGpu: true } : undefined);
         trackerRef.current = tracker;
         // The run view (and its <video>) only renders once there is a snapshot, so set both, then wait for the element.
         setSnap(session.snapshot());
@@ -549,7 +652,8 @@ export default function ExerciseRunner() {
   const runView = preview ? !["intro", "loading", "error", "results", "redo"].includes(previewScreen!) : stage === "run";
   const previewIndex = EXERCISE_PREVIEW_SCREENS.findIndex(screen => screen.id === previewScreen);
   const reachDemo = snap?.phase === "demo" && usesTargetFlow(cfg.id)
-    ? demoStateFor(cfg.id)(snap.demoStepElapsedMs, cfg.cycle[snap.demoStepIndex]?.kind === "return", snap.targetArmed) : null;
+    ? cfg.id === "ex_grasp" ? graspDemoState(snap.demoStepElapsedMs, Math.max(0, snap.demoStepIndex), snap.targetArmed)
+    : demoStateFor(cfg.id)(snap.demoStepElapsedMs, cfg.cycle[snap.demoStepIndex]?.kind === "return", snap.targetArmed) : null;
   // "How did that feel?": stored for Alira's safety rules and learning (never in the screen preview), then learning starts.
   const saveFelt = (answer: FeltAnswer) => {
     if (preview) return;
@@ -623,7 +727,7 @@ export default function ExerciseRunner() {
         <div className="xe-run">
           <section className="xe-stage" aria-label={preview ? "Camera area preview" : opts.sim ? "Simulated patient" : "Camera view"}>
             {preview ? <div className="xe-simstage"><canvas ref={previewCanvasRef} width={640} height={480} aria-label="Exercise pose and target preview" /><span className="xe-simtag">Camera off · screen preview</span></div> : opts.sim ? (
-              <div className="xe-simstage"><canvas ref={ghostRef} width={480} height={390} aria-label={reachDemo ? `Movement demonstration: ${reachDemo.instruction}` : usesTargetFlow(cfg.id) && (snap.phase === "warm" || snap.phase === "reps") ? `${cfg.id === "ex_handopen" ? snap.kind === "return" ? "Relax" : "Open" : snap.kind === "return" ? "Lap" : cfg.id === "ex_h2m" ? "Mouth" : "Reach"} target ${snap.targetArmed ? "active" : "inactive while the instruction plays"}` : "Movement ghost"} /><span className="xe-simtag">No camera · simulated patient</span></div>
+              <div className="xe-simstage"><canvas ref={ghostRef} width={480} height={390} aria-label={reachDemo ? `Movement demonstration: ${reachDemo.instruction}` : usesTargetFlow(cfg.id) && (snap.phase === "warm" || snap.phase === "reps") ? `${cfg.id === "ex_grasp" ? GRASP_LABELS[snap.stepIndex] ?? "Cup" : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Relax" : "Open" : snap.kind === "return" ? "Lap" : cfg.id === "ex_h2m" ? "Mouth" : "Reach"} target ${snap.targetArmed ? "active" : "inactive while the instruction plays"}` : "Movement ghost"} /><span className="xe-simtag">No camera · simulated patient</span></div>
             ) : (
               <div className="xe-video">
                 <video ref={videoRef} playsInline muted />
@@ -643,11 +747,12 @@ export default function ExerciseRunner() {
               {(snap.phase === "warm" || snap.phase === "reps") && (
                 <>
                   {cfg.id === "ex_handopen" && !snap.review && <HandSteps current={snap.awaitingReady ? 0 : snap.kind === "return" ? 2 : 1} />}
+                  {cfg.id === "ex_grasp" && !snap.review && <HandSteps steps={GRASP_STEPS} current={snap.stepIndex} label="Steps of this repetition" />}
                   <div className={`xe-gauge ${snap.inZone ? "is-zone" : ""}`} aria-label="Hold on target" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(snap.holdProgress * 100)}>
                     <i className="fill" style={{ width: `${snap.holdProgress * 100}%` }} />
 
                   </div>
-                  <p className="xe-hint">{snap.awaitingReady ? "Show me your palm in the shaded area to begin" : !snap.targetArmed ? "Listen to the instruction. Wait for the circle to become active." : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Close your hand into the small circle and pause" : snap.inZone ? "Hold it there..." : "Open your fingers out to the ring, keeping your wrist straight" : snap.kind === "return" || snap.kind === "close" ? "Return your hand to the lap circle and pause" : snap.inZone ? "Hold it there..." : cfg.id === "ex_h2m" ? "Bring your hand to the mouth circle, keeping your head up" : "Reach your hand into the target ring"}</p>
+                  <p className="xe-hint">{snap.awaitingReady ? "Show me your palm in the shaded area to begin" : !snap.targetArmed ? "Listen to the instruction. Wait for the circle to become active." : cfg.id === "ex_grasp" ? snap.inZone ? "Hold it there..." : GRASP_HINTS[snap.stepIndex] ?? "" : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Close your hand into the small circle and pause" : snap.inZone ? "Hold it there..." : "Open your fingers out to the ring, keeping your wrist straight" : snap.kind === "return" || snap.kind === "close" ? "Return your hand to the lap circle and pause" : snap.inZone ? "Hold it there..." : cfg.id === "ex_h2m" ? "Bring your hand to the mouth circle, keeping your head up" : "Reach your hand into the target ring"}</p>
                 </>
               )}
               {snap.feedback && <p className="xe-feedback" role="status">{snap.feedback}</p>}
@@ -689,7 +794,7 @@ export default function ExerciseRunner() {
             ) : snap.phase !== "demo" ? <div className="xe-card xe-live">
               <h3>Movement</h3>
               {!snap.targetsReady && <p className="xe-note">{cfg.id === "ex_handopen" ? "Hold your hand open at the practice ring so I can learn your movement goals." : usesTargetFlow(cfg.id) ? "Hold at the practice circle so I can learn your movement goals." : "Learning your starting position. Your movement goals will appear after practice."}</p>}
-              {viewLive.roms.map(r => <MetricBar key={r.label} label={r.label} value={r.value} threshold={r.target} start={r.start} ready={snap.targetsReady} personalized={usesTargetFlow(cfg.id)} pending={cfg.id === "ex_handopen" ? "Keep opening" : undefined} />)}
+              {viewLive.roms.map(r => <MetricBar key={r.label} label={r.label} value={r.value} threshold={r.target} start={r.start} scale={r.scale} ready={snap.targetsReady} personalized={usesTargetFlow(cfg.id)} pending={cfg.id === "ex_handopen" ? "Keep opening" : undefined} />)}
               {viewLive.comps.map(c => <MetricBar key={c.label} label={c.label} value={c.value} threshold={c.limit} ready={snap.targetsReady} limit />)}
             </div> : null}
 
@@ -736,6 +841,7 @@ export default function ExerciseRunner() {
             <p>Next repetition starts in {Math.max(1, Math.ceil(3 * (1 - snap.countdownProgress)))} {snap.countdownProgress >= 2 / 3 ? "second" : "seconds"}</p>
           </div>
           {cfg.id === "ex_handopen" && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Hand up in the shaded area, fingers relaxed.</p>}
+          {cfg.id === "ex_grasp" && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Hand resting on your lap, ready to reach for the cup.</p>}
         </div>
       </div>}
 
@@ -803,7 +909,7 @@ function Intro(props: { base: (typeof EXERCISES)[string]; cfg: ReturnType<typeof
         <label className="xe-check"><input type="checkbox" checked={muted} onChange={e => setMuted(e.target.checked)} /> Mute the voice (subtitles only)</label>
         </>}
       </div>
-      {cfg.tracking !== "pose" && !opts.sim && <p className="xe-note"><Hand size={14} aria-hidden="true" /> {base.id === "ex_handopen" ? "Rest your elbow on an armrest or table and hold your hand up in the shaded area beside your body, at chest height, palm to the camera. That keeps your face and both shoulders in view." : "Hold the hand close to the camera with every fingertip in view."}</p>}
+      {cfg.tracking !== "pose" && !opts.sim && <p className="xe-note"><Hand size={14} aria-hidden="true" /> {base.id === "ex_handopen" ? "Rest your elbow on an armrest or table and hold your hand up in the shaded area beside your body, at chest height, palm to the camera. That keeps your face and both shoulders in view." : base.id === "ex_grasp" ? "Sit without a table, with your head to mid-thigh in view and both hands resting on your thighs. The cup is drawn on screen. Have good light in front of you." : "Hold the hand close to the camera with every fingertip in view."}</p>}
       {base.domain === "lower_limb" && !opts.sim && <p className="xe-note">Lower-limb tracking seated and front-on is unverified. If the angles look unstable, try the simulator or a side-on phone position.</p>}
       <div className="xe-actions">
         <button className="xe-primary" onClick={onStart}>{opts.sim ? <Play size={16} aria-hidden="true" /> : <Camera size={16} aria-hidden="true" />} Start · {reps} reps · {LEVEL_LABEL[opts.rung]}</button>
@@ -828,7 +934,7 @@ function Results({ snap, base, cfg, clips, debugDirectory, onAgain, onBack, onFe
       )}
       {snap.reps.length > 0 && (
         <table className="xe-table">
-          <thead><tr><th>Rep</th><th>Level</th><th>{cfg.id === "ex_h2m" ? "Movement" : cfg.id === "ex_handopen" ? "Opening" : "Reach"}</th><th>Form</th><th>Score</th></tr></thead>
+          <thead><tr><th>Rep</th><th>Level</th><th>{cfg.id === "ex_h2m" || cfg.id === "ex_grasp" ? "Movement" : cfg.id === "ex_handopen" ? "Opening" : "Reach"}</th><th>Form</th><th>Score</th></tr></thead>
           <tbody>
             {snap.reps.map(rep => (
               <tr key={rep.index} className={rep.good ? "good" : ""}>
@@ -909,8 +1015,10 @@ function HowItFelt({ onSave }: { onSave: (answer: FeltAnswer) => void }) {
 
 // ---------- camera frame building and drawing ----------
 
-function buildFrame(session: ExerciseSession, det: Detection, side: Side, t: number, aspect: number, zone: HandZone | null = null): Frame {
+function buildFrame(session: ExerciseSession, det: Detection, side: Side, t: number, aspect: number, extra: { zone?: HandZone | null; gripAxis?: [number, number, number] } = {}): Frame {
   const cfg = session.cfg;
+  const zone = extra.zone ?? null;
+  if (cfg.id === "ex_grasp") return graspFrame(det, side, t, aspect, session.reference, { gripAxis: extra.gripAxis });
   if (cfg.id === "ex_handopen") {
     // Each repetition starts from a relaxed hand, at most as open as the close circle (hand-target.ts).
     const rest = session.restValues().hand_openness;
@@ -1015,6 +1123,10 @@ function drawGhostFor(canvas: HTMLCanvasElement | null, session: ExerciseSession
   if (!ctx) return;
   let p = Math.min(1, Math.max(0, level));
   if (snap.phase === "demo") {
+    if (session.cfg.id === "ex_grasp") {
+      drawGraspDemo(ctx, snap.demoStepElapsedMs, Math.max(0, snap.demoStepIndex), canvas.width, canvas.height, performance.now(), window.matchMedia("(prefers-reduced-motion: reduce)").matches, snap.targetArmed);
+      return;
+    }
     if (usesTargetFlow(session.cfg.id)) {
       drawDemoFor(session.cfg.id)(ctx, snap.demoStepElapsedMs, session.cfg.cycle[snap.demoStepIndex]?.kind === "return", canvas.width, canvas.height, performance.now(), window.matchMedia("(prefers-reduced-motion: reduce)").matches, snap.targetArmed);
       return;
@@ -1029,14 +1141,16 @@ function drawGhostFor(canvas: HTMLCanvasElement | null, session: ExerciseSession
     const returning = cycle ? cycle.kind === "return" : idx === 1;
     p = returning ? 1 - within : Math.min(1, within * 1.3);
   }
-  drawGhost(ctx, session.cfg.ghost, p, canvas.width, canvas.height);
+  const grasp = session.cfg.id === "ex_grasp";
+  if (grasp) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawGraspGhost(ctx, snap.stepIndex, p, canvas.width, canvas.height); }
+  else drawGhost(ctx, session.cfg.ghost, p, canvas.width, canvas.height);
   if (usesTargetFlow(session.cfg.id) && (snap.phase === "warm" || snap.phase === "reps") && !snap.review) {
-    drawTestingTarget(ctx, { ...ghostTargetFor(session.cfg.id)(canvas.width, canvas.height, snap.kind === "return"), armed: snap.targetArmed, contact: snap.targetArmed && snap.inZone, progress: snap.holdProgress, now: performance.now(), reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
+    drawTestingTarget(ctx, { ...(grasp ? graspGhostTarget(canvas.width, canvas.height, snap.stepIndex) : ghostTargetFor(session.cfg.id)(canvas.width, canvas.height, snap.kind === "return")), armed: snap.targetArmed, contact: snap.targetArmed && snap.inZone, progress: snap.holdProgress, now: performance.now(), reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
   }
 }
 
 
-function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Detection, side: Side, zone: HandZone | null = null, aspect = 4 / 3): Omit<BodyCheck, "progress">[] {
+function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Detection, side: Side, zone: HandZone | null = null, aspect = 4 / 3, lightingInfo?: { lighting: Lighting | null; waived: boolean }): Omit<BodyCheck, "progress">[] {
   const labels: Record<string, string> = { nose: "Face", shoulder: `${side === "right" ? "Right" : "Left"} shoulder`, shoulderOther: "Other shoulder", elbow: `${side === "right" ? "Right" : "Left"} elbow`, wrist: `${side === "right" ? "Right" : "Left"} hand`, hip: "Top of thigh", knee: "Knee", ankle: "Ankle", foot: "Foot & toes" };
   const joints = poseJoints(side);
   if (session.cfg.id === "ex_handopen") {
@@ -1050,6 +1164,20 @@ function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Dete
       }),
       { id: "wrist", label: `${labels.wrist} in the shaded area`, visible: placed, hint: zone?.hint ?? `Rest your elbow on an armrest or table and hold your ${side} hand up in the shaded area beside your body.` },
       { id: "fingers", label: "Palm to camera, fingers relaxed", visible: placed && palmFacing(hand, side) >= 0.5 && (handOpenness(hand) ?? Infinity) <= REST_OPEN_MAX, hint: "Turn your palm to the camera and let your fingers relax and curl gently. Don't open your hand yet." },
+    ];
+  }
+  const inViewCheck = (index: number) => { const point = detection.pose?.landmarks[index]; return !!point && (point.visibility ?? 1) >= 0.5 && point.x > 0.01 && point.x < 0.99 && point.y > 0.01 && point.y < 0.99; };
+  if (session.cfg.id === "ex_grasp") {
+    // Head to mid-thigh with both hips (the cup's circles and the side-lean check), the whole resting hand (its
+    // fingers' start), and the lighting.
+    const light = lightingInfo?.lighting;
+    const handSeen = handOpenness(graspHand(detection, side)) !== undefined;
+    return [
+      ...POSE_NEEDS.upper.map(need => need.joint === "wrist"
+        ? { id: need.joint, label: labels.wrist, visible: inViewCheck(joints.wrist) && handSeen, hint: GRASP_HAND_HINT }
+        : { id: need.joint, label: labels[need.joint] ?? need.joint, visible: inViewCheck(joints[need.joint]), hint: need.say }),
+      { id: "hipOther", label: "Top of other thigh", visible: inViewCheck(joints.hipOther), hint: "Move the camera back a little so I can see the top of both thighs." },
+      { id: "lighting", label: lightingInfo?.waived && light && !light.ok ? "Lighting (could be better)" : "Lighting", visible: Boolean(light?.ok || lightingInfo?.waived), hint: light?.hint ?? "Checking the light..." },
     ];
   }
   const checks: Omit<BodyCheck, "progress">[] = session.cfg.tracking === "hand" ? [] : POSE_NEEDS[session.cfg.domain === "lower_limb" ? "lower" : "upper"].map(need => {
@@ -1070,24 +1198,27 @@ function drawReachTarget(canvas: HTMLCanvasElement | null, target: { x: number; 
   drawTestingTarget(ctx, { x: (1 - target.x) * canvas.width, y: target.y * canvas.height, radius: target.radius * canvas.height, armed, contact, progress, now: performance.now(), reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
 }
 
-/** Hand opening's three steps for each repetition: palm to the camera, open, close. */
+/** The steps of each repetition as chips: hand opening (palm to camera, open, close) or grasp and transport. */
 const HAND_STEPS = ["Palm to camera", "Open", "Close"];
-function HandSteps({ current }: { current: number }) {
-  return <ol className="xe-hand-steps" aria-label="Steps for this repetition">
-    {HAND_STEPS.map((label, i) => <li key={label} className={i < current ? "is-done" : i === current ? "is-on" : ""} aria-current={i === current ? "step" : undefined}>
+function HandSteps({ current, steps = HAND_STEPS, label: name = "Steps for this repetition" }: { current: number; steps?: string[]; label?: string }) {
+  return <ol className="xe-hand-steps" aria-label={name}>
+    {steps.map((label, i) => <li key={label} className={i < current ? "is-done" : i === current ? "is-on" : ""} aria-current={i === current ? "step" : undefined}>
       <span aria-hidden="true">{i < current ? "✓" : i + 1}</span>{label}
     </li>)}
   </ol>;
 }
 
-function MetricBar({ label, value, threshold, start = 0, ready, limit = false, personalized = false, pending = "Keep reaching" }: { label: string; value: number | undefined; threshold: number; start?: number; ready: boolean; limit?: boolean; personalized?: boolean; pending?: string }) {
+/** scale: the measure's units per degree (metricUnit); a distance across the body is read out in shoulder widths. */
+function MetricBar({ label, value, threshold, start = 0, scale = 1, ready, limit = false, personalized = false, pending = "Keep reaching" }: { label: string; value: number | undefined; threshold: number; start?: number; scale?: number; ready: boolean; limit?: boolean; personalized?: boolean; pending?: string }) {
   const range = threshold - start;
-  const progress = personalized ? reachAngleProgress(value, threshold, start) : range > 0 && value !== undefined ? (value - start) / range : 0;
+  const progress = personalized ? reachAngleProgress(value, threshold, start, scale) : range > 0 && value !== undefined ? (value - start) / range : 0;
+  const angle = scale === 1;
+  const say = (n: number) => angle ? `${Math.round(n)} degrees` : `${n.toFixed(2)} shoulder widths`;
   const crossed = ready && progress >= 1;
   const learning = personalized ? "Learning your movement goal" : "Learning starting position";
   const percent = value === undefined ? 0 : Math.min(100, Math.max(0, ready ? progress / 1.4 * 100 : value / (limit ? 1.4 : 180) * 100));
   return <section className={`xe-metric ${crossed ? limit ? "is-limit" : "is-met" : ""}`}>
     <div className="xe-metric-label"><b>{label}</b><span>{value === undefined ? "Finding you…" : !ready ? learning : crossed ? limit ? "Ease back" : "Target reached" : limit ? "Within limit" : pending}</span></div>
-    <div className="xe-metric-track" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percent)} aria-valuetext={value === undefined ? "Tracking unavailable" : !ready ? learning : limit ? crossed ? "Above posture limit" : "Within posture limit" : `Estimated angle ${Math.round(value)} degrees; resting angle ${Math.round(start)} degrees; goal ${Math.round(threshold)} degrees${personalized ? "; learned at the practice target" : ""}`}><i style={{ width: `${percent}%` }} />{ready && <em style={{ left: `${100 / 1.4}%` }} />}</div>
+    <div className="xe-metric-track" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percent)} aria-valuetext={value === undefined ? "Tracking unavailable" : !ready ? learning : limit ? crossed ? "Above posture limit" : "Within posture limit" : `Estimated ${angle ? "angle" : "distance"} ${say(value)}; resting ${angle ? "angle" : "position"} ${say(start)}; goal ${say(threshold)}${personalized ? "; learned at the practice target" : ""}`}><i style={{ width: `${percent}%` }} />{ready && <em style={{ left: `${100 / 1.4}%` }} />}</div>
   </section>;
 }

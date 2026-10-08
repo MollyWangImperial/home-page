@@ -27,6 +27,9 @@ export const keepInViewLine = (finalRep: boolean) =>
 /** Hand opening's version: the hand in the shaded area leaves the face and both shoulders in view. */
 export const handInViewLine = (finalRep: boolean) =>
   `Keep your hand in the shaded area, clear of your face and shoulders, so I can check your posture${finalRep ? "." : " on the next repetition."}`;
+/** The grasp's version when only the hand's own checks were missed (the body was in view). */
+export const graspHandInViewLine = (finalRep: boolean) =>
+  `Keep your hand in view while you hold and carry the cup so I can check it${finalRep ? "." : " on the next repetition."}`;
 export const reachedTargetsLine = (finalRep: boolean) =>
   finalRep ? "You reached the movement targets with a smooth movement." : "You reached the movement targets. Keep the same smooth movement on your next repetition.";
 export const finalRepAdvice = (say: string) => say.replace("On the next repetition, try", "Try").replace(" on the next try", "");
@@ -49,5 +52,11 @@ export const ANGLE_ADVICE: Record<string, Record<string, { review: string; next:
   },
   ex_handopen: {
     finger_extension: { review: "Open your fingers a little wider, out to the ring.", next: "On the next repetition, open your fingers a little wider, out to the ring." },
+  },
+  ex_grasp: {
+    elbow_extension: { review: "Straighten your elbow a little more as you reach for the cup.", next: "On the next repetition, straighten your elbow a little more as you reach for the cup." },
+    shoulder_flexion: { review: "Lift your arm a little more from your shoulder as you reach for the cup.", next: "On the next repetition, lift your arm a little more from your shoulder as you reach for the cup." },
+    finger_extension: { review: "Open your hand a little wider as you reach for the cup.", next: "On the next repetition, open your hand a little wider as you reach for the cup." },
+    carry_across: { review: "Carry the cup a little further across your body.", next: "On the next repetition, carry the cup a little further across your body." },
   },
 };

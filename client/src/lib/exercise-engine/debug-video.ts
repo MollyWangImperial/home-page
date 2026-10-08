@@ -54,6 +54,11 @@ export class DebugVideoRecorder {
       // Head lean is in % of shoulder width (down and toward the camera, beyond any trunk lean).
       ctx.fillText(`Shoulder lift ${measured(frame.values.shoulder_flexion, "°")} · Elbow bend ${measured(frame.values.elbow_flexion, "°")} · Head forward ${measured(frame.comps.head_forward_pct, "%")} (down ${measured(frame.comps.head_drop_pct, "%")}, closer ${measured(frame.comps.head_approach_pct, "%")})`, 14, this.canvas.height - 39);
       ctx.fillText(`Trunk forward ${measured(frame.comps.trunk_approach_pct, "%")} · Shoulder hike ${measured(frame.comps.shoulder_hike_rel_delta, "°")} (tilt ${measured(frame.comps.shoulder_hike_delta, "°")}) · Hand ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
+    } else if (this.session.exerciseId === "ex_grasp") {
+      // Carry is the hand's travel across the body in shoulder widths; openness in palm lengths (grasp-target.ts).
+      const fixed = (value: number | undefined) => (value === undefined ? "unknown" : value.toFixed(2));
+      ctx.fillText(`Elbow ${measured(frame.values.elbow_extension, "°")} · Reach ${measured(frame.values.shoulder_flexion, "°")} · Openness ${fixed(frame.values.hand_openness)} · Carry ${fixed(frame.values.carry_across)} · Lean ${measured(frame.comps.trunk_approach_pct, "%")} · Side ${measured(frame.comps.trunk_side_lean_delta, "°")}`, 14, this.canvas.height - 39);
+      ctx.fillText(`Shoulder hike ${measured(frame.comps.shoulder_hike_rel_delta, "°")} · Elbow out ${measured(frame.comps.elbow_out_deg, "°")} · Wrist ${measured(frame.comps.wrist_bend_deg, "°")} · Cup tilt ${measured(frame.comps.cup_tilt_deg, "°")} · Hand ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
     } else if (this.session.exerciseId === "ex_handopen") {
       // Openness is the fingertips' mean distance from the palm's centre, in palm lengths (hand-target.ts).
       ctx.fillText(`Finger straightness ${measured(frame.values.finger_extension, "°")} · Openness ${frame.values.hand_openness === undefined ? "unknown" : frame.values.hand_openness.toFixed(2)} · Wrist bend ${measured(frame.comps.wrist_flexion_deg, "°")} · Palm turn ${measured(frame.comps.forearm_turn_deg, "°")}`, 14, this.canvas.height - 39);

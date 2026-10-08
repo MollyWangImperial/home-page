@@ -77,6 +77,7 @@ export function poseJoints(side: Side) {
     foot: pick(side, POSE.footL, POSE.footR),
     shoulderOther: pick(other(side), POSE.shoulderL, POSE.shoulderR),
     hipOther: pick(other(side), POSE.hipL, POSE.hipR),
+    wristOther: pick(other(side), POSE.wristL, POSE.wristR),
   };
 }
 
@@ -123,6 +124,8 @@ export type Geo = Record<"tx" | "ty" | "tz" | "hx" | "hy" | "hz" | "shoulderTilt
   headLift?: number;
   /** Active Hand Opening: the palm's long axis (a) and across axis (b) from the 3D hand landmarks (hand-target.ts palmGeo). */
   palmAx?: number; palmAy?: number; palmAz?: number; palmBx?: number; palmBy?: number; palmBz?: number;
+  /** Cylindrical Grasp and Transport: the upper arm's image length at set-up (grasp-target.ts elbowOutDeg). */
+  graspUpperArm?: number;
 };
 
 /** Apparent face size in the image. Both dimensions must grow to indicate camera approach.

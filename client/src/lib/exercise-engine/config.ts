@@ -28,9 +28,10 @@ export const usesSeatedTargets = (id: string) => id === "ex_reach" || id === "ex
 /**
  * Exercises run with the on-screen target flow: a resting position learned at set-up, a demonstration,
  * a practice repetition that learns the personal goal, then scored repetitions on contact targets after a
- * countdown. The seated ones (above) plus Active Hand Opening, whose target is a ring around the palm.
+ * countdown. The seated ones (above), Active Hand Opening (a ring around the palm), and Cylindrical Grasp
+ * and Transport (a drawn cup picked up, carried across the body and set down).
  */
-export const usesTargetFlow = (id: string) => usesSeatedTargets(id) || id === "ex_handopen";
+export const usesTargetFlow = (id: string) => usesSeatedTargets(id) || id === "ex_handopen" || id === "ex_grasp";
 
 /** SESSION_DIFFICULTY_PRESETS from backend/server.py. */
 export const DOSE_PRESETS: Record<Level, { repFactor: number; targetYDelta: number; targetDistanceScale: number; radiusScale: number; holdScale: number }> = {
@@ -90,6 +91,12 @@ export type CycleStep = {
   readyGate?: boolean;
   /** A short cue said as this step starts in each scored repetition; the full voice line is said in practice only. */
   cue?: string;
+  /** Target flow: the measures this step's practice hold learns as personal goals (default: the exercise's own set). */
+  learn?: string[];
+  /** A close step decided by the camera's target, held like a movement step (not a relaxed pause). */
+  contactStep?: boolean;
+  /** Not reached in this long: move on with partial credit instead of ending the repetition as a miss. */
+  timeoutMs?: number;
 };
 
 export type FeedbackRule = { comp?: string; attainmentBelow?: number; say: string };
@@ -292,40 +299,55 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     domain: "hand",
     chain: "Hand grips, arm carries across midline",
     dailyTask: "Moving a cup, holding a handrail",
-    framing: "Front, seated, both hands visible",
+    framing: "Front, seated without a table, head to mid-thigh in view, both hands resting on your thighs",
+    // The hand every frame (open, close, wrist, cup), the body every second frame (grasp-target.ts).
     tracking: "pose+hand",
     ghost: "grasp",
-    setupVoice: "We will practise reaching for a cup, opening your hand, grasping it, and carrying it across. The cup is drawn on your screen, so you do not need a real object.",
-    calibrationInstruction: "Sit square to the camera with both shoulders, hips, elbows, and wrists visible, and your affected hand in view. Rest your hands and hold still.",
+    setupVoice: "Welcome. We are going to practise picking up a cup, carrying it across your body and setting it down. The cup is drawn on your screen, so you do not need a real one. Sit back so your head, both shoulders, both hips and both hands are in view, with your hands resting on your thighs.",
+    calibrationInstruction: "Before we begin, rest both hands on your thighs and sit tall. Make sure the room is well lit, with the light in front of you. Hold still while I learn your starting position.",
     romSteps: [
-      { id: "elbow_extension", label: "Elbow extension at the cup", metric: "elbow_extension", targets: { easy: 118, medium: 130, difficult: 142 }, weight: 0.3, steps: [0, 1, 2] },
-      { id: "shoulder_flexion", label: "Reach to the object", metric: "shoulder_flexion", targets: { easy: 30, medium: 42, difficult: 52 }, weight: 0.2, steps: [0, 1, 2] },
-      { id: "hand_opening", label: "Hand opening", metric: "finger_extension", targets: { easy: 115, medium: 130, difficult: 145 }, weight: 0.25, steps: [1] },
-      { id: "shoulder_abduction", label: "Controlled transport", metric: "shoulder_abduction", targets: { easy: 25, medium: 35, difficult: 45 }, weight: 0.25, steps: [3, 4] },
+      { id: "elbow_extension", label: "Elbow extension at the cup", metric: "elbow_extension", targets: { easy: 118, medium: 130, difficult: 142 }, weight: 0.3, steps: [0] },
+      { id: "shoulder_flexion", label: "Reach to the cup", metric: "shoulder_flexion", targets: { easy: 30, medium: 42, difficult: 52 }, weight: 0.2, steps: [0] },
+      { id: "finger_extension", label: "Hand opening", metric: "finger_extension", targets: { easy: 115, medium: 130, difficult: 145 }, weight: 0.25, steps: [0] },
+      // Sideways travel of the hand across the body, in shoulder widths: 0.5 at the midline (grasp-target.ts).
+      { id: "carry_across", label: "Carry across", metric: "carry_across", targets: { easy: 0.8, medium: 0.95, difficult: 1.1 }, weight: 0.25, steps: [2] },
     ],
     compensations: [
-      cr("trunk_lean", "trunk lean", "trunk_lean_delta", 12, 8, 0.35, "Keep your shoulders square and move the light object with your arm."),
-      cr("trunk_side_lean", "trunk side lean", "trunk_side_lean_delta", 10, 8, 0.3, "Keep your body upright and carry the cup across with your arm.", { steps: [3, 4] }),
-      cr("shoulder_hike", "shoulder hike", "shoulder_hike_delta", 20, 12, 0.45, "Set the shoulder down before lifting the object again."),
+      // Engineering defaults, measured against the upright set-up posture. Steps: 0 reach, 1 grasp, 2 carry, 3 let go.
+      // The same camera-tuned checks as Hand-to-Mouth and Active Hand Opening.
+      cr("trunk_forward", "leaning forward", "trunk_approach_pct", 6, 4, 0, "Sit tall and let your arm do the reaching.", { unit: "%", minConsecutiveMs: 200, steps: [0, 1, 2, 3] }),
+      // Sideways lean of the whole trunk (frontal plane, which a front camera sees best).
+      cr("trunk_side_lean", "leaning sideways", "trunk_side_lean_delta", 8, 4, 0, "Keep your body upright and let your arm carry the cup across.", { minConsecutiveMs: 300, steps: [0, 1, 2, 3] }),
+      cr("shoulder_hike", "shoulder hike", "shoulder_hike_rel_delta", 7, 4, 0, "Keep your shoulder down and relaxed as you move the cup.", { minConsecutiveMs: 300, alternative: [{ metric: "shoulder_elevation_pct", threshold: 15 }], steps: [0, 1, 2, 3] }),
+      // The upper arm swinging out to the side while carrying across (flexor synergy): above the healthy upper quartile.
+      cr("elbow_out", "elbow swinging out", "elbow_out_deg", 40, 4, 0, "Keep your elbow close to your side and carry the cup across with your forearm.", { minConsecutiveMs: 400, steps: [2] }),
+      // The wrist out of line with the forearm while gripping, carrying or letting go (the backend's grasp rule, 25 deg).
+      cr("wrist_bend", "wrist bending", "wrist_bend_deg", 25, 4, 0, "Keep your wrist in line with your forearm while you hold the cup.", { minConsecutiveMs: 400, steps: [1, 2, 3] }),
+      // The cup tipping from its upright grip while it is carried (the knuckle line's change from vertical, which
+      // reads a little under the true tip when the grip itself leans, so the limit is set a little lower).
+      cr("cup_tipping", "cup tipping", "cup_tilt_deg", 20, 4, 0, "Keep the cup upright as you carry it.", { minConsecutiveMs: 300, steps: [2] }),
     ],
     cycle: [
-      { caption: "Reach to the cup", voice: "Reach toward the cup on your screen with your affected hand.", kind: "reach", gate: ["elbow_extension", "shoulder_flexion"], holdMs: 900 },
-      { caption: "Open your hand wide around the cup", voice: "Now open your hand wide, ready to take the cup.", kind: "open", gate: ["hand_opening"], holdMs: 400 },
-      { caption: "Close your fingers around the cup", voice: "Close your fingers around the cup to grasp it.", kind: "close", gate: [], holdMs: 500 },
-      { caption: "Carry the cup across", voice: "The cup is in your hand. Carry it slowly across to the other side.", kind: "reach", gate: ["shoulder_abduction"], holdMs: 1200 },
-      { caption: "Open your hand to set the cup down", voice: "Open your fingers to set the cup down.", kind: "open", gate: ["hand_opening"], holdMs: 500 },
-      ret("Return your empty hand to your lap", "Now bring your empty hand back to your lap. Nicely done."),
+      { caption: "Reach to the cup and open your hand", voice: "Reach toward the cup on your screen, opening your hand as you go, and hold your open hand at the cup.", kind: "reach", gate: ["elbow_extension", "shoulder_flexion"], holdMs: 1500, learn: ["elbow_extension", "shoulder_flexion", "finger_extension", "hand_openness"], cue: "Reach for the cup." },
+      { caption: "Close your hand around the cup", voice: "Now close your fingers around the cup and hold it.", kind: "close", gate: [], holdMs: 1500, learn: [], contactStep: true, timeoutMs: 10000, cue: "Grasp the cup." },
+      { caption: "Carry the cup across", voice: "Carry the cup slowly across your body to the other circle, keeping it upright, and hold it there.", kind: "reach", gate: ["carry_across"], holdMs: 1500, learn: ["carry_across"], cue: "Carry it across." },
+      { caption: "Open your hand to let go", voice: "Now open your hand to set the cup down.", kind: "open", gate: [], holdMs: 1500, learn: [], contactStep: true, timeoutMs: 10000, cue: "Let it go." },
+      { ...ret("Return your hand to your lap", "Now bring your empty hand back to rest on your lap."), cue: "Back to your lap." },
     ],
     feedback: [
-      { comp: "trunk_lean", say: "I noticed your chest leaned toward the cup. Keep your shoulders square and let your arm do the reaching." },
-      { comp: "trunk_side_lean", say: "Your body leaned to the side to carry the cup. Keep upright and let your arm cross the midline." },
-      { comp: "shoulder_hike", say: "Your shoulder lifted toward your ear. Set it down before lifting the cup again." },
-      { attainmentBelow: 0.6, say: "Almost reached the far target. On the next try, extend a little further across your body." },
+      // Worded like the other target-flow exercises, so the final repetition's version drops "on the next ..." the same way.
+      { comp: "trunk_forward", say: "I noticed your body leaned forward toward the cup. On the next repetition, try sitting tall and let your arm do the reaching." },
+      { comp: "trunk_side_lean", say: "I noticed your body leaned to the side to carry the cup. On the next repetition, try keeping upright and let your arm carry it across." },
+      { comp: "shoulder_hike", say: "Your shoulder lifted toward your ear. Try keeping your shoulder down and relaxed as you move the cup on the next try." },
+      { comp: "elbow_out", say: "I noticed your elbow swung out to the side as you carried the cup. On the next repetition, try keeping your elbow close and carry it across with your forearm." },
+      { comp: "wrist_bend", say: "I noticed your wrist bent while you held the cup. On the next repetition, try keeping your wrist in line with your forearm." },
+      { comp: "cup_tipping", say: "I noticed the cup tipped as you carried it. On the next repetition, try keeping the cup upright all the way across." },
+      { attainmentBelow: 0.7, say: "Nearly there. On the next repetition, try to reach a little further and carry the cup a little further across." },
     ],
-    praise: "Beautiful transport. Focus on a smooth release at the end.",
+    praise: "Beautiful transport. Keep that smooth reach and steady carry on the next repetition.",
     bestLabel: "reach",
     bestRomId: "elbow_extension",
-    rescueNote: "Transport distance 0.85, cup nearer midline",
+    rescueNote: "Put-down circle nearer the midline",
   },
   ex_pinch: {
     id: "ex_pinch",

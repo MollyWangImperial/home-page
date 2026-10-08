@@ -2,12 +2,16 @@ import type { Frame, LapRest } from "./metrics";
 
 const median = (values: number[]) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 
-/** A camera-projected angle may decrease during a reach; use the learned direction. */
-export function reachAngleProgress(value: number | undefined, target: number, start: number): number {
+/** Measures that are not angles, in their own units per degree (the carry across the body is in shoulder widths). */
+const UNIT_PER_DEGREE: Record<string, number> = { carry_across: 0.03 };
+export const metricUnit = (metric: string) => UNIT_PER_DEGREE[metric] ?? 1;
+
+/** A camera-projected angle may decrease during a reach; use the learned direction. unit: metricUnit(metric). */
+export function reachAngleProgress(value: number | undefined, target: number, start: number, unit = 1): number {
   if (value === undefined || !Number.isFinite(value) || !Number.isFinite(target) || !Number.isFinite(start)) return 0;
   const range = target - start;
   // With no resolvable angular excursion, reproducing the target estimate is sufficient.
-  if (Math.abs(range) < 1) return Math.abs(value - target) <= 3 ? 1 : 0;
+  if (Math.abs(range) < unit) return Math.abs(value - target) <= 3 * unit ? 1 : 0;
   return Math.max(0, (value - start) / range);
 }
 
