@@ -91,7 +91,7 @@ export const POSE_NEEDS: Record<string, Need[]> = {
   ],
 };
 
-function inView(p: Pt | undefined, min = 0.5): boolean {
+export function inView(p: Pt | undefined, min = 0.5): boolean {
   if (!p) return false;
   const vis = p.visibility ?? 1;
   return vis >= min && p.x > 0.01 && p.x < 0.99 && p.y > 0.01 && p.y < 0.99;
@@ -113,6 +113,8 @@ export type Geo = Record<"tx" | "ty" | "tz" | "hx" | "hy" | "hz" | "shoulderTilt
   eyeSpan?: number;
   /** Height of the eye line above the unaffected shoulder, in shoulder widths. A lifting affected arm cannot shift it. */
   headLift?: number;
+  /** Active Hand Opening: the palm's long axis (a) and across axis (b) from the 3D hand landmarks (hand-target.ts palmGeo). */
+  palmAx?: number; palmAy?: number; palmAz?: number; palmBx?: number; palmBy?: number; palmBz?: number;
 };
 
 /** Apparent face size in the image. Both dimensions must grow to indicate camera approach.

@@ -25,6 +25,13 @@ export const patientExerciseReady = (id: string) => id === EVERYDAY_EXERCISE_ID;
 /** Exercises with a calibrated lap and an anatomical/contact target. */
 export const usesSeatedTargets = (id: string) => id === "ex_reach" || id === "ex_h2m";
 
+/**
+ * Exercises run with the on-screen target flow: a resting position learned at set-up, a demonstration,
+ * a practice repetition that learns the personal goal, then scored repetitions on contact targets after a
+ * countdown. The seated ones (above) plus Active Hand Opening, whose target is a ring around the palm.
+ */
+export const usesTargetFlow = (id: string) => usesSeatedTargets(id) || id === "ex_handopen";
+
 /** SESSION_DIFFICULTY_PRESETS from backend/server.py. */
 export const DOSE_PRESETS: Record<Level, { repFactor: number; targetYDelta: number; targetDistanceScale: number; radiusScale: number; holdScale: number }> = {
   easy: { repFactor: 0.7, targetYDelta: 0.06, targetDistanceScale: 0.85, radiusScale: 1.2, holdScale: 0.8 },
@@ -239,22 +246,40 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     domain: "hand",
     chain: "Hand opens and relaxes",
     dailyTask: "Letting go of a cup, putting on a glove",
-    framing: "Front, forearm on table, hand in frame",
-    tracking: "hand",
+    framing: "Front, elbow on the table, palm to the camera",
+    // The hand every frame; the body every third frame, for the trunk and shoulder checks (tracker.ts).
+    tracking: "pose+hand",
     ghost: "hand_open",
-    setupVoice: "We will practise opening and relaxing your affected hand with your forearm supported on a table. A soft ball is drawn on your screen. Imagine opening your hand around it, no real object is needed.",
-    calibrationInstruction: "Support your forearm and hold your affected hand toward the camera. Keep the whole hand, wrist, and fingertips visible, and let the fingers rest in their comfortable starting position.",
+    setupVoice: "Welcome. We are going to practise opening your hand. Rest your affected elbow on a table, with your hand up beside your shoulder and your palm facing the camera. Keep your face and both shoulders in view. A ring is drawn around your hand: open your fingers out to it, keeping your wrist straight and your palm facing the camera.",
+    calibrationInstruction: "Before we begin, rest your elbow on the table with your affected hand up and your palm facing the camera. Let your fingers relax, and keep your face, both shoulders and your whole hand in view while I learn your starting position.",
     romSteps: [{ id: "finger_extension", label: "Finger opening", metric: "finger_extension", targets: { easy: 130, medium: 145, difficult: 158 }, weight: 1 }],
-    compensations: [],
-    cycle: [
-      { caption: "Open your hand around the ball", voice: "Slowly open your affected hand around the ball on your screen, as wide as is comfortable. Hold for a moment, then let the fingers relax.", kind: "open", gate: ["finger_extension"], holdMs: 1000 },
-      ret("Let the fingers relax", "Now let your fingers relax."),
+    compensations: [
+      // Engineering defaults (hand-target.ts), measured against the relaxed hand learned at set-up.
+      // First: the wrist bending so the fingers open passively (tenodesis), the backend's 18° rule for this
+      // exercise, here as the palm tipping toward the camera; held 0.3 s.
+      cr("wrist_bend", "wrist bending", "wrist_flexion_deg", 18, 4, 0, "Keep your wrist straight and let your fingers do the opening.", { minConsecutiveMs: 300 }),
+      // The palm turning away from the camera to flick the fingers open (forearm rotation).
+      cr("forearm_turn", "palm turning", "forearm_turn_deg", 25, 4, 0, "Keep your palm facing the camera as your fingers open.", { minConsecutiveMs: 300 }),
+      // The same trunk and shoulder checks as Hand-to-Mouth.
+      cr("trunk_forward", "trunk leaning forward", "trunk_approach_pct", 6, 4, 0, "Sit tall and let your fingers do the work.", { unit: "%", minConsecutiveMs: 200 }),
+      cr("shoulder_hike", "shoulder hike", "shoulder_hike_rel_delta", 7, 4, 0, "Relax the shoulder before opening your hand again.", { minConsecutiveMs: 300 }),
     ],
-    feedback: [{ attainmentBelow: 0.7, say: "Nearly open. On the next one, try to open your hand a little wider." }],
-    praise: "Wonderful finger extension. Try to hold for a full second before relaxing.",
+    cycle: [
+      { caption: "Open your hand to the ring and hold", voice: "Slowly open your fingers out to the ring, as wide as is comfortable, and hold. Keep your wrist straight and your palm facing the camera.", kind: "open", gate: ["finger_extension"], holdMs: 1500 },
+      ret("Let your fingers relax", "Now let your fingers relax into the small circle."),
+    ],
+    feedback: [
+      // Worded like the reach's advice, so the final repetition's version drops "on the next ..." the same way.
+      { comp: "wrist_bend", say: "I noticed your wrist bent to help your fingers open. On the next repetition, try keeping your wrist straight and let your fingers do the opening." },
+      { comp: "forearm_turn", say: "I noticed your palm turned away from the camera. On the next repetition, try keeping your palm facing the camera as your fingers open." },
+      { comp: "trunk_forward", say: "I noticed your body leaned forward. On the next repetition, try sitting tall and let your fingers do the work." },
+      { comp: "shoulder_hike", say: "Your shoulder lifted toward your ear. Try keeping your shoulder relaxed as you open your hand on the next try." },
+      { attainmentBelow: 0.7, say: "Nearly open. On the next repetition, try to open your fingers a little wider, out to the ring." },
+    ],
+    praise: "Lovely hand opening. Keep that steady hold on the next repetition.",
     bestLabel: "finger opening",
     bestRomId: "finger_extension",
-    rescueNote: "Ball smaller (less opening needed), longer relax",
+    rescueNote: "Ring closer to your relaxed hand, shorter hold",
   },
   ex_grasp: {
     id: "ex_grasp",

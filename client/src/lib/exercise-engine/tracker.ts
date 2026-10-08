@@ -15,7 +15,14 @@ export type Tracker = {
   close(): void;
 };
 
-export async function createTracker(tracking: Tracking): Promise<Tracker> {
+export type TrackerOptions = {
+  /** Run the body model only on every Nth frame and reuse its last result in between (posture changes slowly). */
+  poseEvery?: number;
+  /** Run the hand model on the graphics processor when the browser allows it (falls back to the processor). */
+  handGpu?: boolean;
+};
+
+export async function createTracker(tracking: Tracking, options: TrackerOptions = {}): Promise<Tracker> {
   const vision: any = await import(/* @vite-ignore */ `${BASE}/vision_bundle.mjs`);
   const fileset = await vision.FilesetResolver.forVisionTasks(`${BASE}/wasm`);
   let pose: Landmarker | null = null;
@@ -28,22 +35,34 @@ export async function createTracker(tracking: Tracking): Promise<Tracker> {
     });
   }
   if (tracking !== "pose") {
-    hand = await vision.HandLandmarker.createFromOptions(fileset, {
-      baseOptions: { modelAssetPath: `${BASE}/models/hand_landmarker.task` },
+    const handOptions = (delegate?: "GPU") => ({
+      baseOptions: { modelAssetPath: `${BASE}/models/hand_landmarker.task`, ...(delegate ? { delegate } : {}) },
       runningMode: "VIDEO",
       numHands: 2,
       minHandDetectionConfidence: 0.6,
       minHandPresenceConfidence: 0.6,
       minTrackingConfidence: 0.6,
     });
+    try {
+      hand = await vision.HandLandmarker.createFromOptions(fileset, handOptions(options.handGpu ? "GPU" : undefined));
+    } catch (error) {
+      if (!options.handGpu) throw error;
+      hand = await vision.HandLandmarker.createFromOptions(fileset, handOptions());
+    }
   }
+  const poseEvery = Math.max(1, Math.round(options.poseEvery ?? 1));
+  let frame = 0;
+  let lastPose: PoseInput | null = null;
   return {
     detect(video, ts) {
       let poseOut: PoseInput | null = null;
       const hands: HandInput[] = [];
       if (pose) {
-        const result = pose.detectForVideo(video, ts);
-        if (result.landmarks?.[0] && result.worldLandmarks?.[0]) poseOut = { landmarks: result.landmarks[0], world: result.worldLandmarks[0] };
+        if (frame++ % poseEvery === 0) {
+          const result = pose.detectForVideo(video, ts);
+          lastPose = result.landmarks?.[0] && result.worldLandmarks?.[0] ? { landmarks: result.landmarks[0], world: result.worldLandmarks[0] } : null;
+        }
+        poseOut = lastPose;
       }
       if (hand) {
         const result = hand.detectForVideo(video, ts);

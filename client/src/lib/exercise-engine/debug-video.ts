@@ -54,6 +54,10 @@ export class DebugVideoRecorder {
       // Head lean is in % of shoulder width (down and toward the camera, beyond any trunk lean).
       ctx.fillText(`Shoulder lift ${measured(frame.values.shoulder_flexion, "°")} · Elbow bend ${measured(frame.values.elbow_flexion, "°")} · Head forward ${measured(frame.comps.head_forward_pct, "%")} (down ${measured(frame.comps.head_drop_pct, "%")}, closer ${measured(frame.comps.head_approach_pct, "%")})`, 14, this.canvas.height - 39);
       ctx.fillText(`Trunk forward ${measured(frame.comps.trunk_approach_pct, "%")} · Shoulder hike ${measured(frame.comps.shoulder_hike_rel_delta, "°")} (tilt ${measured(frame.comps.shoulder_hike_delta, "°")}) · Hand ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
+    } else if (this.session.exerciseId === "ex_handopen") {
+      // Openness is the fingertips' mean distance from the palm's centre, in palm lengths (hand-target.ts).
+      ctx.fillText(`Finger straightness ${measured(frame.values.finger_extension, "°")} · Openness ${frame.values.hand_openness === undefined ? "unknown" : frame.values.hand_openness.toFixed(2)} · Wrist bend ${measured(frame.comps.wrist_flexion_deg, "°")} · Palm turn ${measured(frame.comps.forearm_turn_deg, "°")}`, 14, this.canvas.height - 39);
+      ctx.fillText(`Trunk forward ${measured(frame.comps.trunk_approach_pct, "%")} · Shoulder hike ${measured(frame.comps.shoulder_hike_rel_delta, "°")} · Fingers ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
     } else {
       ctx.fillText(`Shoulder ${measured(frame.values.shoulder_flexion, "°")} · Elbow ${measured(frame.values.elbow_extension, "°")} · Face ${measured(frame.comps.face_approach_pct, "%")} · Shoulder width ${measured(frame.comps.shoulder_approach_pct, "%")}`, 14, this.canvas.height - 39);
       ctx.fillText(`Shoulder tilt ${measured(frame.comps.shoulder_hike_delta, "°")} · Shoulder-to-ear reduction ${measured(frame.comps.shoulder_elevation_pct, "%")} · Hand ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);

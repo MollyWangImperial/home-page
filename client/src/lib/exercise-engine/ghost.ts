@@ -1,6 +1,7 @@
 // "Show me once": a small side-view ghost that performs the movement. p runs 0 (rest) to 1 (target).
 
 import type { Ghost } from "./config";
+import { drawHandGhost } from "./hand-target";
 
 const RAD = Math.PI / 180;
 const lerp = (a: number, b: number, p: number) => a + (b - a) * p;
@@ -36,10 +37,12 @@ export function mouthGhostPose(p: number) {
 
 export function drawGhost(ctx: CanvasRenderingContext2D, kind: Ghost, p: number, width: number, height: number, colors = { line: "#3c8255", accent: "#e18e6d", soft: "#b9d3c2" }) {
   ctx.clearRect(0, 0, width, height);
+  // Active Hand Opening is shown front-on, palm to the camera, as the patient sets up (hand-target.ts).
+  if (kind === "hand_open") { drawHandGhost(ctx, p, width, height, colors); return; }
   ctx.save();
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  if (kind === "hand_open" || kind === "pinch") {
+  if (kind === "pinch") {
     drawHand(ctx, kind, p, width, height, colors);
     ctx.restore();
     return;
@@ -133,18 +136,13 @@ function drawHand(ctx: CanvasRenderingContext2D, kind: Ghost, p: number, width: 
     line(ctx, pts);
     return pts[pts.length - 1];
   };
-  if (kind === "hand_open") {
-    const curl = lerp(58, 4, p);
-    [[170, 146], [170, 152], [168, 158]].forEach(([x, y], i) => finger([x, y], curl - i * 3, colors.line, 10));
-    finger([128, 164], lerp(35, 5, p), colors.accent, 10);
-  } else {
-    // pinch: the index curls down while the thumb comes up to meet it
-    const tip = finger([170, 146], lerp(2, 38, p), colors.line, 10);
-    ctx.strokeStyle = colors.accent;
-    ctx.lineWidth = 10;
-    const base: P = [128, 164];
-    const target: P = [tip[0] - 6, tip[1] + 6];
-    const thumbTip: P = [lerp(base[0] + 54, target[0], p), lerp(base[1] + 44, target[1], p)];
-    line(ctx, [base, [lerp(base[0] + 30, (base[0] + target[0]) / 2, p), lerp(base[1] + 28, (base[1] + target[1]) / 2 + 6, p)], thumbTip]);
-  }
+  // pinch: the index curls down while the thumb comes up to meet it
+  void kind;
+  const tip = finger([170, 146], lerp(2, 38, p), colors.line, 10);
+  ctx.strokeStyle = colors.accent;
+  ctx.lineWidth = 10;
+  const base: P = [128, 164];
+  const target: P = [tip[0] - 6, tip[1] + 6];
+  const thumbTip: P = [lerp(base[0] + 54, target[0], p), lerp(base[1] + 44, target[1], p)];
+  line(ctx, [base, [lerp(base[0] + 30, (base[0] + target[0]) / 2, p), lerp(base[1] + 28, (base[1] + target[1]) / 2 + 6, p)], thumbTip]);
 }

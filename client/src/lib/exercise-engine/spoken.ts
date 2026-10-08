@@ -44,4 +44,7 @@ export const ANGLE_ADVICE: Record<string, Record<string, { review: string; next:
     elbow_flexion: { review: MOUTH_ELBOW_ADVICE, next: "On the next repetition, bend your elbow a little more to bring the cup all the way to your mouth." },
     shoulder_flexion: { review: MOUTH_SHOULDER_ADVICE, next: "On the next repetition, lift your elbow a little more from your shoulder while keeping your head up." },
   },
+  ex_handopen: {
+    finger_extension: { review: "Open your fingers a little wider, out to the ring.", next: "On the next repetition, open your fingers a little wider, out to the ring." },
+  },
 };

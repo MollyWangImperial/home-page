@@ -33,7 +33,8 @@ export class ReachTargetCalibration {
 /** Learn only a sustained lap-rest cluster; brief landmark outliers cannot shift the baseline. */
 export class ReachRestCalibration {
   private frames: Frame[] = [];
-  constructor(private readonly metrics = ["shoulder_flexion", "elbow_extension"]) {}
+  /** drift: how far the resting point may wander, as a share of its body scale (a palm length is far smaller than a torso). */
+  constructor(private readonly metrics = ["shoulder_flexion", "elbow_extension"], private readonly drift = 0.08) {}
 
   observe(frame: Frame, durationMs: number): { progress: number; ready: boolean; samples: Frame[]; lapRest?: LapRest } {
     this.frames.push(frame);
@@ -46,7 +47,7 @@ export class ReachRestCalibration {
       bodyScale: median(candidates.map(sample => sample.lapRest!.bodyScale)),
     };
     const angles = this.metrics.map(metric => median(candidates.map(sample => sample.values[metric]!)));
-    const samples = candidates.filter(sample => Math.hypot(sample.lapRest!.x - lapRest.x, sample.lapRest!.y - lapRest.y) <= lapRest.bodyScale * 0.08
+    const samples = candidates.filter(sample => Math.hypot(sample.lapRest!.x - lapRest.x, sample.lapRest!.y - lapRest.y) <= lapRest.bodyScale * this.drift
       && this.metrics.every((metric, index) => Math.abs(sample.values[metric]! - angles[index]) <= (index === 0 ? 8 : 12)));
     const fraction = samples.length / this.frames.length;
     const span = samples.length ? frame.t - samples[0].t : 0;

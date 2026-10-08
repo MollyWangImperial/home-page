@@ -442,7 +442,7 @@ function seated(exerciseId: string, voice: Voice = quiet(), reps = 1) {
   type PushOptions = { level?: number; contact?: boolean; visible?: boolean; values?: Frame["values"]; simulate?: string[] };
   const push = (options: PushOptions = {}) => {
     const snap = session.snapshot();
-    const reaching = session.currentStep?.kind === "reach";
+    const reaching = session.currentStep?.kind === "reach" || session.currentStep?.kind === "open";
     const scoredReach = reaching && snap.phase === "reps";
     const frame = simFrame(t += 50, session.cfg, session.targets(), { level: options.level ?? (snap.phase !== "setup" && reaching ? 1 : 0), compensations: scoredReach ? options.simulate ?? [] : [], visible: options.visible });
     if (snap.phase === "warm" || snap.phase === "reps") frame.targetContact = options.contact ?? true;
@@ -464,9 +464,11 @@ function seated(exerciseId: string, voice: Voice = quiet(), reps = 1) {
   return { session, push, until, toScoredRep };
 }
 const SEATED = ["ex_reach", "ex_h2m"];
+/** Every exercise on the shared target flow: the seated ones and Active Hand Opening. */
+const TARGET_FLOW = [...SEATED, "ex_handopen"];
 
 describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
-  it.each(SEATED)("%s: each scored repetition starts after the countdown, with each step instructed only in practice", id => {
+  it.each(TARGET_FLOW)("%s: each scored repetition starts after the countdown, with each step instructed only in practice", id => {
     const said: string[] = [];
     const p = seated(id, quiet(said), 3);
     let countdowns = 0, previous: string | null = null, inactive = 0;
@@ -485,7 +487,7 @@ describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
     expect(said.filter(line => line === "The next repetition starts in three seconds.")).toHaveLength(3);
     expect(p.session.snapshot().record?.repetition_scores).toEqual([100, 100, 100]);
   });
-  it.each(SEATED)("%s: touching the target and lowering the arm before the hold ends the movement as touched", id => {
+  it.each(TARGET_FLOW)("%s: touching the target and lowering the arm before the hold ends the movement as touched", id => {
     const p = seated(id);
     p.toScoredRep();
     for (let n = 0; n < 5; n++) p.push();
@@ -495,13 +497,13 @@ describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
     p.until(() => p.session.snapshot().review === "complete");
     expect(p.session.snapshot().reps[0]).toMatchObject({ hold: "touched", score: 80, good: false });
   });
-  it.each(SEATED)("%s: a target never touched for 30 s is a miss", id => {
+  it.each(TARGET_FLOW)("%s: a target never touched for 30 s is a miss", id => {
     const p = seated(id);
     p.toScoredRep();
     for (let n = 0; n < 650 && !p.session.snapshot().review; n++) p.push({ contact: false, level: 0 });
     expect(p.session.snapshot().reps[0]).toMatchObject({ hold: "none", score: 0 });
   });
-  it.each(SEATED)("%s: asks for the affected hand back when it leaves the view mid-repetition", id => {
+  it.each(TARGET_FLOW)("%s: asks for the affected hand back when it leaves the view mid-repetition", id => {
     const said: string[] = [];
     const p = seated(id, quiet(said));
     p.toScoredRep();
@@ -510,7 +512,7 @@ describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
     expect(said.at(-1)).toBe("Bring your affected hand back into view.");
     expect(p.session.snapshot().prompt).toBe("Bring your affected hand back into view.");
   });
-  it.each(SEATED)("%s: may start the demonstration 12 s into a long introduction once the posture is learned", id => {
+  it.each(TARGET_FLOW)("%s: may start the demonstration 12 s into a long introduction once the posture is learned", id => {
     const session = new ExerciseSession({ exerciseId: id, rung: 1, side: "right" }, { say() {}, busy: () => true, stop() {} });
     session.start(0);
     let t = 0;
@@ -525,6 +527,7 @@ describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
     ["ex_reach", { elbow_extension: 110 }, [ELBOW_ADVICE]],
     ["ex_h2m", { elbow_flexion: 40 }, [MOUTH_ELBOW_ADVICE]],
     ["ex_h2m", { shoulder_flexion: 12 }, [MOUTH_SHOULDER_ADVICE]],
+    ["ex_handopen", { finger_extension: 115 }, ["Open your fingers a little wider, out to the ring."]],
   ] as const)("%s: the review names the angle that fell short, in the movement's own words (%j)", (id, values, advice) => {
     const p = seated(id);
     p.toScoredRep();
@@ -532,10 +535,10 @@ describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
     expect(p.session.snapshot().reviewAdvice).toEqual(advice);
     expect(p.session.snapshot().reps[0].score).toBeLessThan(100);
   });
-  it.each(SEATED)("%s: the final repetition's advice drops \"next repetition\"", id => {
+  it.each(TARGET_FLOW)("%s: the final repetition's advice drops \"next repetition\"", id => {
     for (const rule of EXERCISES[id].feedback.filter(rule => rule.comp)) expect(finalRepAdvice(rule.say)).not.toMatch(/next/i);
   });
-  it.each(SEATED)("%s: the simulator's leaning patient uses the first check, reported with its advice", id => {
+  it.each(TARGET_FLOW)("%s: the simulator's leaning patient uses the first check, reported with its advice", id => {
     const first = EXERCISES[id].compensations[0].id;
     const p = seated(id);
     p.toScoredRep();
@@ -558,7 +561,7 @@ describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
     expect(mouthGhostTarget(300, 270, false).radius).toBeLessThan(reachGhostTarget(300, 270, false).radius);
   });
   it("previews show hand-to-mouth's head lean where the reach shows its trunk lean", () => {
-    for (const id of SEATED) {
+    for (const id of TARGET_FLOW) {
       const first = EXERCISES[id].compensations[0];
       const results = exerciseScreenPreview("results", 1, "right", id);
       expect(results.snapshot.record?.compensation_counts[first.id]).toBe(2);

@@ -4,7 +4,7 @@ import { useLocation, useRoute, useSearch } from "wouter";
 import { ArrowLeft, Camera, Check, Eye, Hand, LoaderCircle, Mic, MicOff, Play, RotateCcw, SkipForward, Sparkles } from "lucide-react";
 import { useSettings } from "@/components/AccountSettings";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { buildRung, EVERYDAY_EXERCISE_ID, EXERCISES, DOMAIN_LABEL, LEVEL_BY_RUNG, resolveExercise, usesSeatedTargets, type Rung, type Side } from "@/lib/exercise-engine/config";
+import { buildRung, EVERYDAY_EXERCISE_ID, EXERCISES, DOMAIN_LABEL, LEVEL_BY_RUNG, resolveExercise, usesSeatedTargets, usesTargetFlow, type Rung, type Side } from "@/lib/exercise-engine/config";
 import { reachAngleProgress } from "@/lib/exercise-engine/calibration";
 import { EXERCISE_PREVIEW_SCREENS, exercisePreviewScreen, exerciseScreenPreview, type ExercisePreviewScreen } from "@/lib/exercise-engine/screen-preview";
 import { TARGET_HOLD_MS } from "@/lib/exercise-engine/target-timing";
@@ -14,6 +14,7 @@ import { drawMouthDemo, mouthDemoState, mouthGhostTarget } from "@/lib/exercise-
 import { mouthContact, mouthContactPoints, observedMouth, mouthCompensations } from "@/lib/exercise-engine/mouth-target";
 import { MouthHold, type MouthHoldResult } from "@/lib/exercise-engine/mouth-hold";
 import { CupTrack } from "@/lib/exercise-engine/cup-track";
+import { drawHandDemo, handDemoState, handGhostContact, handGhostTarget, handOpenFrame, handOpenness, handRingTarget, palmFacing, palmRing } from "@/lib/exercise-engine/hand-target";
 import { NEXT_REP_COUNTDOWN_LINE } from "@/lib/exercise-engine/spoken";
 import { compensationStatus, HAND_LINES, POSE_LINES, handFrameValues, handVisible, POSE_NEEDS, poseFrameValues, poseJoints, poseVisibility, reachLapRest, type Frame } from "@/lib/exercise-engine/metrics";
 import { ExerciseSession, simFrame, type Snapshot } from "@/lib/exercise-engine/session";
@@ -41,6 +42,13 @@ type BodyCheck = { id: string; label: string; visible: boolean; progress: number
 type Live = { label: string; value: number | undefined; target: number; start: number; unit: string }[];
 type CompLive = { label: string; value: number | undefined; limit: number }[];
 
+// The target flow's demonstration, its states and the simulator's target, for each exercise that uses it.
+const ghostTargetFor = (id: string) => (id === "ex_h2m" ? mouthGhostTarget : id === "ex_handopen" ? handGhostTarget : reachGhostTarget);
+const drawDemoFor = (id: string) => (id === "ex_h2m" ? drawMouthDemo : id === "ex_handopen" ? drawHandDemo : drawReachDemo);
+const demoStateFor = (id: string) => (id === "ex_h2m" ? mouthDemoState : id === "ex_handopen" ? handDemoState : reachDemoState);
+/** Hand opening's rings follow the palm, steadied so landmark jitter does not shake them. */
+const RING_FOLLOW = 0.35;
+
 export default function ExerciseRunner() {
   const [, params] = useRoute("/exercise/:id");
   const search = useSearch();
@@ -57,21 +65,21 @@ export default function ExerciseRunner() {
     const rung = Number(q.get("rung"));
     return {
       ...saved,
-      rung: (usesSeatedTargets(exerciseId) ? 1 : [1, 2, 3].includes(rung) ? rung : 2) as Rung,
+      rung: (usesTargetFlow(exerciseId) ? 1 : [1, 2, 3].includes(rung) ? rung : 2) as Rung,
       side: (q.get("side") === "left" ? "left" : q.get("side") === "right" ? "right" : saved.side) as Side,
       quick: q.has("quick") ? q.get("quick") === "1" : saved.quick,
       sim: q.has("sim") ? q.get("sim") === "1" : saved.sim,
       chairBack: q.has("chair") ? q.get("chair") === "1" : saved.chairBack,
       // Normal forward reach no longer exposes test/dose modifiers. Explicit simulation URLs
       // remain available to the test bench; screen previews use display fixtures instead.
-      ...(usesSeatedTargets(exerciseId) && q.get("sim") !== "1" ? { quick: false, sim: false, chairBack: false, assisted: false } : {}),
+      ...(usesTargetFlow(exerciseId) && q.get("sim") !== "1" ? { quick: false, sim: false, chairBack: false, assisted: false } : {}),
     };
   }, [search, exerciseId]);
 
   const [opts, setOpts] = useState<LabOptions & { rung: Rung }>(initial);
   const [stage, setStage] = useState<Stage>("intro");
   useEffect(() => {
-    if (usesSeatedTargets(exerciseId) && stage === "intro" && opts.rung !== 1) {
+    if (usesTargetFlow(exerciseId) && stage === "intro" && opts.rung !== 1) {
       setOpts(options => ({ ...options, rung: 1 }));
     }
   }, [exerciseId, stage, opts.rung]);
@@ -123,7 +131,7 @@ export default function ExerciseRunner() {
 
   const cfg = useMemo(() => (base ? resolveExercise(base.id, opts.chairBack) : null), [base, opts.chairBack]);
   const rungSpec = useMemo(() => (base ? buildRung(base.id, opts.rung) : null), [base, opts.rung]);
-  const previewScreen = usesSeatedTargets(exerciseId) ? exercisePreviewScreen(new URLSearchParams(search).get("preview")) : null;
+  const previewScreen = usesTargetFlow(exerciseId) ? exercisePreviewScreen(new URLSearchParams(search).get("preview")) : null;
   const preview = useMemo(() => previewScreen ? exerciseScreenPreview(previewScreen, opts.rung, opts.side, exerciseId) : null, [previewScreen, opts.rung, opts.side, exerciseId]);
   const snap = preview?.snapshot ?? runSnapshot;
   const viewSaid = preview?.said ?? said;
@@ -170,11 +178,11 @@ export default function ExerciseRunner() {
     if (canvas && ctx) {
       const pose = state.phase === "setup" || state.phase === "demo" || !state.targetArmed || state.kind === "return" ? 0 : 1;
       drawGhost(ctx, cfg.ghost, pose, canvas.width, canvas.height);
-      if ((state.phase === "warm" || state.phase === "reps") && !state.review) drawTestingTarget(ctx, { ...(cfg.id === "ex_h2m" ? mouthGhostTarget : reachGhostTarget)(canvas.width, canvas.height, state.kind === "return"), armed: state.targetArmed, contact: state.inZone && state.targetArmed, progress: state.holdProgress, now: performance.now(), reducedMotion: true });
+      if ((state.phase === "warm" || state.phase === "reps") && !state.review) drawTestingTarget(ctx, { ...ghostTargetFor(cfg.id)(canvas.width, canvas.height, state.kind === "return"), armed: state.targetArmed, contact: state.inZone && state.targetArmed, progress: state.holdProgress, now: performance.now(), reducedMotion: true });
     }
     const demo = ghostRef.current;
     const demoContext = demo?.getContext("2d");
-    if (state.phase === "demo" && demo && demoContext) (cfg.id === "ex_h2m" ? drawMouthDemo : drawReachDemo)(demoContext, state.demoStepElapsedMs, state.kind === "return", demo.width, demo.height, performance.now(), true, state.targetArmed);
+    if (state.phase === "demo" && demo && demoContext) drawDemoFor(cfg.id)(demoContext, state.demoStepElapsedMs, state.kind === "return", demo.width, demo.height, performance.now(), true, state.targetArmed);
   }, [preview, cfg]);
 
   // ---------- the frame loop ----------
@@ -198,10 +206,14 @@ export default function ExerciseRunner() {
       } else s.level = s.sliderLevel;
       const comps = s.auto === "leaning" && !s.manual ? (session.cfg.compensations[0] ? [session.cfg.compensations[0].id] : []) : s.comps;
       frame = simFrame(t, session.cfg, session.targets(), { level: s.level, compensations: comps });
-      if (usesSeatedTargets(session.cfg.id) && (session.snapshot().phase === "warm" || session.snapshot().phase === "reps")) {
-        const hand = (session.cfg.id === "ex_h2m" ? mouthGhostPose : reachGhostPose)(Math.min(1, Math.max(0, s.level))).wrist;
-        const target = (session.cfg.id === "ex_h2m" ? mouthGhostTarget : reachGhostTarget)(300, 270, step?.kind === "return");
-        frame.targetContact = Math.hypot(hand[0] - target.x, hand[1] - target.y) <= target.radius;
+      if (usesTargetFlow(session.cfg.id) && (session.snapshot().phase === "warm" || session.snapshot().phase === "reps")) {
+        const level = Math.min(1, Math.max(0, s.level));
+        if (session.cfg.id === "ex_handopen") frame.targetContact = handGhostContact(level, step?.kind === "return");
+        else {
+          const hand = (session.cfg.id === "ex_h2m" ? mouthGhostPose : reachGhostPose)(level).wrist;
+          const target = ghostTargetFor(session.cfg.id)(300, 270, step?.kind === "return");
+          frame.targetContact = Math.hypot(hand[0] - target.x, hand[1] - target.y) <= target.radius;
+        }
         frame.targetProgress = frame.targetContact ? 1 : s.level;
       }
     } else {
@@ -225,7 +237,7 @@ export default function ExerciseRunner() {
             hold = mouthHold.current.update(t, tracked.pose, opts.side, { mouth, radius: mouthRadius, aspect: video.videoWidth / video.videoHeight, torso: lap.bodyScale });
           }
           const detection = hold?.held ? { ...tracked, pose: hold.pose } : tracked;
-          frame = buildFrame(session, detection, opts.side, t);
+          frame = buildFrame(session, detection, opts.side, t, video.videoWidth / video.videoHeight);
           if (now.phase === "setup") {
             const dt = Math.min(100, Math.max(0, t - (bodyLastT.current || t)));
             bodyLastT.current = t;
@@ -265,7 +277,7 @@ export default function ExerciseRunner() {
               frame.targetContact = wristVisible && distance <= target.radius;
               frame.targetProgress = frame.targetContact ? 1 : Math.max(0, Math.min(0.98, 1 - (distance - target.radius) / Math.max(0.05, startDistance - target.radius)));
             }
-          } else if (!usesSeatedTargets(session.cfg.id) || now.phase === "setup" || now.phase === "demo") reachTarget.current = null;
+          } else if (!usesTargetFlow(session.cfg.id) || now.phase === "setup" || now.phase === "demo") reachTarget.current = null;
           if (session.cfg.id === "ex_h2m" && (now.phase === "warm" || now.phase === "reps") && !now.review) {
             if (lap && mouth) {
               const radius = mouthRadius;
@@ -289,12 +301,35 @@ export default function ExerciseRunner() {
               }
             } else { frame.visible = false; frame.missing = "Go back to Set up so I can learn your lap and mouth targets."; }
           }
+          if (session.cfg.id === "ex_handopen" && (now.phase === "warm" || now.phase === "reps") && !now.review) {
+            // Active Hand Opening: a ring around the palm that the fingertips open out to, then a small circle
+            // they relax back into. The practice ring sits a little beyond the relaxed hand; scored rings at the
+            // opening held there (hand-target.ts). Both follow the palm, sized by its length.
+            const aspect = video.videoWidth / video.videoHeight;
+            const hand = chooseHand(detection.hands, detection.pose?.landmarks[poseJoints(opts.side).wrist]);
+            const palm = palmRing(hand, aspect);
+            const openness = handOpenness(hand, aspect);
+            const rest = session.restValues().hand_openness;
+            const key = `${now.phase}:${now.repIndex}:${now.rung}`;
+            if (palm && openness !== undefined && Number.isFinite(rest)) {
+              const last = reachTarget.current?.key === key ? reachTarget.current : null;
+              const follow = (from: number | undefined, to: number) => (from === undefined ? to : from + (to - from) * RING_FOLLOW);
+              const x = follow(last?.x, palm.x), y = follow(last?.y, palm.y), scale = follow(last?.torso, palm.scale);
+              const target = handRingTarget(openness, rest, now.phase === "reps" ? session.learnedValue("hand_openness") : undefined, now.kind === "return");
+              reachTarget.current = { key, x, y, radius: target.ring * scale, lapRadius: target.relax * scale, startX: x, startY: y, baseY: y, torso: scale, lapX: x, lapY: y };
+              frame.targetContact = frame.visible && target.contact;
+              frame.targetProgress = frame.targetContact ? 1 : Math.min(0.98, target.progress);
+            } else {
+              frame.visible = false;
+              frame.missing = frame.missing ?? "Bring your affected hand back into view.";
+            }
+          }
           if (!now.review && reachTarget.current && now.kind === "return" && hold?.atMouth) {
             // The cup has not left the mouth yet: a forearm flickering down is not the hand on the lap.
             frame.visible = true;
             frame.missing = undefined;
             frame.targetContact = false;
-          } else if (!now.review && reachTarget.current && now.kind === "return" && detection.pose) {
+          } else if (usesSeatedTargets(session.cfg.id) && !now.review && reachTarget.current && now.kind === "return" && detection.pose) {
             const wrist = detection.pose.landmarks[poseJoints(opts.side).wrist];
             const target = reachTarget.current;
             const visible = !!wrist && (wrist.visibility ?? 1) >= 0.5 && wrist.x > 0.01 && wrist.x < 0.99 && wrist.y > 0.01 && wrist.y < 0.99;
@@ -321,7 +356,7 @@ export default function ExerciseRunner() {
       session.push(frame);
       const currentSnapshot = session.snapshot();
       if (!opts.sim && !currentSnapshot.review && reachTarget.current) {
-        if (currentSnapshot.kind === "reach") {
+        if (currentSnapshot.kind === "reach" || currentSnapshot.kind === "open") {
           targetCompletion.current = null;
           drawReachTarget(overlayRef.current, reachTarget.current, currentSnapshot.targetArmed, frame.targetContact === true || frame.targetUnsure === true, currentSnapshot.holdProgress);
         } else if (currentSnapshot.kind === "return") {
@@ -339,7 +374,7 @@ export default function ExerciseRunner() {
         setSnap(snapshot);
         const targets = session.targets();
         setLive({
-          roms: session.cfg.romSteps.map(rom => ({ label: rom.label, value: frame!.values[rom.metric], target: targets[rom.id], start: usesSeatedTargets(session.cfg.id) ? snapshot.startingAngles[rom.id] ?? NaN : 0, unit: "°" })),
+          roms: session.cfg.romSteps.map(rom => ({ label: rom.label, value: frame!.values[rom.metric], target: targets[rom.id], start: usesTargetFlow(session.cfg.id) ? snapshot.startingAngles[rom.id] ?? NaN : 0, unit: "°" })),
           comps: session.cfg.compensations.map(comp => ({ label: comp.label, value: compensationStatus(frame!.comps, comp).ratio, limit: 1 })),
         });
         drawGhostFor(ghostRef.current, session, snapshot, opts.sim ? simRef.current.level : snapshot.liveAttainment);
@@ -405,7 +440,8 @@ export default function ExerciseRunner() {
     if (!opts.sim) {
       setStage("loading");
       try {
-        const tracker = await createTracker(cfg.tracking);
+        // Hand opening tracks the hand every frame (on the graphics processor when it can) and the body every third.
+        const tracker = await createTracker(cfg.tracking, cfg.id === "ex_handopen" ? { poseEvery: 3, handGpu: true } : undefined);
         trackerRef.current = tracker;
         // The run view (and its <video>) only renders once there is a snapshot, so set both, then wait for the element.
         setSnap(session.snapshot());
@@ -485,8 +521,8 @@ export default function ExerciseRunner() {
   const beatActive = snap ? (snap.idlePrompt ? 5 : snap.beat) : 0;
   const runView = preview ? !["intro", "loading", "error", "results", "redo"].includes(previewScreen!) : stage === "run";
   const previewIndex = EXERCISE_PREVIEW_SCREENS.findIndex(screen => screen.id === previewScreen);
-  const reachDemo = snap?.phase === "demo" && usesSeatedTargets(cfg.id)
-    ? (cfg.id === "ex_h2m" ? mouthDemoState : reachDemoState)(snap.demoStepElapsedMs, cfg.cycle[snap.demoStepIndex]?.kind === "return", snap.targetArmed) : null;
+  const reachDemo = snap?.phase === "demo" && usesTargetFlow(cfg.id)
+    ? demoStateFor(cfg.id)(snap.demoStepElapsedMs, cfg.cycle[snap.demoStepIndex]?.kind === "return", snap.targetArmed) : null;
   // "How did that feel?": stored for Alira's safety rules and learning (never in the screen preview), then learning starts.
   const saveFelt = (answer: FeltAnswer) => {
     if (preview) return;
@@ -538,7 +574,7 @@ export default function ExerciseRunner() {
       )}
 
       {(previewScreen === "intro" || (!preview && stage === "intro")) && (
-        <Intro base={base} cfg={cfg} opts={opts} setOpts={setOpts} muted={muted} setMuted={setMuted} onStart={begin} onPreview={usesSeatedTargets(base.id) ? () => selectPreview("intro") : undefined} />
+        <Intro base={base} cfg={cfg} opts={opts} setOpts={setOpts} muted={muted} setMuted={setMuted} onStart={begin} onPreview={usesTargetFlow(base.id) ? () => selectPreview("intro") : undefined} />
       )}
 
       {(previewScreen === "loading" || (!preview && stage === "loading")) && (
@@ -560,11 +596,11 @@ export default function ExerciseRunner() {
         <div className="xe-run">
           <section className="xe-stage" aria-label={preview ? "Camera area preview" : opts.sim ? "Simulated patient" : "Camera view"}>
             {preview ? <div className="xe-simstage"><canvas ref={previewCanvasRef} width={640} height={480} aria-label="Exercise pose and target preview" /><span className="xe-simtag">Camera off · screen preview</span></div> : opts.sim ? (
-              <div className="xe-simstage"><canvas ref={ghostRef} width={480} height={390} aria-label={reachDemo ? `Movement demonstration: ${reachDemo.instruction}` : usesSeatedTargets(cfg.id) && (snap.phase === "warm" || snap.phase === "reps") ? `${snap.kind === "return" ? "Lap" : cfg.id === "ex_h2m" ? "Mouth" : "Reach"} target ${snap.targetArmed ? "active" : "inactive while the instruction plays"}` : "Movement ghost"} /><span className="xe-simtag">No camera · simulated patient</span></div>
+              <div className="xe-simstage"><canvas ref={ghostRef} width={480} height={390} aria-label={reachDemo ? `Movement demonstration: ${reachDemo.instruction}` : usesTargetFlow(cfg.id) && (snap.phase === "warm" || snap.phase === "reps") ? `${cfg.id === "ex_handopen" ? snap.kind === "return" ? "Relax" : "Open" : snap.kind === "return" ? "Lap" : cfg.id === "ex_h2m" ? "Mouth" : "Reach"} target ${snap.targetArmed ? "active" : "inactive while the instruction plays"}` : "Movement ghost"} /><span className="xe-simtag">No camera · simulated patient</span></div>
             ) : (
               <div className="xe-video">
                 <video ref={videoRef} playsInline muted />
-                <canvas ref={overlayRef} aria-label={usesSeatedTargets(cfg.id) && (snap.phase === "warm" || snap.phase === "reps") ? snap.targetArmed ? "Active movement target" : "Inactive movement target — listen to the instruction" : "Movement tracking overlay"} />
+                <canvas ref={overlayRef} aria-label={usesTargetFlow(cfg.id) && (snap.phase === "warm" || snap.phase === "reps") ? snap.targetArmed ? "Active movement target" : "Inactive movement target — listen to the instruction" : "Movement tracking overlay"} />
               </div>
             )}
             {snap.prompt && <div className="xe-prompt" role="status">{snap.prompt}</div>}
@@ -573,7 +609,7 @@ export default function ExerciseRunner() {
           <aside className="xe-side">
             <div className="xe-card xe-coach">
               <h2>{snap.phase === "setup" ? (snap.calibrationProgress > 0 ? "Hold still..." : "Get in view") : snap.phase === "demo" && !snap.demoReady ? "Watch the demonstration on the right" : snap.caption || (snap.phase === "demo" ? "Watch the movement" : "Get ready")}</h2>
-              {snap.phase === "demo" && (snap.demoReady || usesSeatedTargets(cfg.id)) && (preview || !opts.sim) && <canvas ref={ghostRef} className="xe-ghost" width={300} height={240} aria-label={reachDemo ? `Movement demonstration: ${reachDemo.instruction}` : "Movement ghost"} />}
+              {snap.phase === "demo" && (snap.demoReady || usesTargetFlow(cfg.id)) && (preview || !opts.sim) && <canvas ref={ghostRef} className="xe-ghost" width={300} height={240} aria-label={reachDemo ? `Movement demonstration: ${reachDemo.instruction}` : "Movement ghost"} />}
               {reachDemo && <p className="xe-hint">{reachDemo.instruction}</p>}
               <p className="xe-said" aria-live="polite">{viewSaid && !(viewSaid === NEXT_REP_COUNTDOWN_LINE && !snap.review) ? `"${viewSaid}"` : ""}</p>
               {snap.phase === "setup" && <div className="xe-meter"><i style={{ width: `${snap.calibrationProgress * 100}%` }} /></div>}
@@ -583,7 +619,7 @@ export default function ExerciseRunner() {
                     <i className="fill" style={{ width: `${snap.holdProgress * 100}%` }} />
 
                   </div>
-                  <p className="xe-hint">{!snap.targetArmed ? "Listen to the instruction. Wait for the circle to become active." : snap.kind === "return" || snap.kind === "close" ? "Return your hand to the lap circle and pause" : snap.inZone ? "Hold it there..." : cfg.id === "ex_h2m" ? "Bring your hand to the mouth circle, keeping your head up" : "Reach your hand into the target ring"}</p>
+                  <p className="xe-hint">{!snap.targetArmed ? "Listen to the instruction. Wait for the circle to become active." : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Let your fingers relax into the small circle and pause" : snap.inZone ? "Hold it there..." : "Open your fingers out to the ring, keeping your wrist straight" : snap.kind === "return" || snap.kind === "close" ? "Return your hand to the lap circle and pause" : snap.inZone ? "Hold it there..." : cfg.id === "ex_h2m" ? "Bring your hand to the mouth circle, keeping your head up" : "Reach your hand into the target ring"}</p>
                 </>
               )}
               {snap.feedback && <p className="xe-feedback" role="status">{snap.feedback}</p>}
@@ -624,8 +660,8 @@ export default function ExerciseRunner() {
               </div>
             ) : snap.phase !== "demo" ? <div className="xe-card xe-live">
               <h3>Movement</h3>
-              {!snap.targetsReady && <p className="xe-note">{usesSeatedTargets(cfg.id) ? "Hold at the practice circle so I can learn your movement goals." : "Learning your starting position. Your movement goals will appear after practice."}</p>}
-              {viewLive.roms.map(r => <MetricBar key={r.label} label={r.label} value={r.value} threshold={r.target} start={r.start} ready={snap.targetsReady} personalized={usesSeatedTargets(cfg.id)} />)}
+              {!snap.targetsReady && <p className="xe-note">{cfg.id === "ex_handopen" ? "Hold your hand open at the practice ring so I can learn your movement goals." : usesTargetFlow(cfg.id) ? "Hold at the practice circle so I can learn your movement goals." : "Learning your starting position. Your movement goals will appear after practice."}</p>}
+              {viewLive.roms.map(r => <MetricBar key={r.label} label={r.label} value={r.value} threshold={r.target} start={r.start} ready={snap.targetsReady} personalized={usesTargetFlow(cfg.id)} pending={cfg.id === "ex_handopen" ? "Keep opening" : undefined} />)}
               {viewLive.comps.map(c => <MetricBar key={c.label} label={c.label} value={c.value} threshold={c.limit} ready={snap.targetsReady} limit />)}
             </div> : null}
 
@@ -696,7 +732,7 @@ export default function ExerciseRunner() {
 const ONLY_SOME_EXERCISES: Partial<Record<string, (exerciseId: string) => boolean>> = {
   "exercise.reach_height_scale": id => id === "ex_reach",
   "exercise.target_size_scale": id => usesSeatedTargets(id),
-  "exercise.target_zone": id => !usesSeatedTargets(id),
+  "exercise.target_zone": id => !usesTargetFlow(id),
 };
 const adjustsExercise = (tuning: ExerciseTuning, exerciseId: string) => Object.keys(tuning.changed).some(key => ONLY_SOME_EXERCISES[key]?.(exerciseId) ?? true);
 
@@ -709,20 +745,20 @@ function Intro(props: { base: (typeof EXERCISES)[string]; cfg: ReturnType<typeof
   const set = (patch: Partial<LabOptions & { rung: Rung }>) => setOpts({ ...opts, ...patch });
   return (
     <div className="xe-card xe-intro">
-      {!usesSeatedTargets(base.id) && <p className="xe-eyebrow">{base.chain}</p>}
+      {!usesTargetFlow(base.id) && <p className="xe-eyebrow">{base.chain}</p>}
       <h2>{base.name}</h2>
-      {!usesSeatedTargets(base.id) && <p>For: <b>{base.dailyTask}</b>. Camera: {base.framing}. Tracking: {cfg.tracking === "hand" ? "hand" : cfg.tracking === "pose" ? "body pose" : "body pose and hand"}.</p>}
+      {!usesTargetFlow(base.id) && <p>For: <b>{base.dailyTask}</b>. Camera: {base.framing}. Tracking: {cfg.tracking === "hand" ? "hand" : cfg.tracking === "pose" ? "body pose" : "body pose and hand"}.</p>}
       {tuning.adapted && adjustsExercise(tuning, base.id) && <p className="xe-note xe-adapted"><Sparkles size={14} aria-hidden="true" /> Alira has adjusted this exercise for you today.</p>}
       <div className="xe-rungs" role="radiogroup" aria-label="Level">
         {([1, 2, 3] as Rung[]).map(rung => {
           const r = buildRung(base.id, rung);
-          const unavailable = usesSeatedTargets(base.id) && rung !== 1;
+          const unavailable = usesTargetFlow(base.id) && rung !== 1;
           return (
             <button key={rung} role="radio" disabled={unavailable} aria-checked={!unavailable && opts.rung === rung} className={!unavailable && opts.rung === rung ? "is-on" : ""} onClick={() => set({ rung })}>
               <b>{LEVEL_LABEL[rung]}</b>
               {unavailable && <span>Not available now</span>}
-              {!usesSeatedTargets(base.id) && <span>{cfg.romSteps.map(rom => `${rom.label} ${r.targets[rom.id]}°`).join(" · ")}</span>}
-              <em>{tunedReps(r.reps, tuning)} reps · {usesSeatedTargets(base.id) ? `hold ${Math.round(TARGET_HOLD_MS * tuning.holdFactor) / 1000}s` : `hold ×${Math.round(r.holdScale * tuning.holdFactor * 100) / 100}`}{r.oppositions ? ` · ${r.oppositions} pinch${r.oppositions > 1 ? "es" : ""}` : ""}</em>
+              {!usesTargetFlow(base.id) && <span>{cfg.romSteps.map(rom => `${rom.label} ${r.targets[rom.id]}°`).join(" · ")}</span>}
+              <em>{tunedReps(r.reps, tuning)} reps · {usesTargetFlow(base.id) ? `hold ${Math.round(TARGET_HOLD_MS * tuning.holdFactor) / 1000}s` : `hold ×${Math.round(r.holdScale * tuning.holdFactor * 100) / 100}`}{r.oppositions ? ` · ${r.oppositions} pinch${r.oppositions > 1 ? "es" : ""}` : ""}</em>
             </button>
           );
         })}
@@ -731,14 +767,14 @@ function Intro(props: { base: (typeof EXERCISES)[string]; cfg: ReturnType<typeof
         <label><span>Affected side</span>
           <select value={opts.side} onChange={e => set({ side: e.target.value as Side })}><option value="right">Right</option><option value="left">Left</option></select>
         </label>
-        {!usesSeatedTargets(base.id) && <>
+        {!usesTargetFlow(base.id) && <>
         <label className="xe-check"><input type="checkbox" checked={opts.quick} onChange={e => set({ quick: e.target.checked })} /> Quick test: 3 reps instead of {tunedReps(spec.reps, tuning)}</label>
         <label className="xe-check"><input type="checkbox" checked={opts.sim} onChange={e => set({ sim: e.target.checked })} /> No camera (simulate a patient)</label>
         <label className="xe-check"><input type="checkbox" checked={opts.assisted} onChange={e => set({ assisted: e.target.checked })} /> Someone helped (score × 0.5)</label>
         <label className="xe-check"><input type="checkbox" checked={muted} onChange={e => setMuted(e.target.checked)} /> Mute the voice (subtitles only)</label>
         </>}
       </div>
-      {cfg.tracking !== "pose" && !opts.sim && <p className="xe-note"><Hand size={14} aria-hidden="true" /> Hold the hand close to the camera with every fingertip in view.</p>}
+      {cfg.tracking !== "pose" && !opts.sim && <p className="xe-note"><Hand size={14} aria-hidden="true" /> {base.id === "ex_handopen" ? "Rest your elbow on a table and hold your hand up beside your shoulder, palm to the camera. Keep your face, both shoulders and every fingertip in view." : "Hold the hand close to the camera with every fingertip in view."}</p>}
       {base.domain === "lower_limb" && !opts.sim && <p className="xe-note">Lower-limb tracking seated and front-on is unverified. If the angles look unstable, try the simulator or a side-on phone position.</p>}
       <div className="xe-actions">
         <button className="xe-primary" onClick={onStart}>{opts.sim ? <Play size={16} aria-hidden="true" /> : <Camera size={16} aria-hidden="true" />} Start · {reps} reps · {LEVEL_LABEL[opts.rung]}</button>
@@ -763,7 +799,7 @@ function Results({ snap, base, cfg, clips, debugDirectory, onAgain, onBack, onFe
       )}
       {snap.reps.length > 0 && (
         <table className="xe-table">
-          <thead><tr><th>Rep</th><th>Level</th><th>{cfg.id === "ex_h2m" ? "Movement" : "Reach"}</th><th>Form</th><th>Score</th></tr></thead>
+          <thead><tr><th>Rep</th><th>Level</th><th>{cfg.id === "ex_h2m" ? "Movement" : cfg.id === "ex_handopen" ? "Opening" : "Reach"}</th><th>Form</th><th>Score</th></tr></thead>
           <tbody>
             {snap.reps.map(rep => (
               <tr key={rep.index} className={rep.good ? "good" : ""}>
@@ -844,8 +880,9 @@ function HowItFelt({ onSave }: { onSave: (answer: FeltAnswer) => void }) {
 
 // ---------- camera frame building and drawing ----------
 
-function buildFrame(session: ExerciseSession, det: Detection, side: Side, t: number): Frame {
+function buildFrame(session: ExerciseSession, det: Detection, side: Side, t: number, aspect: number): Frame {
   const cfg = session.cfg;
+  if (cfg.id === "ex_handopen") return handOpenFrame(det, side, t, aspect, session.reference);
   const usesPose = cfg.tracking !== "hand";
   const usesHand = cfg.tracking !== "pose";
   let visible = true;
@@ -892,17 +929,19 @@ function drawOverlay(canvas: HTMLCanvasElement | null, video: HTMLVideoElement, 
   const Y = (y: number) => y * h;
   const j = poseJoints(side);
   const mine = new Set([j.shoulder, j.elbow, j.wrist, j.hip, j.knee, j.ankle, j.foot]);
+  // Hand opening checks only the face and shoulders: the arm and hips are often behind the table.
+  const handOpen = session.cfg.id === "ex_handopen";
   if (det.pose) {
     const lm = det.pose.landmarks;
     ctx.lineWidth = Math.max(3, w / 220);
     ctx.lineCap = "round";
-    for (const [a, b] of POSE_LINES) {
+    for (const [a, b] of handOpen ? POSE_LINES.filter(([a, b]) => a === 11 && b === 12) : POSE_LINES) {
       if ((lm[a]?.visibility ?? 1) < 0.4 || (lm[b]?.visibility ?? 1) < 0.4) continue;
       ctx.strokeStyle = mine.has(a) && mine.has(b) ? "#e18e6d" : "rgba(217,229,220,.85)";
       ctx.beginPath(); ctx.moveTo(X(lm[a].x), Y(lm[a].y)); ctx.lineTo(X(lm[b].x), Y(lm[b].y)); ctx.stroke();
     }
     ctx.fillStyle = "#fff";
-    [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 31, 32].forEach(i => {
+    (handOpen ? [0, 11, 12] : [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 31, 32]).forEach(i => {
       if ((lm[i]?.visibility ?? 1) < 0.4) return;
       ctx.beginPath(); ctx.arc(X(lm[i].x), Y(lm[i].y), Math.max(3, w / 260), 0, Math.PI * 2); ctx.fill();
     });
@@ -942,8 +981,8 @@ function drawGhostFor(canvas: HTMLCanvasElement | null, session: ExerciseSession
   if (!ctx) return;
   let p = Math.min(1, Math.max(0, level));
   if (snap.phase === "demo") {
-    if (usesSeatedTargets(session.cfg.id)) {
-      (session.cfg.id === "ex_h2m" ? drawMouthDemo : drawReachDemo)(ctx, snap.demoStepElapsedMs, session.cfg.cycle[snap.demoStepIndex]?.kind === "return", canvas.width, canvas.height, performance.now(), window.matchMedia("(prefers-reduced-motion: reduce)").matches, snap.targetArmed);
+    if (usesTargetFlow(session.cfg.id)) {
+      drawDemoFor(session.cfg.id)(ctx, snap.demoStepElapsedMs, session.cfg.cycle[snap.demoStepIndex]?.kind === "return", canvas.width, canvas.height, performance.now(), window.matchMedia("(prefers-reduced-motion: reduce)").matches, snap.targetArmed);
       return;
     }
     if (!snap.demoReady) { ctx.clearRect(0, 0, canvas.width, canvas.height); return; }
@@ -957,8 +996,8 @@ function drawGhostFor(canvas: HTMLCanvasElement | null, session: ExerciseSession
     p = returning ? 1 - within : Math.min(1, within * 1.3);
   }
   drawGhost(ctx, session.cfg.ghost, p, canvas.width, canvas.height);
-  if (usesSeatedTargets(session.cfg.id) && (snap.phase === "warm" || snap.phase === "reps") && !snap.review) {
-    drawTestingTarget(ctx, { ...(session.cfg.id === "ex_h2m" ? mouthGhostTarget : reachGhostTarget)(canvas.width, canvas.height, snap.kind === "return"), armed: snap.targetArmed, contact: snap.targetArmed && snap.inZone, progress: snap.holdProgress, now: performance.now(), reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
+  if (usesTargetFlow(session.cfg.id) && (snap.phase === "warm" || snap.phase === "reps") && !snap.review) {
+    drawTestingTarget(ctx, { ...ghostTargetFor(session.cfg.id)(canvas.width, canvas.height, snap.kind === "return"), armed: snap.targetArmed, contact: snap.targetArmed && snap.inZone, progress: snap.holdProgress, now: performance.now(), reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
   }
 }
 
@@ -966,6 +1005,17 @@ function drawGhostFor(canvas: HTMLCanvasElement | null, session: ExerciseSession
 function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Detection, side: Side): Omit<BodyCheck, "progress">[] {
   const labels: Record<string, string> = { nose: "Face", shoulder: `${side === "right" ? "Right" : "Left"} shoulder`, shoulderOther: "Other shoulder", elbow: `${side === "right" ? "Right" : "Left"} elbow`, wrist: `${side === "right" ? "Right" : "Left"} hand`, hip: "Top of thigh", knee: "Knee", ankle: "Ankle", foot: "Foot & toes" };
   const joints = poseJoints(side);
+  if (session.cfg.id === "ex_handopen") {
+    // Face and shoulders for the posture checks; the hand up with its palm to the camera.
+    const hand = chooseHand(detection.hands, detection.pose?.landmarks[joints.wrist]);
+    return [
+      ...POSE_NEEDS.upper.filter(need => need.joint === "nose" || need.joint === "shoulder" || need.joint === "shoulderOther").map(need => {
+        const point = detection.pose?.landmarks[joints[need.joint]];
+        return { id: need.joint, label: labels[need.joint], visible: !!point && (point.visibility ?? 1) >= 0.5 && point.x > 0.01 && point.x < 0.99 && point.y > 0.01 && point.y < 0.99, hint: need.say };
+      }),
+      { id: "wrist", label: `${labels.wrist}, palm to camera`, visible: handVisible(hand).ok && palmFacing(hand) >= 0.5, hint: `Hold your ${side} hand up beside your shoulder with your palm facing the camera, every fingertip in view.` },
+    ];
+  }
   const checks: Omit<BodyCheck, "progress">[] = session.cfg.tracking === "hand" ? [] : POSE_NEEDS[session.cfg.domain === "lower_limb" ? "lower" : "upper"].map(need => {
     const point = detection.pose?.landmarks[joints[need.joint]];
     return { id: need.joint, label: labels[need.joint] ?? need.joint, visible: !!point && (point.visibility ?? 1) >= 0.5 && point.x > 0.01 && point.x < 0.99 && point.y > 0.01 && point.y < 0.99, hint: need.say };
@@ -984,14 +1034,14 @@ function drawReachTarget(canvas: HTMLCanvasElement | null, target: { x: number; 
   drawTestingTarget(ctx, { x: (1 - target.x) * canvas.width, y: target.y * canvas.height, radius: target.radius * canvas.height, armed, contact, progress, now: performance.now(), reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
 }
 
-function MetricBar({ label, value, threshold, start = 0, ready, limit = false, personalized = false }: { label: string; value: number | undefined; threshold: number; start?: number; ready: boolean; limit?: boolean; personalized?: boolean }) {
+function MetricBar({ label, value, threshold, start = 0, ready, limit = false, personalized = false, pending = "Keep reaching" }: { label: string; value: number | undefined; threshold: number; start?: number; ready: boolean; limit?: boolean; personalized?: boolean; pending?: string }) {
   const range = threshold - start;
   const progress = personalized ? reachAngleProgress(value, threshold, start) : range > 0 && value !== undefined ? (value - start) / range : 0;
   const crossed = ready && progress >= 1;
   const learning = personalized ? "Learning your movement goal" : "Learning starting position";
   const percent = value === undefined ? 0 : Math.min(100, Math.max(0, ready ? progress / 1.4 * 100 : value / (limit ? 1.4 : 180) * 100));
   return <section className={`xe-metric ${crossed ? limit ? "is-limit" : "is-met" : ""}`}>
-    <div className="xe-metric-label"><b>{label}</b><span>{value === undefined ? "Finding you…" : !ready ? learning : crossed ? limit ? "Ease back" : "Target reached" : limit ? "Within limit" : "Keep reaching"}</span></div>
+    <div className="xe-metric-label"><b>{label}</b><span>{value === undefined ? "Finding you…" : !ready ? learning : crossed ? limit ? "Ease back" : "Target reached" : limit ? "Within limit" : pending}</span></div>
     <div className="xe-metric-track" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percent)} aria-valuetext={value === undefined ? "Tracking unavailable" : !ready ? learning : limit ? crossed ? "Above posture limit" : "Within posture limit" : `Estimated angle ${Math.round(value)} degrees; resting angle ${Math.round(start)} degrees; goal ${Math.round(threshold)} degrees${personalized ? "; learned at the practice target" : ""}`}><i style={{ width: `${percent}%` }} />{ready && <em style={{ left: `${100 / 1.4}%` }} />}</div>
   </section>;
 }
