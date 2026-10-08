@@ -59,6 +59,10 @@ export class DebugVideoRecorder {
       const fixed = (value: number | undefined) => (value === undefined ? "unknown" : value.toFixed(2));
       ctx.fillText(`Elbow ${measured(frame.values.elbow_extension, "°")} · Reach ${measured(frame.values.shoulder_flexion, "°")} · Openness ${fixed(frame.values.hand_openness)} · Carry ${fixed(frame.values.carry_across)} · Lean ${measured(frame.comps.trunk_approach_pct, "%")} · Side ${measured(frame.comps.trunk_side_lean_delta, "°")}`, 14, this.canvas.height - 39);
       ctx.fillText(`Shoulder hike ${measured(frame.comps.shoulder_hike_rel_delta, "°")} · Elbow out ${measured(frame.comps.elbow_out_deg, "°")} · Wrist ${measured(frame.comps.wrist_bend_deg, "°")} · Cup tilt ${measured(frame.comps.cup_tilt_deg, "°")} · Hand ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
+    } else if (this.session.exerciseId === "ex_lower_selective") {
+      // The knee's 3D angle; the lean, thigh and other-leg checks in % of the set-up posture (knee-target.ts).
+      ctx.fillText(`Knee ${measured(frame.values.knee_extension, "°")} · Lean forward ${measured(frame.comps.trunk_approach_pct, "%")} · Lean back ${measured(frame.comps.trunk_retreat_pct, "%")} · Side ${measured(frame.comps.trunk_side_lean_delta, "°")}`, 14, this.canvas.height - 39);
+      ctx.fillText(`Hip lift ${measured(frame.comps.hip_hike_delta, "°")} · Thigh lift ${measured(frame.comps.thigh_lift_pct, "%")} · Other leg ${measured(frame.comps.other_leg_pct, "%")} (knee ${measured(frame.comps.other_knee_delta, "°")}) · Foot ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
     } else if (this.session.exerciseId === "ex_handopen") {
       // Openness is the fingertips' mean distance from the palm's centre, in palm lengths (hand-target.ts).
       ctx.fillText(`Finger straightness ${measured(frame.values.finger_extension, "°")} · Openness ${frame.values.hand_openness === undefined ? "unknown" : frame.values.hand_openness.toFixed(2)} · Wrist bend ${measured(frame.comps.wrist_flexion_deg, "°")} · Palm turn ${measured(frame.comps.forearm_turn_deg, "°")}`, 14, this.canvas.height - 39);

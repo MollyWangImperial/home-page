@@ -78,6 +78,9 @@ export function poseJoints(side: Side) {
     shoulderOther: pick(other(side), POSE.shoulderL, POSE.shoulderR),
     hipOther: pick(other(side), POSE.hipL, POSE.hipR),
     wristOther: pick(other(side), POSE.wristL, POSE.wristR),
+    kneeOther: pick(other(side), POSE.kneeL, POSE.kneeR),
+    ankleOther: pick(other(side), POSE.ankleL, POSE.ankleR),
+    footOther: pick(other(side), POSE.footL, POSE.footR),
   };
 }
 
@@ -126,6 +129,10 @@ export type Geo = Record<"tx" | "ty" | "tz" | "hx" | "hy" | "hz" | "shoulderTilt
   palmAx?: number; palmAy?: number; palmAz?: number; palmBx?: number; palmBy?: number; palmBz?: number;
   /** Cylindrical Grasp and Transport: the upper arm's image length at set-up (grasp-target.ts elbowOutDeg). */
   graspUpperArm?: number;
+  /** Seated Knee Extension (knee-target.ts kneeGeo): the affected knee and ankle in the picture, the lower leg's image
+   * length, the other ankle in the picture and the other knee's 3D angle. */
+  kneeImgX?: number; kneeImgY?: number; kneeShin?: number; ankleImgX?: number; ankleImgY?: number;
+  otherAnkleImgX?: number; otherAnkleImgY?: number; otherKnee?: number;
 };
 
 /** Apparent face size in the image. Both dimensions must grow to indicate camera approach.

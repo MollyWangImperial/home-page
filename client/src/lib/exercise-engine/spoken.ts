@@ -30,6 +30,9 @@ export const handInViewLine = (finalRep: boolean) =>
 /** The grasp's version when only the hand's own checks were missed (the body was in view). */
 export const graspHandInViewLine = (finalRep: boolean) =>
   `Keep your hand in view while you hold and carry the cup so I can check it${finalRep ? "." : " on the next repetition."}`;
+/** Seated Knee Extension's version: the whole seated body, head to feet, carries its posture checks. */
+export const bodyInViewLine = (finalRep: boolean) =>
+  `Keep your whole body, from your head to your feet, in view so I can check your posture${finalRep ? "." : " on the next repetition."}`;
 export const reachedTargetsLine = (finalRep: boolean) =>
   finalRep ? "You reached the movement targets with a smooth movement." : "You reached the movement targets. Keep the same smooth movement on your next repetition.";
 export const finalRepAdvice = (say: string) => say.replace("On the next repetition, try", "Try").replace(" on the next try", "");
@@ -58,5 +61,8 @@ export const ANGLE_ADVICE: Record<string, Record<string, { review: string; next:
     shoulder_flexion: { review: "Lift your arm a little more from your shoulder as you reach for the cup.", next: "On the next repetition, lift your arm a little more from your shoulder as you reach for the cup." },
     finger_extension: { review: "Open your hand a little wider as you reach for the cup.", next: "On the next repetition, open your hand a little wider as you reach for the cup." },
     carry_across: { review: "Carry the cup a little further across your body.", next: "On the next repetition, carry the cup a little further across your body." },
+  },
+  ex_lower_selective: {
+    knee_extension: { review: "Straighten your knee a little more, as far as is comfortable.", next: "On the next repetition, straighten your knee a little more, as far as is comfortable." },
   },
 };

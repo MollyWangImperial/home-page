@@ -2,7 +2,7 @@
 // Frame-driven and free of DOM and speech APIs so it can run against camera frames, simulated frames
 // or a test harness. Timing comes from frame.t.
 
-import { ANGLE_ADVICE, bestLine, CLOSER_TARGET_LINE, ELBOW_ADVICE, finalRepAdvice, finishedLevelLine, goodRepsLine, keepInViewLine, handInViewLine, graspHandInViewLine, moveFurtherLine, NEXT_REP_COUNTDOWN_LINE, reachedTargetsLine, repCompleteLine, repsAheadLine, repScoreLine, SHOULDER_ADVICE, word, cap } from "./spoken";
+import { ANGLE_ADVICE, bestLine, CLOSER_TARGET_LINE, ELBOW_ADVICE, finalRepAdvice, finishedLevelLine, goodRepsLine, keepInViewLine, handInViewLine, graspHandInViewLine, bodyInViewLine, moveFurtherLine, NEXT_REP_COUNTDOWN_LINE, reachedTargetsLine, repCompleteLine, repsAheadLine, repScoreLine, SHOULDER_ADVICE, word, cap } from "./spoken";
 import { cycleFor, EVERYDAY_EXERCISE_ID, REPS_BY_RUNG, resolveExercise, DOSE_PRESETS, LEVEL_BY_RUNG, usesTargetFlow, type CycleStep, type ExerciseConfig, type Rung, type Side } from "./config";
 import { compensationStatus, medianGeo, type Frame, type Geo, type LapRest } from "./metrics";
 import { attainment, romAttainment, EXERCISE_SCORE_VERSION, isGoodRep, isMiss, repScore, sessionScore, type HoldOutcome } from "./scoring";
@@ -12,6 +12,7 @@ import { reachDemoDuration } from "./reach-demo";
 import { mouthDemoDuration } from "./mouth-demo";
 import { handDemoDuration } from "./hand-target";
 import { GRASP_STEP, graspDemoDuration } from "./grasp-target";
+import { kneeDemoDuration } from "./knee-target";
 import { MouthCalibration, simulatedMouthComps, type MouthPoint } from "./mouth-target";
 // Relative on purpose: engine files must also build where the @shared alias is not available.
 import { ADAPTATION_VERSION, DEFAULT_EXERCISE_TUNING, tunedReps, type ExerciseTuning } from "../../../../shared/alira-adaptation";
@@ -158,10 +159,16 @@ const CUE_REPEAT_MS = 4000;
 const CONTACT_GRACE_MS = 300;
 /** The grasp's checks that need the hand model, not the body: missing only these, the patient hears about the hand. */
 const GRASP_HAND_CHECKS = ["wrist_bend", "cup_tipping", "finger_extension"];
-// The grasp also needs the resting hand itself (its fingers' start), not only the arm.
-const restCalibrationFor = (id: string) => new ReachRestCalibration(id === "ex_h2m" ? ["shoulder_flexion", "elbow_flexion"] : id === "ex_handopen" ? ["finger_extension"] : id === "ex_grasp" ? ["shoulder_flexion", "elbow_extension", "finger_extension"] : undefined, id === "ex_handopen" ? 0.25 : undefined);
+/** Seated Knee Extension (knee-target.ts). */
+const KNEE_ID = "ex_lower_selective";
+// The grasp also needs the resting hand itself (its fingers' start), not only the arm. The knee rests with its foot
+// (the resting point) still to within a sixth of the lower leg, and allows its 3D angle a little more jitter.
+const restCalibrationFor = (id: string) => id === KNEE_ID ? new ReachRestCalibration(["knee_extension"], 0.15, 12)
+  : new ReachRestCalibration(id === "ex_h2m" ? ["shoulder_flexion", "elbow_flexion"] : id === "ex_handopen" ? ["finger_extension"] : id === "ex_grasp" ? ["shoulder_flexion", "elbow_extension", "finger_extension"] : undefined, id === "ex_handopen" ? 0.25 : undefined);
 /** What the practice hold learns: the goal angles, and for hand opening also how open the hand was (for its ring). */
-const targetCalibrationFor = (id: string) => new ReachTargetCalibration(id === "ex_h2m" ? ["elbow_flexion", "shoulder_flexion"] : id === "ex_handopen" ? ["finger_extension", "hand_openness"] : undefined);
+const targetCalibrationFor = (id: string) => new ReachTargetCalibration(id === "ex_h2m" ? ["elbow_flexion", "shoulder_flexion"] : id === "ex_handopen" ? ["finger_extension", "hand_openness"] : id === KNEE_ID ? ["knee_extension"] : undefined);
+/** The speed cue compares the measure now with this long ago (a short median at each end steadies it). */
+const SPEED_WINDOW_MS = 200;
 
 const freshRep = (): RepRun => ({ peaks: {}, peakExc: {}, eligible: {}, over: {}, consec: {}, maxConsec: {}, consecMs: {}, maxConsecMs: {}, strongMs: {}, maxStrongMs: {}, holds: [], ended: false, postureFrames: 0, postureGapMs: 0 });
 /**
@@ -227,6 +234,8 @@ export class ExerciseSession {
   private lastCue: { key: string; t: number } | null = null;
   /** The ready-gated step whose full instruction was given (a restart after the hand left says only the cue). */
   private instructedKey: string | null = null;
+  /** The step whose "slowly" reminder was said (once per step). */
+  private speedKey: string | null = null;
   /** Since when the hand has been ready but for the fingers, wrist or palm turn (waived after READY_WAIVE_MS). */
   private almostSince: number | null = null;
   /** Since when the current step's ready gate has been waiting. */
@@ -458,7 +467,7 @@ export class ExerciseSession {
       if (usesTargetFlow(this.cfg.id)) { this.holdAcc = 0; this.restAcc = 0; this.inZone = false; if (this.phase === "warm") this.reachTargetCalibration.reset(); }
       if (this.lostSince === null) this.lostSince = t;
       // Seated targets only need the affected hand once set up, so both ask for the same thing.
-      if (t - this.lostSince > TIMING.lostMs) this.nag(t, away ? frame.readyHint ?? READY_HINT : usesTargetFlow(this.cfg.id) ? "Bring your affected hand back into view." : frame.missing ?? "I can't see you. Move back into view of the camera.");
+      if (t - this.lostSince > TIMING.lostMs) this.nag(t, away ? frame.readyHint ?? READY_HINT : this.cfg.id === KNEE_ID ? frame.missing ?? "Keep your knees and feet in view of the camera." : usesTargetFlow(this.cfg.id) ? "Bring your affected hand back into view." : frame.missing ?? "I can't see you. Move back into view of the camera.");
       return;
     }
     if (this.lostSince !== null) {
@@ -485,10 +494,12 @@ export class ExerciseSession {
       const mouth = this.cfg.id === "ex_h2m" ? this.mouthCalibration.observe(frame) : null;
       this.reachCalibrationProgress = learned.progress;
       if (!frame.visible || !frame.lapRest) {
-        const missing = frame.missing ?? frame.lapMissing ?? (this.cfg.id === "ex_handopen" ? `Hold your ${this.opts.side} hand up in the shaded area with your palm facing the camera.` : `Rest your ${this.opts.side} hand on the visible top of your ${this.opts.side} thigh.`);
+        const missing = frame.missing ?? frame.lapMissing ?? (this.cfg.id === "ex_handopen" ? `Hold your ${this.opts.side} hand up in the shaded area with your palm facing the camera.`
+          : this.cfg.id === KNEE_ID ? "Sit tall with both feet flat on the floor, from your head to your feet in view." : `Rest your ${this.opts.side} hand on the visible top of your ${this.opts.side} thigh.`);
         if (!this.voice.busy(t)) this.nag(t, missing); else this.prompt = missing;
       } else this.prompt = this.cfg.id === "ex_h2m" && !mouth ? "Keep your face in view and your hand on your lap while I learn the mouth target."
         : this.cfg.id === "ex_handopen" ? "Keep your fingers relaxed and gently curled, palm to the camera, while I learn your starting position."
+        : this.cfg.id === KNEE_ID ? "Keep sitting tall with both feet flat on the floor while I learn your starting position."
         : "Keep your arm relaxed with your hand on your lap while I learn your starting position.";
       // Once the posture is learned, a long introduction may be cut after 12 s, as for every seated target.
       if (learned.ready && (this.cfg.id !== "ex_h2m" || mouth) && (!this.voice.busy(t) || t - this.introSpokenAt > 12000)) {
@@ -563,7 +574,7 @@ export class ExerciseSession {
       this.demoStepStart = t;
     }
     const elapsed = t - this.demoStepStart;
-    const duration = this.cfg.id === "ex_reach" ? reachDemoDuration(list[this.demoStepIndex].kind === "return") : this.cfg.id === "ex_h2m" ? mouthDemoDuration(list[this.demoStepIndex].kind === "return") : this.cfg.id === "ex_handopen" ? handDemoDuration(list[this.demoStepIndex].kind === "return") : this.cfg.id === "ex_grasp" ? graspDemoDuration(this.demoStepIndex) : TIMING.demoStepMs;
+    const duration = this.cfg.id === "ex_reach" ? reachDemoDuration(list[this.demoStepIndex].kind === "return") : this.cfg.id === "ex_h2m" ? mouthDemoDuration(list[this.demoStepIndex].kind === "return") : this.cfg.id === "ex_handopen" ? handDemoDuration(list[this.demoStepIndex].kind === "return") : this.cfg.id === "ex_grasp" ? graspDemoDuration(this.demoStepIndex) : this.cfg.id === KNEE_ID ? kneeDemoDuration(list[this.demoStepIndex].kind === "return") : TIMING.demoStepMs;
     this.demoProgress = (this.demoStepIndex + Math.min(1, elapsed / duration)) / list.length;
     if (elapsed >= duration && (!this.voice.busy(t) || elapsed > duration + TIMING.speechCapMs)) {
       if (this.demoStepIndex + 1 < list.length) {
@@ -610,6 +621,7 @@ export class ExerciseSession {
       : this.cfg.id === "ex_h2m" ? "Now one practice repetition. It is not scored. Bring your hand to the mouth circle and hold while I learn your movement, then return to your lap."
       : this.cfg.id === "ex_handopen" ? "Now one practice repetition. It is not scored. Show me your palm in the shaded area. Then open your fingers out to the ring and hold while I learn your movement, and then close your hand gently."
       : this.cfg.id === "ex_grasp" ? "Now one practice repetition. It is not scored. Reach for the cup and open your hand, close it around the cup, carry it across, let it go, then return to your lap. I will learn your movement as you go."
+      : this.cfg.id === KNEE_ID ? "Now one practice repetition. It is not scored. Straighten your knee until your foot reaches the circle and hold while I learn your movement, then lower your foot to the floor."
       : "Now one practice repetition. It is not scored, and it helps me learn your starting position.");
     this.resetRep(t);
   }
@@ -692,6 +704,42 @@ export class ExerciseSession {
     return this.cfg.romSteps.find(rom => rom.id === id)!;
   }
 
+  /** Goals learned at the practice hold, each moved to its share of the way from rest (RomStep.learnedShare). */
+  private sharedGoals(learned: Record<string, number>): Record<string, number> {
+    const out = { ...learned };
+    for (const rom of this.cfg.romSteps) {
+      const value = out[rom.metric], rest = this.rest[rom.metric];
+      if (rom.learnedShare !== undefined && value !== undefined && Number.isFinite(rest)) out[rom.metric] = rest + rom.learnedShare * (value - rest);
+    }
+    return out;
+  }
+
+  /** Moving too fast (kicking the foot up, dropping it): a spoken reminder at most once per step, never scored. */
+  private watchSpeed(step: CycleStep, t: number) {
+    const cue = this.cfg.speedCue;
+    if (!cue || (step.kind !== "reach" && step.kind !== "return")) return;
+    const key = `${this.phase}:${this.repNumber}:${this.stepIdx}`;
+    if (this.speedKey === key) return;
+    // The measure's median, and its frames' mean time, in a window of recent frames (from, to] ms before now.
+    const at = (from: number, to: number) => {
+      const frames = this.recent.filter(frame => frame.t > t - from && frame.t <= t - to && Number.isFinite(frame.values[cue.metric]));
+      if (!frames.length) return undefined;
+      const values = frames.map(frame => frame.values[cue.metric]!).sort((a, b) => a - b);
+      return { value: values[Math.floor(values.length / 2)], t: frames.reduce((sum, frame) => sum + frame.t, 0) / frames.length };
+    };
+    // Now against 150-300 ms ago: just after a countdown there may be only a few frames of history.
+    const now = at(100, 0), before = at(SPEED_WINDOW_MS + 100, SPEED_WINDOW_MS - 50);
+    if (!now || !before || now.t - before.t < 50) return;
+    const rate = (now.value - before.value) / ((now.t - before.t) / 1000);
+    const lowering = step.kind === "return";
+    // A reminder said once the target is touched would pause (and so cut short) the hold already under way.
+    if (!lowering && (this.touched || this.holdAcc > 0)) return;
+    if (lowering ? rate <= -cue.degPerS : rate >= cue.degPerS) {
+      this.speedKey = key;
+      this.voice.say(lowering ? cue.lower : cue.lift);
+    }
+  }
+
   private excursion(metric: string, value: number | undefined): number {
     return value === undefined ? 0 : value - (this.rest[metric] ?? 0);
   }
@@ -765,6 +813,7 @@ export class ExerciseSession {
       this.stepStart = t;
       this.lastMoveT = t;
     }
+    this.watchSpeed(step, t);
 
     // A close step the camera decides (the grasp around the drawn cup) is held like a movement step.
     if (step.kind === "return" || (step.kind === "close" && !step.contactStep)) return this.restFrame(frame, step, t, dt);
@@ -795,6 +844,12 @@ export class ExerciseSession {
     const unsure = !zone && frame.targetUnsure === true;
     this.inZone = zone || unsure;
     if (progress > 0.15) this.lastMoveT = t;
+    // Seated Knee Extension judges the other leg within each repetition, from where it rests as the knee starts to
+    // straighten: a foot moved between repetitions is not the other leg helping.
+    if (this.cfg.id === KNEE_ID && this.stepIdx === 0 && this.ref && !this.touched && progress < 0.1) {
+      const base = medianGeo(this.recent.slice(-5).map(recent => recent.geo).filter(Boolean) as Geo[]);
+      if (base) this.ref = { ...this.ref, otherAnkleImgX: base.otherAnkleImgX ?? this.ref.otherAnkleImgX, otherAnkleImgY: base.otherAnkleImgY ?? this.ref.otherAnkleImgY, otherKnee: base.otherKnee ?? this.ref.otherKnee };
+    }
 
     // rep-level peaks + compensation frames (movement frames only). Hand opening judges posture through the
     // whole opening step: the hand is held up from its start, and a hand that barely opens still has a posture.
@@ -828,11 +883,13 @@ export class ExerciseSession {
           if (!learned) {
             this.holdAcc = 0;
             this.reachTargetCalibration.reset();
-            this.nag(t, this.cfg.id === "ex_handopen" ? "Keep your fingers open at the ring and your whole hand in view while I learn your movement." : "Keep your hand in the circle and your whole arm in view while I learn your movement.");
+            this.nag(t, this.cfg.id === "ex_handopen" ? "Keep your fingers open at the ring and your whole hand in view while I learn your movement."
+              : this.cfg.id === KNEE_ID ? "Keep your knee straight at the circle and your feet in view while I learn your movement."
+              : "Keep your hand in the circle and your whole arm in view while I learn your movement.");
             return;
           }
           // Steps that learn their own measures add them to what earlier steps of the practice learned.
-          this.learnedReach = step.learn ? { ...(this.learnedReach ?? {}), ...learned } : learned;
+          this.learnedReach = step.learn ? { ...(this.learnedReach ?? {}), ...this.sharedGoals(learned) } : this.sharedGoals(learned);
         }
         return this.completeMovement(t, "full");
       }
@@ -976,8 +1033,9 @@ export class ExerciseSession {
 
     // A posture check is unmeasured when it could have counted but the camera could not see it; a hand that never
     // came near the mouth leaves hand-to-mouth posture with nothing to judge, not unmeasured.
-    // A cup never held (the grasp ran out of time) has no tipping to judge either.
-    const unmeasured = this.cfg.compensations.filter(comp => (run.eligible[comp.id] ?? 0) < comp.minFrames && (this.cfg.id !== "ex_h2m" || run.postureFrames >= comp.minFrames)
+    // A cup never held (the grasp ran out of time) has no tipping to judge either, and a knee that hardly
+    // straightened leaves its posture checks with nothing to judge, not unmeasured.
+    const unmeasured = this.cfg.compensations.filter(comp => (run.eligible[comp.id] ?? 0) < comp.minFrames && ((this.cfg.id !== "ex_h2m" && this.cfg.id !== KNEE_ID) || run.postureFrames >= comp.minFrames)
       && !(this.cfg.id === "ex_grasp" && comp.id === "cup_tipping" && run.holds[GRASP_STEP.grasp] !== "full")).map(comp => comp.id);
     if (usesTargetFlow(this.cfg.id)) unmeasured.push(...roms.filter(rom => !Number.isFinite(rom.start) || !Number.isFinite(rom.target)).map(rom => rom.id));
     const result: RepResult = { index: this.repNumber, rung: this.rung, attainment: att, hold, compensations: compsHit, score, good: !unmeasured.length && isGoodRep(att, hold, compsHit.length, this.tuned.goodRepShare), peaks: { ...run.peaks }, unmeasured, startingAngles: { ...starts }, targets: { ...targets } };
@@ -1009,6 +1067,7 @@ export class ExerciseSession {
       }
       if (unmeasured.length) this.reviewAdvice.push(this.cfg.id === "ex_handopen" ? handInViewLine(finalRep)
         : this.cfg.id === "ex_grasp" && unmeasured.every(id => GRASP_HAND_CHECKS.includes(id)) ? graspHandInViewLine(finalRep)
+        : this.cfg.id === KNEE_ID ? bodyInViewLine(finalRep)
         : keepInViewLine(finalRep));
       if (!this.reviewAdvice.length) this.reviewAdvice = [reachedTargetsLine(finalRep)];
       if (result.rung !== this.rung) this.reviewAdvice.push(CLOSER_TARGET_LINE);
@@ -1163,7 +1222,7 @@ export function simFrame(t: number, cfg: ExerciseConfig, targets: Record<string,
     comps[comp.metric] = input.compensations.includes(comp.id) ? comp.thresholdDeg + 6 : 1;
   });
   return { t, values, comps, visible: input.visible !== false, missing: input.visible === false ? "Sit in front of the camera so I can see you." : undefined,
-    ...(usesTargetFlow(cfg.id) ? { lapRest: input.level <= 0.05 ? { x: 0.6, y: 0.8, bodyScale: 0.4 } : undefined, lapMissing: cfg.id === "ex_handopen" ? "Let your fingers relax, with your palm facing the camera." : "Lower your affected hand and rest it on your lap." } : {}),
+    ...(usesTargetFlow(cfg.id) ? { lapRest: input.level <= 0.05 ? { x: 0.6, y: 0.8, bodyScale: 0.4 } : undefined, lapMissing: cfg.id === "ex_handopen" ? "Let your fingers relax, with your palm facing the camera." : cfg.id === KNEE_ID ? "Rest your foot flat on the floor." : "Lower your affected hand and rest it on your lap." } : {}),
     ...(cfg.id === "ex_h2m" ? { mouthPoint: { x: 0.5, y: 0.3 } } : {}) };
 }
 

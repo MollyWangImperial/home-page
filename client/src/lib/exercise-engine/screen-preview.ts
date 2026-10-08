@@ -34,14 +34,16 @@ export function exercisePreviewScreen(value: string | null): ExercisePreviewScre
 export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung, side: Side, exerciseId = "ex_reach") {
   const cfg = EXERCISES[exerciseId];
   const planned = REPS_BY_RUNG[rung];
-  const hand = cfg.id === "ex_handopen", grasp = cfg.id === "ex_grasp";
-  const targets: Record<string, number> = cfg.id === "ex_h2m" ? { elbow_flexion: 85, shoulder_flexion: 40 } : hand ? { finger_extension: 165 } : grasp ? { elbow_extension: 140, shoulder_flexion: 45, finger_extension: 165, carry_across: 0.95 } : { shoulder_flexion: 40, elbow_extension: 129 };
-  const startingAngles: Record<string, number> = cfg.id === "ex_h2m" ? { elbow_flexion: 25, shoulder_flexion: 8 } : hand ? { finger_extension: 120 } : grasp ? { elbow_extension: 100, shoulder_flexion: 8, finger_extension: 120, carry_across: 0 } : { shoulder_flexion: 8, elbow_extension: 100 };
+  const hand = cfg.id === "ex_handopen", grasp = cfg.id === "ex_grasp", knee = cfg.id === "ex_lower_selective";
+  const targets: Record<string, number> = cfg.id === "ex_h2m" ? { elbow_flexion: 85, shoulder_flexion: 40 } : hand ? { finger_extension: 165 } : grasp ? { elbow_extension: 140, shoulder_flexion: 45, finger_extension: 165, carry_across: 0.95 } : knee ? { knee_extension: 125 } : { shoulder_flexion: 40, elbow_extension: 129 };
+  const startingAngles: Record<string, number> = cfg.id === "ex_h2m" ? { elbow_flexion: 25, shoulder_flexion: 8 } : hand ? { finger_extension: 120 } : grasp ? { elbow_extension: 100, shoulder_flexion: 8, finger_extension: 120, carry_across: 0 } : knee ? { knee_extension: 95 } : { shoulder_flexion: 8, elbow_extension: 100 };
   // The return step: the second of two for the other exercises, the fifth for grasp and transport.
   const back = grasp ? 4 : 1;
   const lean = cfg.compensations[0].id;
+  // The second check in a repetition with two (the shoulder hike for the arm exercises).
+  const second = cfg.compensations.find(comp => comp.id === "shoulder_hike")?.id ?? cfg.compensations[1]?.id ?? lean;
   const reps: RepResult[] = Array.from({ length: planned }, (_, index) => {
-    const compensations = index === 1 ? [lean] : index === 2 ? [lean, "shoulder_hike"] : [];
+    const compensations = index === 1 ? [lean] : index === 2 ? [lean, second] : [];
     return { index: index + 1, rung, attainment: 1, hold: "full", compensations, score: compensations.length === 2 ? 15 : compensations.length === 1 ? 30 : 100, good: !compensations.length, peaks: { ...targets }, startingAngles: { ...startingAngles }, targets: { ...targets }, unmeasured: [] };
   });
   const phase = screen === "setup" ? "setup" : screen.startsWith("demo") ? "demo" : screen.startsWith("warm") ? "warm" : screen === "results" || screen === "redo" ? "done" : "reps";
@@ -50,13 +52,13 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
   const complete = screen === "complete" || screen === "final-complete";
   const final = screen === "final-complete" || phase === "done";
   const scored = phase === "reps" || phase === "done";
-  const advice = [cfg.feedback.find(rule => rule.comp === lean)!.say, cfg.feedback.find(rule => rule.comp === "shoulder_hike")!.say];
+  const advice = [lean, second].map(id => cfg.feedback.find(rule => rule.comp === id)?.say).filter((say): say is string => Boolean(say));
   const snapshot: Snapshot = {
     phase, beat: phase === "setup" ? 1 : phase === "demo" ? 2 : phase === "warm" ? 3 : phase === "done" ? 6 : 4,
     rung, rungStart: rung, repIndex: phase === "warm" ? 0 : final ? planned : 2, repsPlanned: planned,
     stepIndex: returning ? back : 0, stepCount: cfg.cycle.length, caption: cfg.cycle[returning ? back : 0].caption, kind: returning ? "return" : hand ? "open" : "reach",
     liveAttainment: 0.78, inZone: !waiting, targetArmed: !waiting && phase !== "setup", holdProgress: waiting ? 0 : 0.48,
-    prompt: screen === "setup" ? hand ? `Hold your ${side} hand up in the shaded area with your palm facing the camera.` : grasp ? `Rest your ${side} hand on the visible top of your ${side} thigh.` : `Bring your ${side} hand into view and rest it on your lap.` : "",
+    prompt: screen === "setup" ? hand ? `Hold your ${side} hand up in the shaded area with your palm facing the camera.` : grasp ? `Rest your ${side} hand on the visible top of your ${side} thigh.` : knee ? "Put both feet flat on the floor, about hip-width apart." : `Bring your ${side} hand into view and rest it on your lap.` : "",
     idlePrompt: screen === "idle", rescued: screen === "rescue", arrow: screen === "rescue" ? lean : null,
     feedback: screen === "rescue" ? "Let's bring the target a little closer." : "",
     reps: final ? reps : complete || screen === "countdown" ? reps.slice(0, 3) : scored ? [reps[0]] : [],
@@ -64,8 +66,8 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
     calibrationProgress: 0.55, targetsReady: scored, startingAngles,
     record: phase === "done" ? {
       engine: "screen-preview", exercise_id: cfg.id, rung_start: rung, rung_end: rung, reps_planned: planned,
-      repetition_scores: reps.map(rep => rep.score), quality_reps: reps.filter(rep => rep.good).length, best_attainment: 1, best_value: cfg.id === "ex_h2m" ? 85 : hand ? 165 : grasp ? 140 : 40, best_label: cfg.id === "ex_h2m" ? "elbow bend" : hand ? "finger opening" : "reach",
-      compensation_counts: { [lean]: 2, shoulder_hike: 1 }, hold_pass_count: planned, not_attempted: false, assisted: false, chair_back: false,
+      repetition_scores: reps.map(rep => rep.score), quality_reps: reps.filter(rep => rep.good).length, best_attainment: 1, best_value: cfg.id === "ex_h2m" ? 85 : hand ? 165 : grasp ? 140 : knee ? 125 : 40, best_label: cfg.id === "ex_h2m" ? "elbow bend" : hand ? "finger opening" : knee ? cfg.bestLabel : "reach",
+      compensation_counts: second === lean ? { [lean]: 3 } : { [lean]: 2, [second]: 1 }, hold_pass_count: planned, not_attempted: false, assisted: false, chair_back: false,
       score: Math.round(reps.reduce((sum, rep) => sum + rep.score, 0) / planned), wrap: "", finished_at: "screen-preview",
     } : null,
     paused: false, review: complete ? "complete" : screen === "countdown" ? "countdown" : null,
@@ -73,7 +75,15 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
     countdownProgress: 0.5,
     awaitingReady: hand && screen === "warm-waiting",
   };
-  const bodyChecks = (hand ? [
+  const bodyChecks = knee ? [
+    { id: "nose", label: "Face" },
+    { id: "shoulders", label: "Both shoulders" },
+    { id: "hips", label: "Both hips" },
+    { id: "knees", label: "Both knees" },
+    { id: "feet", label: "Both feet" },
+    { id: "position", label: "Feet flat, space around you" },
+    { id: "lighting", label: "Lighting" },
+  ].map(check => ({ ...check, visible: check.id !== "position", progress: check.id === "position" ? 0.2 : 1, hint: "Put both feet flat on the floor, about hip-width apart." })) : (hand ? [
     { id: "nose", label: "Face" },
     { id: "shoulder", label: `${side === "right" ? "Right" : "Left"} shoulder` },
     { id: "shoulderOther", label: "Other shoulder" },

@@ -28,10 +28,11 @@ export const usesSeatedTargets = (id: string) => id === "ex_reach" || id === "ex
 /**
  * Exercises run with the on-screen target flow: a resting position learned at set-up, a demonstration,
  * a practice repetition that learns the personal goal, then scored repetitions on contact targets after a
- * countdown. The seated ones (above), Active Hand Opening (a ring around the palm), and Cylindrical Grasp
- * and Transport (a drawn cup picked up, carried across the body and set down).
+ * countdown. The seated ones (above), Active Hand Opening (a ring around the palm), Cylindrical Grasp
+ * and Transport (a drawn cup picked up, carried across the body and set down), and Seated Knee Extension
+ * (a knee dial beside the leg whose foot reaches the circle as the knee straightens).
  */
-export const usesTargetFlow = (id: string) => usesSeatedTargets(id) || id === "ex_handopen" || id === "ex_grasp";
+export const usesTargetFlow = (id: string) => usesSeatedTargets(id) || id === "ex_handopen" || id === "ex_grasp" || id === "ex_lower_selective";
 
 /** SESSION_DIFFICULTY_PRESETS from backend/server.py. */
 export const DOSE_PRESETS: Record<Level, { repFactor: number; targetYDelta: number; targetDistanceScale: number; radiusScale: number; holdScale: number }> = {
@@ -51,6 +52,8 @@ export type RomStep = {
   weight: number;
   /** Cycle step indices where this is measured; omitted = every movement step. */
   steps?: number[];
+  /** Target flow: the scored goal is this share of the way from rest to the practice hold (omitted: the hold itself). */
+  learnedShare?: number;
 };
 
 export type Compensation = {
@@ -124,6 +127,11 @@ export type ExerciseConfig = {
   bestRomId: string;
   /** Cycle steps that the rung rescue makes easier, in the plan's words. */
   rescueNote: string;
+  /**
+   * A spoken reminder to move slowly when a measure changes faster than this (degrees per second): `lift` while it
+   * rises on a movement step, `lower` while it falls on the return. Said at most once per step; never scored.
+   */
+  speedCue?: { metric: string; degPerS: number; lift: string; lower: string };
 };
 
 const cr = (id: string, label: string, metric: string, thresholdDeg: number, minFrames: number, minRatio: number, correction: string, extra: Partial<Compensation> = {}): Compensation => ({
@@ -375,29 +383,49 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     domain: "lower_limb",
     chain: "Leg straightens",
     dailyTask: "Standing up from a chair, stepping",
-    framing: "Front, seated, hips to feet in frame",
+    // Seated the whole time, so the patient never moves out of view; the face and shoulders carry the trunk checks.
+    framing: "Front, seated, head to feet in view, both feet flat on the floor",
     tracking: "pose",
     ghost: "knee",
-    setupVoice: "Welcome. Sit in a stable chair with both feet supported, and keep a carer nearby if you need help with balance. We will practise one slow knee movement at a time.",
-    calibrationInstruction: "Move the phone back until I can see your hips, knees and feet. Sit still with both feet supported.",
-    romSteps: [{ id: "knee_extension", label: "Knee extension", metric: "knee_extension", targets: { easy: 125, medium: 140, difficult: 152 }, weight: 1 }],
+    setupVoice: "Welcome. We are going to practise straightening your knee while you sit. Sit in a stable chair with a back, with both feet flat on the floor, and keep a carer nearby if you need help with balance. Place the camera about two metres in front of you, at about knee to hip height, so I can see you from your head to your feet.",
+    calibrationInstruction: "Sit tall with your back against the chair, both feet flat on the floor and your hands resting on your thighs. Make sure the room is well lit, with the light in front of you. Hold still while I learn your starting position.",
+    // The knee angle from the pose model's 3D landmarks (knee-target.ts); the scored goal sits just inside the practice hold.
+    romSteps: [{ id: "knee_extension", label: "Knee extension", metric: "knee_extension", targets: { easy: 125, medium: 140, difficult: 152 }, weight: 1, learnedShare: 0.9 }],
     compensations: [
-      cr("hip_hike", "hip hike", "hip_hike_delta", 8, 8, 0.35, "Keep both hips settled on the chair while the lower leg moves."),
-      cr("trunk_lean", "trunk leaning back", "trunk_lean_delta", 10, 8, 0.35, "Stay tall and avoid leaning back to lift the foot."),
+      // Engineering defaults, measured against the upright set-up posture while the knee straightens (step 0).
+      // Leaning back: the shoulders and the face both smaller in the picture (the mirror of leaning forward). With the
+      // camera about 2 m away (head to feet) a lean changes the size half as much as at arm's length, so both leans
+      // use 4% (about a 10 degree lean) where the arm exercises use 6%.
+      cr("trunk_lean", "leaning back", "trunk_retreat_pct", 4, 4, 0, "Sit tall and let your knee do the lifting.", { unit: "%", minConsecutiveMs: 300, steps: [0] }),
+      cr("trunk_forward", "leaning forward", "trunk_approach_pct", 4, 4, 0, "Sit tall with your back against the chair.", { unit: "%", minConsecutiveMs: 300, steps: [0] }),
+      cr("trunk_side_lean", "leaning sideways", "trunk_side_lean_delta", 8, 4, 0, "Keep your weight even on both hips.", { minConsecutiveMs: 300, steps: [0] }),
+      // The affected hip rising above the other (the backend's pelvic hiking, at its scoring limit).
+      cr("hip_hike", "hip lifting", "hip_hike_delta", 10, 4, 0, "Keep both hips settled on the chair.", { minConsecutiveMs: 400, steps: [0] }),
+      // The knee rising in the picture: the hip flexors lifting the thigh instead of the knee straightening.
+      cr("thigh_lift", "thigh lifting", "thigh_lift_pct", 15, 4, 0, "Keep your thigh resting on the chair and let your knee straighten.", { unit: "%", minConsecutiveMs: 300, steps: [0] }),
+      // The other foot moving in the picture, or the other knee straightening with it (mirror movement or helping).
+      cr("other_leg", "other leg helping", "other_leg_pct", 20, 4, 0, "Keep your other foot still on the floor.", { unit: "%", minConsecutiveMs: 400, alternative: [{ metric: "other_knee_delta", threshold: 20 }], steps: [0] }),
     ],
     cycle: [
-      { caption: "Straighten your knee and hold", voice: "Slowly straighten your affected knee within a comfortable range. Keep your thigh supported and breathe normally. Hold it there.", kind: "reach", gate: ["knee_extension"], holdMs: 1500 },
-      ret("Lower slowly", "Now gently bend the knee and lower your foot back to the floor, slowly."),
+      { caption: "Straighten your knee and hold", voice: "Slowly straighten your knee until your foot reaches the circle, keeping your thigh on the chair and sitting tall. Hold it there.", kind: "reach", gate: ["knee_extension"], holdMs: 1500, cue: "Straighten your knee." },
+      { ...ret("Lower your foot to the floor", "Now slowly bend your knee and lower your foot back to the floor."), cue: "Lower slowly." },
     ],
     feedback: [
-      { comp: "hip_hike", say: "Your hip lifted off the chair. Keep both hips settled while the lower leg moves." },
-      { comp: "trunk_lean", say: "You leaned back to lift the foot. Stay tall on the next one." },
-      { attainmentBelow: 0.7, say: "Almost straight. On the next try, reach a little further if it feels comfortable." },
+      // Worded like the other target-flow exercises, so the final repetition's version drops "on the next ..." the same way.
+      { comp: "trunk_lean", say: "I noticed you leaned back to lift your foot. On the next repetition, try sitting tall and let your knee do the work." },
+      { comp: "trunk_forward", say: "I noticed you leaned forward as you straightened your knee. On the next repetition, try sitting tall with your back against the chair." },
+      { comp: "trunk_side_lean", say: "I noticed you leaned to one side. On the next repetition, try keeping your weight even on both hips." },
+      { comp: "hip_hike", say: "I noticed your hip lifted off the chair. On the next repetition, try keeping both hips settled on the seat." },
+      { comp: "thigh_lift", say: "I noticed your thigh lifted off the chair. On the next repetition, try keeping your thigh resting on the seat as your knee straightens." },
+      { comp: "other_leg", say: "I noticed your other leg moved to help. On the next repetition, try keeping your other foot still on the floor." },
+      { attainmentBelow: 0.7, say: "Nearly there. On the next repetition, try straightening your knee a little further if it feels comfortable." },
     ],
-    praise: "Well done. Keep the movement slow and let the leg do as much as it safely can.",
+    praise: "Lovely controlled movement. Keep straightening slowly and lowering gently.",
     bestLabel: "knee straightening",
     bestRomId: "knee_extension",
-    rescueNote: "Lower hold, smaller angle target",
+    rescueNote: "Smaller knee target",
+    // Kicking the foot up or dropping it: a reminder only, the hold already keeps a kick from counting.
+    speedCue: { metric: "knee_extension", degPerS: 150, lift: "Nice and slow as you straighten.", lower: "Lower your foot slowly." },
   },
   ex_ankle_dorsiflexion: {
     id: "ex_ankle_dorsiflexion",

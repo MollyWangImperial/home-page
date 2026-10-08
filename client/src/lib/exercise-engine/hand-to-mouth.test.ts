@@ -464,8 +464,10 @@ function seated(exerciseId: string, voice: Voice = quiet(), reps = 1) {
   return { session, push, until, toScoredRep };
 }
 const SEATED = ["ex_reach", "ex_h2m"];
-/** Every exercise on the shared target flow: the seated ones and Active Hand Opening. */
-const TARGET_FLOW = [...SEATED, "ex_handopen"];
+/** Every exercise on the shared target flow: the seated ones, Active Hand Opening and Seated Knee Extension. */
+const TARGET_FLOW = [...SEATED, "ex_handopen", "ex_lower_selective"];
+/** The arm and hand exercises, which ask for the affected hand when it leaves the view (the knee asks for the legs). */
+const HAND_FLOW = TARGET_FLOW.filter(id => id !== "ex_lower_selective");
 
 describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
   it.each(TARGET_FLOW)("%s: each scored repetition starts after the countdown, with each step instructed only in practice", id => {
@@ -508,7 +510,7 @@ describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
     for (let n = 0; n < 650 && !p.session.snapshot().review; n++) p.push({ contact: false, level: 0 });
     expect(p.session.snapshot().reps[0]).toMatchObject({ hold: "none", score: 0 });
   });
-  it.each(TARGET_FLOW)("%s: asks for the affected hand back when it leaves the view mid-repetition", id => {
+  it.each(HAND_FLOW)("%s: asks for the affected hand back when it leaves the view mid-repetition", id => {
     const said: string[] = [];
     const p = seated(id, quiet(said));
     p.toScoredRep();
@@ -533,6 +535,7 @@ describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
     ["ex_h2m", { elbow_flexion: 40 }, [MOUTH_ELBOW_ADVICE]],
     ["ex_h2m", { shoulder_flexion: 12 }, [MOUTH_SHOULDER_ADVICE]],
     ["ex_handopen", { finger_extension: 115 }, ["Open your fingers a little wider, out to the ring."]],
+    ["ex_lower_selective", { knee_extension: 110 }, ["Straighten your knee a little more, as far as is comfortable."]],
   ] as const)("%s: the review names the angle that fell short, in the movement's own words (%j)", (id, values, advice) => {
     const p = seated(id);
     p.toScoredRep();

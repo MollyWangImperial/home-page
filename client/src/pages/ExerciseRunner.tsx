@@ -1,7 +1,7 @@
 import { drawTestingTarget, drawTargetCompletion } from "@/lib/exercise-engine/target-visual";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useRoute, useSearch } from "wouter";
-import { ArrowLeft, Camera, Check, Eye, Hand, LoaderCircle, Mic, MicOff, Play, RotateCcw, SkipForward, Sparkles } from "lucide-react";
+import { ArrowLeft, Camera, Check, Eye, Footprints, Hand, LoaderCircle, Mic, MicOff, Play, RotateCcw, SkipForward, Sparkles } from "lucide-react";
 import { useSettings } from "@/components/AccountSettings";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { buildRung, EVERYDAY_EXERCISE_ID, EXERCISES, DOMAIN_LABEL, LEVEL_BY_RUNG, resolveExercise, usesSeatedTargets, usesTargetFlow, type Rung, type Side } from "@/lib/exercise-engine/config";
@@ -16,10 +16,11 @@ import { MouthHold, type MouthHoldResult } from "@/lib/exercise-engine/mouth-hol
 import { CupTrack } from "@/lib/exercise-engine/cup-track";
 import { affectedHand, drawHandDemo, drawHandZone, drawRingLabel, followZone, handCovers, handDemoState, handGhostContact, handGhostTarget, handOpenFrame, handOpenness, handRingTarget, handZone, inHandZone, palmFacing, palmRing, REST_OPEN_MAX, startLimit, waiveLimit, type HandZone } from "@/lib/exercise-engine/hand-target";
 import { CupCarry, drawCup, drawGraspDemo, drawGraspGhost, followLayout, graspDemoState, GRASP_STEP, graspFrame, graspGhostContact, graspGhostTarget, graspHand, graspLapRadius, graspLayout, graspPoint, graspRings, graspTarget, type GraspLayout } from "@/lib/exercise-engine/grasp-target";
+import { dialCircle, drawKneeDemo, drawKneeDial, followDial, KNEE_STEP, kneeDemoState, kneeDial, kneeFrame, kneeGhostContact, kneeGhostTarget, kneePracticeGoal, kneeRestCheck, KneeTarget, type KneeDial } from "@/lib/exercise-engine/knee-target";
 import { LightingProbe, type Lighting } from "@/lib/exercise-engine/lighting";
 import { TARGET_COMPLETION_MS } from "@/lib/exercise-engine/target-timing";
 import { NEXT_REP_COUNTDOWN_LINE } from "@/lib/exercise-engine/spoken";
-import { compensationStatus, HAND_LINES, POSE_LINES, handFrameValues, handVisible, POSE_NEEDS, poseFrameValues, poseJoints, poseVisibility, reachLapRest, type Frame } from "@/lib/exercise-engine/metrics";
+import { compensationStatus, HAND_LINES, POSE_LINES, handFrameValues, handVisible, inView, POSE_NEEDS, poseFrameValues, poseJoints, poseVisibility, reachLapRest, type Frame } from "@/lib/exercise-engine/metrics";
 import { ExerciseSession, simFrame, type Snapshot } from "@/lib/exercise-engine/session";
 import { chooseHand, createTracker, openCamera, type Detection, type Tracker } from "@/lib/exercise-engine/tracker";
 import { createVoice, type RunnerVoice } from "@/lib/exercise-engine/voice";
@@ -46,9 +47,9 @@ type Live = { label: string; value: number | undefined; target: number; start: n
 type CompLive = { label: string; value: number | undefined; limit: number }[];
 
 // The target flow's demonstration, its states and the simulator's target, for each exercise that uses it.
-const ghostTargetFor = (id: string) => (id === "ex_h2m" ? mouthGhostTarget : id === "ex_handopen" ? handGhostTarget : reachGhostTarget);
-const drawDemoFor = (id: string) => (id === "ex_h2m" ? drawMouthDemo : id === "ex_handopen" ? drawHandDemo : drawReachDemo);
-const demoStateFor = (id: string) => (id === "ex_h2m" ? mouthDemoState : id === "ex_handopen" ? handDemoState : reachDemoState);
+const ghostTargetFor = (id: string) => (id === "ex_h2m" ? mouthGhostTarget : id === "ex_handopen" ? handGhostTarget : id === KNEE_ID ? kneeGhostTarget : reachGhostTarget);
+const drawDemoFor = (id: string) => (id === "ex_h2m" ? drawMouthDemo : id === "ex_handopen" ? drawHandDemo : id === KNEE_ID ? drawKneeDemo : drawReachDemo);
+const demoStateFor = (id: string) => (id === "ex_h2m" ? mouthDemoState : id === "ex_handopen" ? handDemoState : id === KNEE_ID ? kneeDemoState : reachDemoState);
 /** Hand opening's rings follow the palm, steadied so landmark jitter does not shake them. */
 const RING_FOLLOW = 0.35;
 /** Grasp and transport: each step's label beside its circle, and the step names in the coach card. */
@@ -56,6 +57,11 @@ const GRASP_LABELS = ["Cup", "Grasp", "Across", "Let go", "Lap"];
 const GRASP_STEPS = ["Reach & open", "Grasp", "Carry", "Let go", "Back"];
 const GRASP_HINTS = ["Reach to the cup, opening your hand", "Close your hand around the cup and hold", "Carry the cup across to the other circle", "Open your hand to let go of the cup", "Bring your hand back to the lap circle and pause"];
 const GRASP_HAND_HINT = "Rest your hand on your thigh where the camera can see your whole hand.";
+/** Seated Knee Extension: the knee dial's circle labels and the step names in the coach card. */
+const KNEE_ID = "ex_lower_selective";
+const KNEE_LABELS = ["Straighten", "Foot down"];
+const KNEE_STEPS = ["Straighten", "Lower"];
+const KNEE_DIAL_HINT = "Move the camera so you are in the middle of the picture, with space beside your knees.";
 
 export default function ExerciseRunner() {
   const [, params] = useRoute("/exercise/:id");
@@ -112,6 +118,13 @@ export default function ExerciseRunner() {
   const graspLast = useRef<{ key: string; step: number } | null>(null);
   const lightingProbe = useRef(new LightingProbe());
   const lighting = useRef<Lighting | null>(null);
+  // Seated Knee Extension: the knee dial beside the leg (placed at set-up), the knee's target, and the circle that
+  // just completed (for its animation).
+  const kneeDialRef = useRef<KneeDial | null>(null);
+  const kneeTarget = useRef(new KneeTarget());
+  const kneeShown = useRef<{ progress: number; contact: boolean } | null>(null);
+  const kneeDone = useRef<{ key: string; step: number; startedAt: number } | null>(null);
+  const kneeLast = useRef<{ key: string; step: number } | null>(null);
   const [said, setSaid] = useState("");
   const [muted, setMuted] = useState(false);
   const [englishAvailable, setEnglishAvailable] = useState(true);
@@ -239,6 +252,7 @@ export default function ExerciseRunner() {
       if (usesTargetFlow(session.cfg.id) && (session.snapshot().phase === "warm" || session.snapshot().phase === "reps")) {
         const level = Math.min(1, Math.max(0, s.level));
         if (session.cfg.id === "ex_handopen") frame.targetContact = handGhostContact(level, step?.kind === "return");
+        else if (session.cfg.id === KNEE_ID) frame.targetContact = kneeGhostContact(level, step?.kind === "return");
         else if (grasp) frame.targetContact = graspGhostContact(level, snapNow.stepIndex);
         else {
           const hand = (session.cfg.id === "ex_h2m" ? mouthGhostPose : reachGhostPose)(level).wrist;
@@ -275,22 +289,29 @@ export default function ExerciseRunner() {
           }
           // Grasp and transport: the cup's circles follow the body during set-up and stay where they were learned;
           // the lighting is checked there too, and set-up waits for good light (or, after a long wait, carries on).
-          const graspNow = session.cfg.id === "ex_grasp";
-          if (graspNow && now.phase === "setup") {
-            graspLayoutRef.current = followLayout(graspLayoutRef.current, graspLayout(tracked.pose, opts.side, video.videoWidth / video.videoHeight, now.rung));
+          const graspNow = session.cfg.id === "ex_grasp", kneeNow = session.cfg.id === KNEE_ID;
+          // Seated Knee Extension: the knee dial follows the leg during set-up and stays where it was learned; the
+          // lighting is checked there too, as for grasp and transport.
+          // The dial as this frame places it: set-up waits until it fits beside the knee now, not only once before.
+          const dialNow = kneeNow && now.phase === "setup" ? kneeDial(tracked.pose, opts.side, video.videoWidth / video.videoHeight) : null;
+          if ((graspNow || kneeNow) && now.phase === "setup") {
+            if (graspNow) graspLayoutRef.current = followLayout(graspLayoutRef.current, graspLayout(tracked.pose, opts.side, video.videoWidth / video.videoHeight, now.rung));
+            else kneeDialRef.current = followDial(kneeDialRef.current, dialNow);
             lighting.current = lightingProbe.current.sample(video, tracked.pose, t);
           }
           frame = buildFrame(session, detection, opts.side, t, video.videoWidth / video.videoHeight, { zone: handZoneRef.current, gripAxis: cupCarry.current.grip });
-          if (graspNow && now.phase === "setup") {
+          if ((graspNow || kneeNow) && now.phase === "setup") {
             const light = lighting.current;
-            if (!graspLayoutRef.current) { frame.lapRest = undefined; frame.lapMissing = "Sit back so your shoulders and both hips are in view."; }
-            else if (handOpenness(graspHand(detection, opts.side)) === undefined) { frame.lapRest = undefined; frame.lapMissing = GRASP_HAND_HINT; }
-            else if (light && !light.ok && !lightingProbe.current.waived()) { frame.lapRest = undefined; frame.lapMissing = light.hint; }
+            if (graspNow && !graspLayoutRef.current) { frame.lapRest = undefined; frame.lapMissing = "Sit back so your shoulders and both hips are in view."; }
+            else if (graspNow && handOpenness(graspHand(detection, opts.side)) === undefined) { frame.lapRest = undefined; frame.lapMissing = GRASP_HAND_HINT; }
+            else if (kneeNow && frame.lapRest && (!dialNow || !kneeDialRef.current)) { frame.lapRest = undefined; frame.lapMissing = KNEE_DIAL_HINT; }
+            // The knee names a body position to fix first; the light comes once the body is in place.
+            else if ((graspNow || frame.lapRest) && light && !light.ok && !lightingProbe.current.waived()) { frame.lapRest = undefined; frame.lapMissing = light.hint; }
           }
           if (now.phase === "setup") {
             const dt = Math.min(100, Math.max(0, t - (bodyLastT.current || t)));
             bodyLastT.current = t;
-            setBodyChecks(cameraBodyChecks(session, detection, opts.side, handZoneRef.current, video.videoWidth / video.videoHeight, graspNow ? { lighting: lighting.current, waived: lightingProbe.current.waived() } : undefined).map(check => {
+            setBodyChecks(cameraBodyChecks(session, detection, opts.side, handZoneRef.current, video.videoWidth / video.videoHeight, graspNow || kneeNow ? { lighting: lighting.current, waived: lightingProbe.current.waived(), dialFits: dialNow !== null } : undefined).map(check => {
               const progress = Math.max(0, Math.min(1, (bodyProgress.current[check.id] ?? 0) + dt / (check.visible ? 1400 : -550)));
               bodyProgress.current[check.id] = progress;
               return { ...check, progress };
@@ -404,6 +425,32 @@ export default function ExerciseRunner() {
             cupCarry.current.reset();
             graspCup.current = graspDone.current = graspLast.current = null;
           }
+          if (kneeNow && (now.phase === "warm" || now.phase === "reps") && !now.review) {
+            // Seated Knee Extension: the knee dial's circle sits at the goal while straightening (the knee's 3D angle at
+            // the goal learned in practice) and at the resting foot while lowering (the foot back down where it rested).
+            const rest = session.restValues().knee_extension, foot = session.lapPoint, dial = kneeDialRef.current;
+            if (Number.isFinite(rest) && foot && dial) {
+              const ankle = detection.pose?.landmarks[poseJoints(opts.side).ankle];
+              const lowering = now.kind === "return";
+              // Practice lowers from the goal it learned (it may have eased), so the dial's foot does not jump.
+              const learned = session.learnedValue("knee_extension");
+              const goal = now.phase === "reps" ? session.targets().knee_extension : lowering && learned !== undefined ? learned : kneePracticeGoal(rest);
+              const target = kneeTarget.current.update(`${now.phase}:${now.repIndex}:${now.stepIndex}`, {
+                value: frame.values.knee_extension, rest, goal, lowering, ankle: ankle && inView(ankle) ? ankle : null, restFoot: foot,
+                aspect: video.videoWidth / video.videoHeight, armed: now.targetArmed, practice: now.phase === "warm", t,
+              });
+              frame.targetContact = frame.visible && target.contact;
+              frame.targetProgress = frame.targetContact ? 1 : Math.max(0, Math.min(0.98, lowering ? 1 - target.progress : target.progress));
+              // The dial's foot stays where it was while the knee is briefly unmeasured.
+              const measured = Number.isFinite(frame.values.knee_extension);
+              kneeShown.current = { progress: measured ? target.progress : kneeShown.current?.progress ?? 0, contact: frame.targetContact };
+            } else { frame.visible = false; frame.missing = "Go back to Set up so I can place the knee dial."; }
+          } else if (kneeNow && (now.phase === "setup" || now.phase === "demo")) {
+            // Back to the demonstration or set-up: the practice starts again from a resting knee.
+            kneeTarget.current.reset();
+            kneeShown.current = null;
+            kneeDone.current = kneeLast.current = null;
+          }
           if (!now.review && reachTarget.current && now.kind === "return" && hold?.atMouth) {
             // The cup has not left the mouth yet: a forearm flickering down is not the hand on the lap.
             frame.visible = true;
@@ -468,6 +515,24 @@ export default function ExerciseRunner() {
             if (cup) drawCup(ctx, (1 - cup.at.x) * canvas.width, cup.at.y * canvas.height, layout.radius * canvas.height * 0.9, -cup.tilt);
           } catch (err) {
             console.warn("Cup drawing failed", err);
+          }
+        }
+      }
+      const dial = kneeDialRef.current;
+      if (!opts.sim && session.cfg.id === KNEE_ID && dial && !currentSnapshot.review && (currentSnapshot.phase === "warm" || currentSnapshot.phase === "reps")) {
+        // Seated Knee Extension: the knee dial with its active circle, and the circle just completed.
+        const canvas = overlayRef.current, ctx = canvas?.getContext("2d");
+        if (canvas && ctx) {
+          try {
+            const step = currentSnapshot.stepIndex, reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            const repKey = `${currentSnapshot.phase}:${currentSnapshot.repIndex}`;
+            if (kneeLast.current?.key === repKey && kneeLast.current.step !== step) kneeDone.current = { key: repKey, step: kneeLast.current.step, startedAt: t };
+            kneeLast.current = { key: repKey, step };
+            drawKneeDial(ctx, dial, canvas.width, canvas.height, { progress: kneeShown.current?.progress ?? 0, lowering: currentSnapshot.kind === "return", armed: currentSnapshot.targetArmed, contact: frame.targetContact === true, hold: currentSnapshot.holdProgress, label: KNEE_LABELS[step] ?? "", now: t, reducedMotion: reduced });
+            const done = kneeDone.current;
+            if (done?.key === repKey && t - done.startedAt < TARGET_COMPLETION_MS) drawTargetCompletion(ctx, { ...dialCircle(dial, done.step === KNEE_STEP.lower, canvas.width, canvas.height), elapsed: t - done.startedAt, reducedMotion: reduced });
+          } catch (err) {
+            console.warn("Knee dial drawing failed", err);
           }
         }
       }
@@ -545,6 +610,11 @@ export default function ExerciseRunner() {
     graspLast.current = null;
     lightingProbe.current.reset();
     lighting.current = null;
+    kneeDialRef.current = null;
+    kneeTarget.current.reset();
+    kneeShown.current = null;
+    kneeDone.current = null;
+    kneeLast.current = null;
     mouthHold.current.reset();
     mouthHoldKey.current = "";
     bodyProgress.current = {};
@@ -695,7 +765,11 @@ export default function ExerciseRunner() {
                 if (preview) { selectPreview((["setup", "demo-reach", "warm-reach", "reps-reach", "rescue", "results"] as ExercisePreviewScreen[])[i]); return; }
                 const session = sessionRef.current;
                 if (session?.goBack(i + 1, performance.now())) {
-                  if (i === 0) { bodyProgress.current = {}; bodyLastT.current = 0; setBodyChecks(checks => checks.map(check => ({ ...check, progress: 0 }))); }
+                  if (i === 0) {
+                    bodyProgress.current = {}; bodyLastT.current = 0; setBodyChecks(checks => checks.map(check => ({ ...check, progress: 0 })));
+                    // A set-up done again places the knee dial afresh.
+                    kneeDialRef.current = null;
+                  }
                   setSnap(session.snapshot());
                 }
               }}><span>{i + 1}</span>{label}</button> : <><span>{i + 1}</span>{label}</>}
@@ -727,7 +801,7 @@ export default function ExerciseRunner() {
         <div className="xe-run">
           <section className="xe-stage" aria-label={preview ? "Camera area preview" : opts.sim ? "Simulated patient" : "Camera view"}>
             {preview ? <div className="xe-simstage"><canvas ref={previewCanvasRef} width={640} height={480} aria-label="Exercise pose and target preview" /><span className="xe-simtag">Camera off · screen preview</span></div> : opts.sim ? (
-              <div className="xe-simstage"><canvas ref={ghostRef} width={480} height={390} aria-label={reachDemo ? `Movement demonstration: ${reachDemo.instruction}` : usesTargetFlow(cfg.id) && (snap.phase === "warm" || snap.phase === "reps") ? `${cfg.id === "ex_grasp" ? GRASP_LABELS[snap.stepIndex] ?? "Cup" : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Relax" : "Open" : snap.kind === "return" ? "Lap" : cfg.id === "ex_h2m" ? "Mouth" : "Reach"} target ${snap.targetArmed ? "active" : "inactive while the instruction plays"}` : "Movement ghost"} /><span className="xe-simtag">No camera · simulated patient</span></div>
+              <div className="xe-simstage"><canvas ref={ghostRef} width={480} height={390} aria-label={reachDemo ? `Movement demonstration: ${reachDemo.instruction}` : usesTargetFlow(cfg.id) && (snap.phase === "warm" || snap.phase === "reps") ? `${cfg.id === "ex_grasp" ? GRASP_LABELS[snap.stepIndex] ?? "Cup" : cfg.id === KNEE_ID ? KNEE_LABELS[snap.stepIndex] ?? "Knee" : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Relax" : "Open" : snap.kind === "return" ? "Lap" : cfg.id === "ex_h2m" ? "Mouth" : "Reach"} target ${snap.targetArmed ? "active" : "inactive while the instruction plays"}` : "Movement ghost"} /><span className="xe-simtag">No camera · simulated patient</span></div>
             ) : (
               <div className="xe-video">
                 <video ref={videoRef} playsInline muted />
@@ -748,11 +822,14 @@ export default function ExerciseRunner() {
                 <>
                   {cfg.id === "ex_handopen" && !snap.review && <HandSteps current={snap.awaitingReady ? 0 : snap.kind === "return" ? 2 : 1} />}
                   {cfg.id === "ex_grasp" && !snap.review && <HandSteps steps={GRASP_STEPS} current={snap.stepIndex} label="Steps of this repetition" />}
+                  {cfg.id === KNEE_ID && !snap.review && <HandSteps steps={KNEE_STEPS} current={snap.stepIndex} label="Steps of this repetition" />}
                   <div className={`xe-gauge ${snap.inZone ? "is-zone" : ""}`} aria-label="Hold on target" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(snap.holdProgress * 100)}>
                     <i className="fill" style={{ width: `${snap.holdProgress * 100}%` }} />
 
                   </div>
-                  <p className="xe-hint">{snap.awaitingReady ? "Show me your palm in the shaded area to begin" : !snap.targetArmed ? "Listen to the instruction. Wait for the circle to become active." : cfg.id === "ex_grasp" ? snap.inZone ? "Hold it there..." : GRASP_HINTS[snap.stepIndex] ?? "" : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Close your hand into the small circle and pause" : snap.inZone ? "Hold it there..." : "Open your fingers out to the ring, keeping your wrist straight" : snap.kind === "return" || snap.kind === "close" ? "Return your hand to the lap circle and pause" : snap.inZone ? "Hold it there..." : cfg.id === "ex_h2m" ? "Bring your hand to the mouth circle, keeping your head up" : "Reach your hand into the target ring"}</p>
+                  <p className="xe-hint">{snap.awaitingReady ? "Show me your palm in the shaded area to begin" : !snap.targetArmed ? "Listen to the instruction. Wait for the circle to become active." : cfg.id === "ex_grasp" ? snap.inZone ? "Hold it there..." : GRASP_HINTS[snap.stepIndex] ?? ""
+                    : cfg.id === KNEE_ID ? snap.kind === "return" ? "Lower your foot slowly to the floor and pause" : snap.inZone ? "Hold it there..." : "Straighten your knee until the foot on the knee dial reaches the circle"
+                    : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Close your hand into the small circle and pause" : snap.inZone ? "Hold it there..." : "Open your fingers out to the ring, keeping your wrist straight" : snap.kind === "return" || snap.kind === "close" ? "Return your hand to the lap circle and pause" : snap.inZone ? "Hold it there..." : cfg.id === "ex_h2m" ? "Bring your hand to the mouth circle, keeping your head up" : "Reach your hand into the target ring"}</p>
                 </>
               )}
               {snap.feedback && <p className="xe-feedback" role="status">{snap.feedback}</p>}
@@ -793,8 +870,8 @@ export default function ExerciseRunner() {
               </div>
             ) : snap.phase !== "demo" ? <div className="xe-card xe-live">
               <h3>Movement</h3>
-              {!snap.targetsReady && <p className="xe-note">{cfg.id === "ex_handopen" ? "Hold your hand open at the practice ring so I can learn your movement goals." : usesTargetFlow(cfg.id) ? "Hold at the practice circle so I can learn your movement goals." : "Learning your starting position. Your movement goals will appear after practice."}</p>}
-              {viewLive.roms.map(r => <MetricBar key={r.label} label={r.label} value={r.value} threshold={r.target} start={r.start} scale={r.scale} ready={snap.targetsReady} personalized={usesTargetFlow(cfg.id)} pending={cfg.id === "ex_handopen" ? "Keep opening" : undefined} />)}
+              {!snap.targetsReady && <p className="xe-note">{cfg.id === "ex_handopen" ? "Hold your hand open at the practice ring so I can learn your movement goals." : cfg.id === KNEE_ID ? "Straighten your knee to the practice circle and hold so I can learn your movement goal." : usesTargetFlow(cfg.id) ? "Hold at the practice circle so I can learn your movement goals." : "Learning your starting position. Your movement goals will appear after practice."}</p>}
+              {viewLive.roms.map(r => <MetricBar key={r.label} label={r.label} value={r.value} threshold={r.target} start={r.start} scale={r.scale} ready={snap.targetsReady} personalized={usesTargetFlow(cfg.id)} pending={cfg.id === "ex_handopen" ? "Keep opening" : cfg.id === KNEE_ID ? "Keep straightening" : undefined} />)}
               {viewLive.comps.map(c => <MetricBar key={c.label} label={c.label} value={c.value} threshold={c.limit} ready={snap.targetsReady} limit />)}
             </div> : null}
 
@@ -842,6 +919,7 @@ export default function ExerciseRunner() {
           </div>
           {cfg.id === "ex_handopen" && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Hand up in the shaded area, fingers relaxed.</p>}
           {cfg.id === "ex_grasp" && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Hand resting on your lap, ready to reach for the cup.</p>}
+          {cfg.id === KNEE_ID && <p className="xe-countdown-note"><Footprints size={16} aria-hidden="true" /> Sit tall, both feet flat on the floor, ready to straighten your knee.</p>}
         </div>
       </div>}
 
@@ -910,7 +988,8 @@ function Intro(props: { base: (typeof EXERCISES)[string]; cfg: ReturnType<typeof
         </>}
       </div>
       {cfg.tracking !== "pose" && !opts.sim && <p className="xe-note"><Hand size={14} aria-hidden="true" /> {base.id === "ex_handopen" ? "Rest your elbow on an armrest or table and hold your hand up in the shaded area beside your body, at chest height, palm to the camera. That keeps your face and both shoulders in view." : base.id === "ex_grasp" ? "Sit without a table, with your head to mid-thigh in view and both hands resting on your thighs. The cup is drawn on screen. Have good light in front of you." : "Hold the hand close to the camera with every fingertip in view."}</p>}
-      {base.domain === "lower_limb" && !opts.sim && <p className="xe-note">Lower-limb tracking seated and front-on is unverified. If the angles look unstable, try the simulator or a side-on phone position.</p>}
+      {base.id === KNEE_ID && !opts.sim && <p className="xe-note"><Footprints size={14} aria-hidden="true" /> Place the camera about 2 metres in front of you at knee to hip height, so you are in view from your head to your feet while you sit. Use a stable chair with a back, keep a carer nearby, and have good light in front of you.</p>}
+      {base.domain === "lower_limb" && base.id !== KNEE_ID && !opts.sim && <p className="xe-note">Lower-limb tracking seated and front-on is unverified. If the angles look unstable, try the simulator or a side-on phone position.</p>}
       <div className="xe-actions">
         <button className="xe-primary" onClick={onStart}>{opts.sim ? <Play size={16} aria-hidden="true" /> : <Camera size={16} aria-hidden="true" />} Start · {reps} reps · {LEVEL_LABEL[opts.rung]}</button>
         {onPreview && <button className="xe-secondary" onClick={onPreview}><Eye size={16} aria-hidden="true" /> Preview exercise screens</button>}
@@ -934,7 +1013,7 @@ function Results({ snap, base, cfg, clips, debugDirectory, onAgain, onBack, onFe
       )}
       {snap.reps.length > 0 && (
         <table className="xe-table">
-          <thead><tr><th>Rep</th><th>Level</th><th>{cfg.id === "ex_h2m" || cfg.id === "ex_grasp" ? "Movement" : cfg.id === "ex_handopen" ? "Opening" : "Reach"}</th><th>Form</th><th>Score</th></tr></thead>
+          <thead><tr><th>Rep</th><th>Level</th><th>{cfg.id === "ex_h2m" || cfg.id === "ex_grasp" ? "Movement" : cfg.id === "ex_handopen" ? "Opening" : cfg.id === KNEE_ID ? "Knee" : "Reach"}</th><th>Form</th><th>Score</th></tr></thead>
           <tbody>
             {snap.reps.map(rep => (
               <tr key={rep.index} className={rep.good ? "good" : ""}>
@@ -1019,6 +1098,7 @@ function buildFrame(session: ExerciseSession, det: Detection, side: Side, t: num
   const cfg = session.cfg;
   const zone = extra.zone ?? null;
   if (cfg.id === "ex_grasp") return graspFrame(det, side, t, aspect, session.reference, { gripAxis: extra.gripAxis });
+  if (cfg.id === KNEE_ID) return kneeFrame(det, side, t, aspect, session.reference);
   if (cfg.id === "ex_handopen") {
     // Each repetition starts from a relaxed hand, at most as open as the close circle (hand-target.ts).
     const rest = session.restValues().hand_openness;
@@ -1150,7 +1230,7 @@ function drawGhostFor(canvas: HTMLCanvasElement | null, session: ExerciseSession
 }
 
 
-function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Detection, side: Side, zone: HandZone | null = null, aspect = 4 / 3, lightingInfo?: { lighting: Lighting | null; waived: boolean }): Omit<BodyCheck, "progress">[] {
+function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Detection, side: Side, zone: HandZone | null = null, aspect = 4 / 3, lightingInfo?: { lighting: Lighting | null; waived: boolean; dialFits?: boolean }): Omit<BodyCheck, "progress">[] {
   const labels: Record<string, string> = { nose: "Face", shoulder: `${side === "right" ? "Right" : "Left"} shoulder`, shoulderOther: "Other shoulder", elbow: `${side === "right" ? "Right" : "Left"} elbow`, wrist: `${side === "right" ? "Right" : "Left"} hand`, hip: "Top of thigh", knee: "Knee", ankle: "Ankle", foot: "Foot & toes" };
   const joints = poseJoints(side);
   if (session.cfg.id === "ex_handopen") {
@@ -1177,6 +1257,23 @@ function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Dete
         ? { id: need.joint, label: labels.wrist, visible: inViewCheck(joints.wrist) && handSeen, hint: GRASP_HAND_HINT }
         : { id: need.joint, label: labels[need.joint] ?? need.joint, visible: inViewCheck(joints[need.joint]), hint: need.say }),
       { id: "hipOther", label: "Top of other thigh", visible: inViewCheck(joints.hipOther), hint: "Move the camera back a little so I can see the top of both thighs." },
+      { id: "lighting", label: lightingInfo?.waived && light && !light.ok ? "Lighting (could be better)" : "Lighting", visible: Boolean(light?.ok || lightingInfo?.waived), hint: light?.hint ?? "Checking the light..." },
+    ];
+  }
+  if (session.cfg.id === KNEE_ID) {
+    // Head to feet (the trunk checks need the face and shoulders, the other-leg check both feet), the seated position
+    // with both feet flat and room round the body, and the lighting.
+    const light = lightingInfo?.lighting;
+    const both = (a: number, b: number) => inViewCheck(a) && inViewCheck(b);
+    const position = kneeRestCheck(detection.pose, side, aspect);
+    return [
+      { id: "nose", label: "Face", visible: inViewCheck(joints.nose), hint: "Move the camera back so I can see you from your head to your feet." },
+      { id: "shoulders", label: "Both shoulders", visible: both(joints.shoulder, joints.shoulderOther), hint: "Move the camera back so I can see both shoulders." },
+      { id: "hips", label: "Both hips", visible: both(joints.hip, joints.hipOther), hint: "Sit facing the camera so I can see both hips." },
+      { id: "knees", label: "Both knees", visible: both(joints.knee, joints.kneeOther), hint: "Move the camera back so I can see both knees." },
+      { id: "feet", label: "Both feet", visible: both(joints.ankle, joints.ankleOther) && inViewCheck(joints.foot), hint: "Move the camera back, or tilt it down, so I can see both feet." },
+      // Set-up also waits for room beside the knee for the knee dial: the row says so rather than showing green.
+      { id: "position", label: "Feet flat, space around you", visible: Boolean(position.lapRest) && lightingInfo?.dialFits !== false, hint: position.lapMissing ?? (lightingInfo?.dialFits === false ? KNEE_DIAL_HINT : "Sit tall with both feet flat on the floor.") },
       { id: "lighting", label: lightingInfo?.waived && light && !light.ok ? "Lighting (could be better)" : "Lighting", visible: Boolean(light?.ok || lightingInfo?.waived), hint: light?.hint ?? "Checking the light..." },
     ];
   }
