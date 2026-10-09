@@ -537,7 +537,7 @@ describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
     ["ex_h2m", { shoulder_flexion: 12 }, [MOUTH_SHOULDER_ADVICE]],
     ["ex_handopen", { finger_extension: 115 }, ["Open your fingers a little wider, out to the ring."]],
     ["ex_lower_selective", { knee_extension: 110 }, ["Straighten your knee a little more, as far as is comfortable."]],
-    ["ex_wallslide", { shoulder_flexion: 15 }, ["Slide your hand a little further forward, keeping your body upright."]],
+    ["ex_wallslide", { slide_out: 0.2 }, ["Move your hand a little further out toward the cup."]],
   ] as const)("%s: the review names the angle that fell short, in the movement's own words (%j)", (id, values, advice) => {
     const p = seated(id);
     p.toScoredRep();

@@ -64,8 +64,9 @@ export class DebugVideoRecorder {
       ctx.fillText(`Knee ${measured(frame.values.knee_extension, "°")} · Lean forward ${measured(frame.comps.trunk_approach_pct, "%")} · Lean back ${measured(frame.comps.trunk_retreat_pct, "%")} · Side ${measured(frame.comps.trunk_side_lean_delta, "°")}`, 14, this.canvas.height - 39);
       ctx.fillText(`Hip lift ${measured(frame.comps.hip_hike_delta, "°")} · Thigh lift ${measured(frame.comps.thigh_lift_pct, "%")} · Other leg ${measured(frame.comps.other_leg_pct, "%")} (knee ${measured(frame.comps.other_knee_delta, "°")}) · Foot ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
     } else if (this.session.exerciseId === "ex_wallslide") {
-      // The shoulder's elevation and the elbow (3D); the hand checks in % of the shoulder span or of their limit (slide-target.ts).
-      ctx.fillText(`Shoulder ${measured(frame.values.shoulder_flexion, "°")} · Elbow ${measured(frame.values.elbow_extension, "°")} · Lean forward ${measured(frame.comps.trunk_approach_pct, "%")} · Side ${measured(frame.comps.trunk_side_lean_delta, "°")}`, 14, this.canvas.height - 39);
+      // How far the hand has moved out (shoulder widths, in the picture) and the shoulder's elevation (3D); the hand
+      // checks in % of the shoulder span or of their limit (slide-target.ts).
+      ctx.fillText(`Out ${frame.values.slide_out === undefined ? "unknown" : frame.values.slide_out.toFixed(2)} · Shoulder ${measured(frame.values.shoulder_flexion, "°")} · Lean forward ${measured(frame.comps.trunk_approach_pct, "%")} · Side ${measured(frame.comps.trunk_side_lean_delta, "°")}`, 14, this.canvas.height - 39);
       ctx.fillText(`Shoulder hike ${measured(frame.comps.shoulder_hike_rel_delta, "°")} (ear gap ${measured(frame.comps.shoulder_elevation_pct, "%")}) · Hand lift ${measured(frame.comps.hand_lift_pct, "%")} · Other hand ${measured(frame.comps.other_hand_pct, "%")} · Hand ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
     } else if (this.session.exerciseId === "ex_pinch") {
       // Closure: how far the thumb has closed on each fingertip, 0-100 (75 touching); curl in hundredths of a palm length (pinch-target.ts).

@@ -36,7 +36,7 @@ export const bodyInViewLine = (finalRep: boolean) =>
   `Keep your whole body, from your head to your feet, in view so I can check your posture${finalRep ? "." : " on the next repetition."}`;
 /** Supported Arm Elevation's version when only its hand checks were missed (the body was in view). */
 export const slideHandsInViewLine = (finalRep: boolean) =>
-  `Keep both hands in view, one on the table and one on your thigh, so I can check them${finalRep ? "." : " on the next repetition."}`;
+  `Keep both hands in view, one resting beside you and one on your thigh, so I can check them${finalRep ? "." : " on the next repetition."}`;
 export const reachedTargetsLine = (finalRep: boolean) =>
   finalRep ? "You reached the movement targets with a smooth movement." : "You reached the movement targets. Keep the same smooth movement on your next repetition.";
 export const finalRepAdvice = (say: string) => say.replace("On the next repetition, try", "Try").replace(" on the next try", "");
@@ -70,8 +70,8 @@ export const ANGLE_ADVICE: Record<string, Record<string, { review: string; next:
     knee_extension: { review: "Straighten your knee a little more, as far as is comfortable.", next: "On the next repetition, straighten your knee a little more, as far as is comfortable." },
   },
   ex_wallslide: {
-    shoulder_flexion: { review: "Slide your hand a little further forward, keeping your body upright.", next: "On the next repetition, slide your hand a little further forward, keeping your body upright." },
-    elbow_extension: { review: "Let your elbow straighten a little more as your hand slides forward.", next: "On the next repetition, let your elbow straighten a little more as your hand slides forward." },
+    shoulder_flexion: { review: "Move your arm a little further out from your shoulder, keeping your body upright.", next: "On the next repetition, move your arm a little further out from your shoulder, keeping your body upright." },
+    slide_out: { review: "Move your hand a little further out toward the cup.", next: "On the next repetition, move your hand a little further out toward the cup." },
   },
   ex_pinch: {
     pinch_index: { review: "Bring your thumb a little closer to your first fingertip, tip to tip.", next: "On the next repetition, bring your thumb a little closer to your first fingertip, tip to tip." },

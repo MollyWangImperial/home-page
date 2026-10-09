@@ -31,8 +31,8 @@ export const usesSeatedTargets = (id: string) => id === "ex_reach" || id === "ex
  * countdown. The seated ones (above), Active Hand Opening (a ring around the palm), Cylindrical Grasp
  * and Transport (a drawn cup picked up, carried across the body and set down), Seated Knee Extension
  * (a knee dial beside the leg whose foot reaches the circle as the knee straightens), Pinch and Peg (a
- * circle round the thumb and fingertip that pick up a drawn peg), and Supported Arm Elevation (a table slide:
- * a slide dial beside the shoulder whose hand slides into the circle as the shoulder elevates).
+ * circle round the thumb and fingertip that pick up a drawn peg), and Supported Arm Elevation (a drawn cup out
+ * to the side, reached along an arrow from a table or the armrest).
  */
 export const usesTargetFlow = (id: string) => usesSeatedTargets(id) || id === "ex_handopen" || id === "ex_grasp" || id === "ex_lower_selective" || id === "ex_pinch" || id === "ex_wallslide";
 
@@ -256,48 +256,52 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     domain: "upper_limb",
     chain: "Shoulder lifts with support",
     dailyTask: "Reaching a shelf, combing hair",
-    // A table slide: the table beside the affected side, so the hips, lap and other hand stay in view (slide-target.ts).
-    framing: "Front, seated, table beside the affected side, forearm on a towel, head to thighs in view",
+    // The forearm on a table beside the affected side (slid along it) or on the chair's armrest (lifted from it); the
+    // hand moves out to the side and a little forward, across the picture, toward a drawn cup (slide-target.ts).
+    framing: "Front, seated, forearm on a table beside you or on the armrest, head to thighs in view",
     tracking: "pose",
     ghost: "raise",
-    setupVoice: "Welcome. We are going to practise sliding your arm forward along a table. Sit at the corner of a table so it is beside your affected side, with your forearm resting on a towel on the table and your other hand on your thigh. Place the camera in front of you at chest height, above the table, so I can see you from your head to your thighs. Move only in a comfortable, pain-free range.",
-    calibrationInstruction: "Sit tall with your elbow bent and your forearm resting on the towel. Make sure the room is well lit, with the light in front of you. Hold still while I learn your starting position.",
-    // Shoulder elevation and the elbow from the pose model's 3D landmarks. A flat table allows about 55-63 degrees, so
-    // the live goal is the one learned in practice, just inside the practice hold; the levels stay for planning.
+    // Worded for the table; the armrest version swaps in SLIDE_ARMREST (resolveExercise).
+    setupVoice: "Welcome. We are going to practise sliding your arm out to the side toward a cup on your screen. Rest your forearm on a table beside your affected side, with your elbow bent and your other hand on your thigh. Place the camera in front of you at chest height so I can see you from your head to your thighs, with room beside your arm. Move only in a comfortable, pain-free range.",
+    calibrationInstruction: "Sit tall with your elbow bent and your forearm resting beside you. Make sure the room is well lit, with the light in front of you. Hold still while I learn your starting position.",
+    // How far the hand moves out across the picture (shoulder widths) decides the circle and most of the score; the
+    // shoulder's elevation from the pose model's 3D landmarks adds the rest. The live goals are the ones learned in
+    // practice, just inside the practice hold; the levels stay for planning.
     romSteps: [
-      { id: "shoulder_flexion", label: "Supported arm elevation", metric: "shoulder_flexion", targets: { easy: 60, medium: 80, difficult: 95 }, weight: 0.8, learnedShare: 0.9 },
-      { id: "elbow_extension", label: "Supported elbow position", metric: "elbow_extension", targets: { easy: 120, medium: 132, difficult: 140 }, weight: 0.2, learnedShare: 0.9 },
+      { id: "shoulder_flexion", label: "Supported arm elevation", metric: "shoulder_flexion", targets: { easy: 60, medium: 80, difficult: 95 }, weight: 0.4, learnedShare: 0.9 },
+      { id: "slide_out", label: "Slide out to the cup", metric: "slide_out", targets: { easy: 0.6, medium: 0.75, difficult: 0.9 }, weight: 0.6, learnedShare: 0.9 },
     ],
     compensations: [
-      // Engineering defaults, measured against the upright set-up posture while the hand slides forward (step 0).
-      // Leaning forward pushes the hand further and inflates the shoulder angle: the main one here.
-      cr("trunk_forward", "leaning forward", "trunk_approach_pct", 6, 4, 0, "Sit tall and let your shoulder do the sliding.", { unit: "%", minConsecutiveMs: 200, steps: [0] }),
-      cr("shoulder_hike", "shoulder hike", "shoulder_hike_rel_delta", 7, 4, 0, "Keep your shoulder down and relaxed as you slide.", { minConsecutiveMs: 300, alternative: [{ metric: "shoulder_elevation_pct", threshold: 15 }], steps: [0] }),
-      cr("side_lean", "leaning sideways", "trunk_side_lean_delta", 8, 4, 0, "Stay tall and centred as you slide.", { minConsecutiveMs: 300, steps: [0] }),
-      // The hand rising in the picture: lifted off the support instead of sliding along it (% of the shoulder span).
-      cr("hand_lift", "hand lifting off the table", "hand_lift_pct", 13, 4, 0, "Keep your hand and forearm resting on the towel as you slide.", { unit: "%", minConsecutiveMs: 300, steps: [0] }),
+      // Engineering defaults, measured against the upright set-up posture while the hand moves out (step 0).
+      cr("trunk_forward", "leaning forward", "trunk_approach_pct", 6, 4, 0, "Sit tall and let your shoulder move your arm.", { unit: "%", minConsecutiveMs: 200, steps: [0] }),
+      cr("shoulder_hike", "shoulder hike", "shoulder_hike_rel_delta", 7, 4, 0, "Keep your shoulder down and relaxed as your arm moves out.", { minConsecutiveMs: 300, alternative: [{ metric: "shoulder_elevation_pct", threshold: 15 }], steps: [0] }),
+      // Leaning toward the affected side carries the hand out without the shoulder: important for this movement.
+      cr("side_lean", "leaning sideways", "trunk_side_lean_delta", 8, 4, 0, "Stay tall and centred as your arm moves out.", { minConsecutiveMs: 300, steps: [0] }),
+      // Table only (left out with the armrest, resolveExercise): the hand rising in the picture, lifted off the table.
+      cr("hand_lift", "hand lifting off the table", "hand_lift_pct", 13, 4, 0, "Keep your hand and forearm resting on the table as you slide.", { unit: "%", minConsecutiveMs: 300, steps: [0] }),
       // The other hand off its thigh or at the affected forearm (% of its limit).
       cr("other_hand", "other hand helping", "other_hand_pct", 100, 4, 0, "Keep your other hand resting on your thigh.", { unit: "%", minConsecutiveMs: 400, steps: [0] }),
     ],
     cycle: [
-      { caption: "Slide your hand forward and hold", voice: "Slowly slide your hand forward along the table until the hand on the dial reaches the circle. Keep your shoulder relaxed and your body upright, and stop before pain. Hold it there.", kind: "reach", gate: ["shoulder_flexion"], holdMs: 1500, cue: "Slide forward." },
-      { ...ret("Slide your hand back", "Now slowly slide your hand back to where it started."), cue: "Slide back slowly." },
+      { caption: "Move your hand out to the cup and hold", voice: "Follow the arrow: slowly slide your hand out to the side and a little forward along the table until it reaches the cup, keeping your hand and forearm resting on the table. Keep your shoulder relaxed and your body upright, and stop before pain. Hold it there.", kind: "reach", gate: ["slide_out"], holdMs: 1500, cue: "Out to the cup." },
+      { ...ret("Bring your hand back to rest", "Now slowly slide your hand back to rest where it started."), cue: "Back to rest." },
     ],
     feedback: [
       // Worded like the other target-flow exercises, so the final repetition's version drops "on the next ..." the same way.
-      { comp: "trunk_forward", say: "I noticed your body leaned forward to push your hand further. On the next repetition, try sitting tall and let your shoulder do the sliding." },
-      { comp: "shoulder_hike", say: "I noticed your shoulder lifted toward your ear. On the next repetition, try keeping your shoulder down and relaxed as you slide." },
-      { comp: "side_lean", say: "I noticed you leaned to one side. On the next repetition, try staying tall and centred as you slide." },
-      { comp: "hand_lift", say: "I noticed your hand lifted off the table. On the next repetition, try keeping your hand and forearm resting on the towel as you slide." },
+      { comp: "trunk_forward", say: "I noticed your body leaned forward to push your hand out. On the next repetition, try sitting tall and let your shoulder move your arm." },
+      { comp: "shoulder_hike", say: "I noticed your shoulder lifted toward your ear. On the next repetition, try keeping your shoulder down and relaxed as your arm moves out." },
+      { comp: "side_lean", say: "I noticed you leaned to one side to reach the cup. On the next repetition, try staying tall and centred as your arm moves out." },
+      { comp: "hand_lift", say: "I noticed your hand lifted off the table. On the next repetition, try keeping your hand and forearm resting on the table as you slide." },
       { comp: "other_hand", say: "I noticed your other hand moved to help. On the next repetition, try keeping your other hand resting on your thigh." },
-      { attainmentBelow: 0.7, say: "Nearly there. On the next repetition, try sliding a little further if it feels comfortable." },
+      { attainmentBelow: 0.7, say: "Nearly there. On the next repetition, try moving your hand a little further toward the cup if it feels comfortable." },
     ],
-    praise: "Wonderful controlled slide. Keep that same smooth movement on the next repetition.",
+    praise: "Wonderful controlled movement. Keep that same smooth reach to the cup on the next repetition.",
     bestLabel: "arm lift",
     bestRomId: "shoulder_flexion",
-    rescueNote: "Smaller slide target",
-    // Flinging the hand forward or dropping it back: a reminder only, the hold already keeps a fling from counting.
-    speedCue: { metric: "shoulder_flexion", degPerS: 60, lift: "Nice and slow as you slide.", lower: "Slide back a little more slowly." },
+    rescueNote: "Cup closer",
+    // Flinging the hand out or dropping it back (shoulder widths per second): a reminder only, the hold already keeps a
+    // fling from counting.
+    speedCue: { metric: "slide_out", degPerS: 1.2, lift: "Nice and slow as your arm moves out.", lower: "Bring it back a little more slowly." },
   },
   ex_handopen: {
     id: "ex_handopen",
@@ -577,9 +581,28 @@ export const EXERCISE_RUNGS: Record<string, Record<Rung, RungSpec>> = Object.fro
   LAUNCH_EXERCISE_IDS.map(id => [id, { 1: buildRung(id, 1), 2: buildRung(id, 2), 3: buildRung(id, 3) }])
 );
 
+/** Supported Arm Elevation from the chair's armrest: the hand lifts from it toward a raised cup. */
+const SLIDE_ARMREST = {
+  setupVoice: "Welcome. We are going to practise lifting your arm out to the side toward a cup on your screen. Rest your forearm on the armrest of your chair, with your elbow bent and your other hand on your thigh. Place the camera in front of you at chest height so I can see you from your head to your thighs, with room beside your arm. Move only in a comfortable, pain-free range.",
+  reach: "Follow the arrow: slowly lift your hand from the armrest, out to the side and a little forward, until it reaches the cup. Keep your shoulder relaxed and your body upright, and stop before pain. Hold it there.",
+  back: "Now slowly lower your hand back to rest on the armrest.",
+};
+
 /** The exercise as it runs today: ex_reach in chair-back mode swaps in the stricter trunk check and the setup cue. */
-export function resolveExercise(exerciseId: string, chairBack: boolean): ExerciseConfig {
+export function resolveExercise(exerciseId: string, chairBack: boolean, armrest = false): ExerciseConfig {
   const ex = EXERCISES[exerciseId];
+  // Supported Arm Elevation from the armrest: the hand lifts from it by design, so there is no "hand lifting" check,
+  // and the voice says lift rather than slide.
+  if (exerciseId === "ex_wallslide" && armrest) {
+    const [reach, back] = ex.cycle;
+    return {
+      ...ex,
+      setupVoice: SLIDE_ARMREST.setupVoice,
+      cycle: [{ ...reach, voice: SLIDE_ARMREST.reach }, { ...back, voice: SLIDE_ARMREST.back }],
+      compensations: ex.compensations.filter(comp => comp.id !== "hand_lift"),
+      feedback: ex.feedback.filter(rule => rule.comp !== "hand_lift"),
+    };
+  }
   if (exerciseId !== "ex_reach" || !chairBack) return ex;
   return {
     ...ex,

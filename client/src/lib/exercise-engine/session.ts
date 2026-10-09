@@ -14,7 +14,7 @@ import { handDemoDuration } from "./hand-target";
 import { GRASP_STEP, graspDemoDuration } from "./grasp-target";
 import { curlJudged, pinchDemoDuration } from "./pinch-target";
 import { kneeDemoDuration } from "./knee-target";
-import { slideDemoDuration, type SlideGeo } from "./slide-target";
+import { slideDemoDuration, slideRestPrompt, type SlideGeo } from "./slide-target";
 import { MouthCalibration, simulatedMouthComps, type MouthPoint } from "./mouth-target";
 // Relative on purpose: engine files must also build where the @shared alias is not available.
 import { ADAPTATION_VERSION, DEFAULT_EXERCISE_TUNING, tunedReps, type ExerciseTuning } from "../../../../shared/alira-adaptation";
@@ -27,6 +27,8 @@ export type SessionOptions = {
   rung: Rung;
   side: Side;
   chairBack?: boolean;
+  /** Supported Arm Elevation: the forearm rests on the chair's armrest (lifted from it) rather than a table beside it. */
+  armrest?: boolean;
   /** Quick test: fewer reps than the rung's 6 / 8 / 10. Wins over the tuned repetition count. */
   repsOverride?: number;
   assisted?: boolean;
@@ -163,7 +165,7 @@ const CONTACT_GRACE_MS = 300;
 const GRASP_HAND_CHECKS = ["wrist_bend", "cup_tipping", "finger_extension"];
 /** Seated Knee Extension (knee-target.ts). */
 const KNEE_ID = "ex_lower_selective";
-/** Supported Arm Elevation, a table slide (slide-target.ts). */
+/** Supported Arm Elevation: the hand out to a drawn cup from a table or the armrest beside the body (slide-target.ts). */
 const SLIDE_ID = "ex_wallslide";
 /** Pinch and Peg (pinch-target.ts): set up and started as Active Hand Opening is. */
 const PINCH_ID = "ex_pinch";
@@ -171,14 +173,14 @@ const PINCH_ID = "ex_pinch";
 const SLIDE_HAND_CHECKS = ["hand_lift", "other_hand"];
 // The grasp also needs the resting hand itself (its fingers' start), not only the arm. The knee rests with its foot
 // (the resting point) still to within a sixth of the lower leg, and allows its 3D angle a little more jitter. The
-// table slide rests with its hand still on the table (a tenth of a shoulder span), its 3D shoulder angle within 10°.
+// arm elevation rests with its hand still beside the body (a tenth of a shoulder span), its 3D shoulder angle within 10°.
 const restCalibrationFor = (id: string) => id === KNEE_ID ? new ReachRestCalibration(["knee_extension"], 0.15, 12)
-  : id === SLIDE_ID ? new ReachRestCalibration(["shoulder_flexion", "elbow_extension"], 0.1, 10)
+  : id === SLIDE_ID ? new ReachRestCalibration(["shoulder_flexion"], 0.1, 10)
   // The pinch rests with its hand still (a quarter palm length) and the thumb's closure on each finger within 12 points.
   : id === PINCH_ID ? new ReachRestCalibration(["pinch_index", "pinch_middle"], 0.25, 12)
   : new ReachRestCalibration(id === "ex_h2m" ? ["shoulder_flexion", "elbow_flexion"] : id === "ex_handopen" ? ["finger_extension"] : id === "ex_grasp" ? ["shoulder_flexion", "elbow_extension", "finger_extension"] : undefined, id === "ex_handopen" ? 0.25 : undefined);
 /** What the practice hold learns: the goal angles, and for hand opening also how open the hand was (for its ring). */
-const targetCalibrationFor = (id: string) => new ReachTargetCalibration(id === "ex_h2m" ? ["elbow_flexion", "shoulder_flexion"] : id === "ex_handopen" ? ["finger_extension", "hand_openness"] : id === KNEE_ID ? ["knee_extension"] : undefined);
+const targetCalibrationFor = (id: string) => new ReachTargetCalibration(id === "ex_h2m" ? ["elbow_flexion", "shoulder_flexion"] : id === "ex_handopen" ? ["finger_extension", "hand_openness"] : id === KNEE_ID ? ["knee_extension"] : id === SLIDE_ID ? ["shoulder_flexion", "slide_out"] : undefined);
 /** The speed cue compares the measure now with this long ago (a short median at each end steadies it). */
 const SPEED_WINDOW_MS = 200;
 
@@ -277,7 +279,7 @@ export class ExerciseSession {
   constructor(opts: SessionOptions, voice: Voice) {
     this.opts = opts;
     this.voice = voice;
-    this.cfg = resolveExercise(opts.exerciseId, Boolean(opts.chairBack));
+    this.cfg = resolveExercise(opts.exerciseId, Boolean(opts.chairBack), Boolean(opts.armrest));
     this.reachRestCalibration = restCalibrationFor(this.cfg.id);
     this.reachTargetCalibration = targetCalibrationFor(this.cfg.id);
     // A frozen copy taken once: nothing changes mid-repetition, and later edits to the caller's object do not reach it.
@@ -510,14 +512,14 @@ export class ExerciseSession {
       if (!frame.visible || !frame.lapRest) {
         const missing = frame.missing ?? frame.lapMissing ?? (this.cfg.id === "ex_handopen" || this.cfg.id === PINCH_ID ? `Hold your ${this.opts.side} hand up in the shaded area with your palm facing the camera.`
           : this.cfg.id === KNEE_ID ? "Sit tall with both feet flat on the floor, from your head to your feet in view."
-          : this.cfg.id === SLIDE_ID ? `Rest your ${this.opts.side} forearm on a towel on the table beside you, with your elbow bent.`
+          : this.cfg.id === SLIDE_ID ? slideRestPrompt(this.opts.side, this.opts.armrest ? "armrest" : "table")
           : `Rest your ${this.opts.side} hand on the visible top of your ${this.opts.side} thigh.`);
         if (!this.voice.busy(t)) this.nag(t, missing); else this.prompt = missing;
       } else this.prompt = this.cfg.id === "ex_h2m" && !mouth ? "Keep your face in view and your hand on your lap while I learn the mouth target."
         : this.cfg.id === "ex_handopen" ? "Keep your fingers relaxed and gently curled, palm to the camera, while I learn your starting position."
         : this.cfg.id === PINCH_ID ? "Keep your hand relaxed, palm to the camera, with your thumb a little away from your first finger, while I learn your starting position."
         : this.cfg.id === KNEE_ID ? "Keep sitting tall with both feet flat on the floor while I learn your starting position."
-        : this.cfg.id === SLIDE_ID ? "Keep sitting tall with your forearm resting on the table while I learn your starting position."
+        : this.cfg.id === SLIDE_ID ? "Keep sitting tall with your forearm resting beside you while I learn your starting position."
         : "Keep your arm relaxed with your hand on your lap while I learn your starting position.";
       // Once the posture is learned, a long introduction may be cut after 12 s, as for every seated target.
       if (learned.ready && (this.cfg.id !== "ex_h2m" || mouth) && (!this.voice.busy(t) || t - this.introSpokenAt > 12000)) {
@@ -591,7 +593,7 @@ export class ExerciseSession {
       this.demoStepStart = t;
     }
     const elapsed = t - this.demoStepStart;
-    const duration = this.cfg.id === "ex_reach" ? reachDemoDuration(list[this.demoStepIndex].kind === "return") : this.cfg.id === "ex_h2m" ? mouthDemoDuration(list[this.demoStepIndex].kind === "return") : this.cfg.id === "ex_handopen" ? handDemoDuration(list[this.demoStepIndex].kind === "return") : this.cfg.id === "ex_grasp" ? graspDemoDuration(this.demoStepIndex) : this.cfg.id === KNEE_ID ? kneeDemoDuration(list[this.demoStepIndex].kind === "return") : this.cfg.id === SLIDE_ID ? slideDemoDuration(list[this.demoStepIndex].kind === "return") : this.cfg.id === PINCH_ID ? pinchDemoDuration(list[this.demoStepIndex].kind === "return") : TIMING.demoStepMs;
+    const duration = this.cfg.id === "ex_reach" ? reachDemoDuration(list[this.demoStepIndex].kind === "return") : this.cfg.id === "ex_h2m" ? mouthDemoDuration(list[this.demoStepIndex].kind === "return") : this.cfg.id === "ex_handopen" ? handDemoDuration(list[this.demoStepIndex].kind === "return") : this.cfg.id === "ex_grasp" ? graspDemoDuration(this.demoStepIndex) : this.cfg.id === KNEE_ID ? kneeDemoDuration(list[this.demoStepIndex].kind === "return") : this.cfg.id === SLIDE_ID ? slideDemoDuration(list[this.demoStepIndex].kind === "return", Boolean(this.opts.armrest)) : this.cfg.id === PINCH_ID ? pinchDemoDuration(list[this.demoStepIndex].kind === "return") : TIMING.demoStepMs;
     this.demoProgress = (this.demoStepIndex + Math.min(1, elapsed / duration)) / list.length;
     if (elapsed >= duration && (!this.voice.busy(t) || elapsed > duration + TIMING.speechCapMs)) {
       if (this.demoStepIndex + 1 < list.length) {
@@ -609,6 +611,8 @@ export class ExerciseSession {
   // ---------- beat 3: warm rep, beat 4: scored reps ----------
 
   private cycle(): CycleStep[] {
+    // Supported Arm Elevation's steps are the same at every rung, worded for the table or the armrest (resolveExercise).
+    if (this.cfg.id === SLIDE_ID) return this.cfg.cycle;
     if (this.phase === "warm") return cycleFor(this.opts.exerciseId, 1);
     return this.cycleCache;
   }
@@ -639,7 +643,7 @@ export class ExerciseSession {
       : this.cfg.id === "ex_handopen" ? "Now one practice repetition. It is not scored. Show me your palm in the shaded area. Then open your fingers out to the ring and hold while I learn your movement, and then close your hand gently."
       : this.cfg.id === "ex_grasp" ? "Now one practice repetition. It is not scored. Reach for the cup and open your hand, close it around the cup, carry it across, let it go, then return to your lap. I will learn your movement as you go."
       : this.cfg.id === KNEE_ID ? "Now one practice repetition. It is not scored. Look at the knee dial beside your shoulder: it moves with your knee, so as you straighten your knee, its foot moves toward the circle. Straighten your knee, swinging your foot out along the arrow, until the dial reaches its circle, and hold while I learn your movement. Then lower your foot to the floor."
-      : this.cfg.id === SLIDE_ID ? "Now one practice repetition. It is not scored. Slide your hand forward along the table until the hand on the dial reaches the circle, and hold while I learn your movement, then slide back."
+      : this.cfg.id === SLIDE_ID ? "Now one practice repetition. It is not scored. Follow the arrow and move your hand out to the cup, and hold while I learn your movement, then bring it back to rest."
       : this.cfg.id === PINCH_ID ? "Now one practice repetition. It is not scored. Show me your palm in the shaded area. Then bring your thumb toward your first finger as far as is comfortable, tip to tip if you can, and hold while I learn your movement. Then let go, and do the same with your middle finger."
       : "Now one practice repetition. It is not scored, and it helps me learn your starting position.");
     this.resetRep(t);
@@ -918,7 +922,7 @@ export class ExerciseSession {
             this.nag(t, this.cfg.id === "ex_handopen" ? "Keep your fingers open at the ring and your whole hand in view while I learn your movement."
               : this.cfg.id === PINCH_ID ? "Keep your thumb and finger together in the circle and your whole hand in view while I learn your movement."
               : this.cfg.id === KNEE_ID ? "Keep your knee straight at the circle and your feet in view while I learn your movement."
-              : this.cfg.id === SLIDE_ID ? "Keep your hand slid forward on the table and your arm in view while I learn your movement."
+              : this.cfg.id === SLIDE_ID ? "Keep your hand at the cup and your arm in view while I learn your movement."
               : "Keep your hand in the circle and your whole arm in view while I learn your movement.");
             return;
           }
@@ -1264,7 +1268,7 @@ export function simFrame(t: number, cfg: ExerciseConfig, targets: Record<string,
     comps[comp.metric] = input.compensations.includes(comp.id) ? comp.thresholdDeg + 6 : Math.min(1, comp.thresholdDeg / 4);
   });
   return { t, values, comps, visible: input.visible !== false, missing: input.visible === false ? "Sit in front of the camera so I can see you." : undefined,
-    ...(usesTargetFlow(cfg.id) ? { lapRest: input.level <= 0.05 ? { x: 0.6, y: 0.8, bodyScale: 0.4 } : undefined, lapMissing: cfg.id === "ex_handopen" ? "Let your fingers relax, with your palm facing the camera." : cfg.id === PINCH_ID ? "Let your thumb rest a little away from your first finger." : cfg.id === KNEE_ID ? "Rest your foot flat on the floor." : cfg.id === SLIDE_ID ? "Rest your forearm on the table." : "Lower your affected hand and rest it on your lap." } : {}),
+    ...(usesTargetFlow(cfg.id) ? { lapRest: input.level <= 0.05 ? { x: 0.6, y: 0.8, bodyScale: 0.4 } : undefined, lapMissing: cfg.id === "ex_handopen" ? "Let your fingers relax, with your palm facing the camera." : cfg.id === PINCH_ID ? "Let your thumb rest a little away from your first finger." : cfg.id === KNEE_ID ? "Rest your foot flat on the floor." : cfg.id === SLIDE_ID ? "Rest your forearm beside you." : "Lower your affected hand and rest it on your lap." } : {}),
     ...(cfg.id === "ex_h2m" ? { mouthPoint: { x: 0.5, y: 0.3 } } : {}) };
 }
 

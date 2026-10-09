@@ -1,5 +1,6 @@
 import { metricUnit, metricUnitName } from "./calibration";
-import { EXERCISES, REPS_BY_RUNG, type Rung, type Side } from "./config";
+import { REPS_BY_RUNG, resolveExercise, type Rung, type Side } from "./config";
+import { slideRestPrompt } from "./slide-target";
 import type { RepResult, Snapshot } from "./session";
 import { NEXT_REP_COUNTDOWN_LINE } from "./spoken";
 
@@ -31,12 +32,13 @@ export function exercisePreviewScreen(value: string | null): ExercisePreviewScre
 }
 
 /** Display fixtures only: no session, camera, voice, storage or recorder is started. */
-export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung, side: Side, exerciseId = "ex_reach") {
-  const cfg = EXERCISES[exerciseId];
+export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung, side: Side, exerciseId = "ex_reach", armrest = false) {
+  // Supported Arm Elevation is worded, and checked, for the table or the armrest.
+  const cfg = resolveExercise(exerciseId, false, armrest);
   const planned = REPS_BY_RUNG[rung];
   const hand = cfg.id === "ex_handopen", grasp = cfg.id === "ex_grasp", knee = cfg.id === "ex_lower_selective", slide = cfg.id === "ex_wallslide", pinch = cfg.id === "ex_pinch";
-  const targets: Record<string, number> = cfg.id === "ex_h2m" ? { elbow_flexion: 85, shoulder_flexion: 40 } : hand ? { finger_extension: 165 } : grasp ? { elbow_extension: 140, shoulder_flexion: 45, finger_extension: 165, carry_across: 0.95 } : knee ? { knee_extension: 125 } : slide ? { shoulder_flexion: 42, elbow_extension: 145 } : pinch ? { pinch_index: 75, pinch_middle: 75 } : { shoulder_flexion: 40, elbow_extension: 129 };
-  const startingAngles: Record<string, number> = cfg.id === "ex_h2m" ? { elbow_flexion: 25, shoulder_flexion: 8 } : hand ? { finger_extension: 120 } : grasp ? { elbow_extension: 100, shoulder_flexion: 8, finger_extension: 120, carry_across: 0 } : knee ? { knee_extension: 95 } : slide ? { shoulder_flexion: 12, elbow_extension: 90 } : pinch ? { pinch_index: 30, pinch_middle: 30 } : { shoulder_flexion: 8, elbow_extension: 100 };
+  const targets: Record<string, number> = cfg.id === "ex_h2m" ? { elbow_flexion: 85, shoulder_flexion: 40 } : hand ? { finger_extension: 165 } : grasp ? { elbow_extension: 140, shoulder_flexion: 45, finger_extension: 165, carry_across: 0.95 } : knee ? { knee_extension: 125 } : slide ? { shoulder_flexion: 45, slide_out: 0.6 } : pinch ? { pinch_index: 75, pinch_middle: 75 } : { shoulder_flexion: 40, elbow_extension: 129 };
+  const startingAngles: Record<string, number> = cfg.id === "ex_h2m" ? { elbow_flexion: 25, shoulder_flexion: 8 } : hand ? { finger_extension: 120 } : grasp ? { elbow_extension: 100, shoulder_flexion: 8, finger_extension: 120, carry_across: 0 } : knee ? { knee_extension: 95 } : slide ? { shoulder_flexion: 12, slide_out: 0 } : pinch ? { pinch_index: 30, pinch_middle: 30 } : { shoulder_flexion: 8, elbow_extension: 100 };
   // The return step: the second of two for the other exercises, the fifth for grasp and transport.
   const back = grasp ? 4 : 1;
   const lean = cfg.compensations[0].id;
@@ -58,7 +60,7 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
     rung, rungStart: rung, repIndex: phase === "warm" ? 0 : final ? planned : 2, repsPlanned: planned,
     stepIndex: returning ? back : 0, stepCount: cfg.cycle.length, caption: cfg.cycle[returning ? back : 0].caption, kind: returning ? "return" : hand ? "open" : "reach",
     liveAttainment: 0.78, inZone: !waiting, targetArmed: !waiting && phase !== "setup", holdProgress: waiting ? 0 : 0.48,
-    prompt: screen === "setup" ? hand || pinch ? `Hold your ${side} hand up in the shaded area with your palm facing the camera.` : grasp ? `Rest your ${side} hand on the visible top of your ${side} thigh.` : knee ? "Put both feet flat on the floor, about hip-width apart." : slide ? `Rest your ${side} forearm on a towel on the table beside you, with your elbow bent.` : `Bring your ${side} hand into view and rest it on your lap.` : "",
+    prompt: screen === "setup" ? hand || pinch ? `Hold your ${side} hand up in the shaded area with your palm facing the camera.` : grasp ? `Rest your ${side} hand on the visible top of your ${side} thigh.` : knee ? "Put both feet flat on the floor, about hip-width apart." : slide ? slideRestPrompt(side, armrest ? "armrest" : "table") : `Bring your ${side} hand into view and rest it on your lap.` : "",
     idlePrompt: screen === "idle", rescued: screen === "rescue", arrow: screen === "rescue" ? lean : null,
     feedback: screen === "rescue" ? "Let's bring the target a little closer." : "",
     reps: final ? reps : complete || screen === "countdown" ? reps.slice(0, 3) : scored ? [reps[0]] : [],
@@ -66,7 +68,7 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
     calibrationProgress: 0.55, targetsReady: scored, startingAngles,
     record: phase === "done" ? {
       engine: "screen-preview", exercise_id: cfg.id, rung_start: rung, rung_end: rung, reps_planned: planned,
-      repetition_scores: reps.map(rep => rep.score), quality_reps: reps.filter(rep => rep.good).length, best_attainment: 1, best_value: cfg.id === "ex_h2m" ? 85 : hand ? 165 : grasp ? 140 : knee ? 125 : slide ? 42 : pinch ? 92 : 40, best_label: cfg.id === "ex_h2m" ? "elbow bend" : hand ? "finger opening" : knee || slide || pinch ? cfg.bestLabel : "reach",
+      repetition_scores: reps.map(rep => rep.score), quality_reps: reps.filter(rep => rep.good).length, best_attainment: 1, best_value: cfg.id === "ex_h2m" ? 85 : hand ? 165 : grasp ? 140 : knee ? 125 : slide ? 45 : pinch ? 92 : 40, best_label: cfg.id === "ex_h2m" ? "elbow bend" : hand ? "finger opening" : knee || slide || pinch ? cfg.bestLabel : "reach",
       compensation_counts: second === lean ? { [lean]: 3 } : { [lean]: 2, [second]: 1 }, hold_pass_count: planned, not_attempted: false, assisted: false, chair_back: false,
       score: Math.round(reps.reduce((sum, rep) => sum + rep.score, 0) / planned), wrap: "", finished_at: "screen-preview",
     } : null,
@@ -89,9 +91,9 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
     { id: "hips", label: "Both hips" },
     { id: "arm", label: `${side === "right" ? "Right" : "Left"} elbow and hand` },
     { id: "otherHand", label: "Other hand" },
-    { id: "position", label: "Forearm on the table, space around you" },
+    { id: "position", label: "Forearm resting, room for the cup" },
     { id: "lighting", label: "Lighting" },
-  ].map(check => ({ ...check, visible: check.id !== "position", progress: check.id === "position" ? 0.2 : 1, hint: `Rest your ${side} forearm on a towel on the table beside you, with your elbow bent.` })) : pinch ? [
+  ].map(check => ({ ...check, visible: check.id !== "position", progress: check.id === "position" ? 0.2 : 1, hint: slideRestPrompt(side, armrest ? "armrest" : "table") })) : pinch ? [
     { id: "nose", label: "Face" },
     { id: "shoulder", label: `${side === "right" ? "Right" : "Left"} shoulder` },
     { id: "shoulderOther", label: "Other shoulder" },

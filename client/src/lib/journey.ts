@@ -447,7 +447,7 @@ export function buildChart(points: { day: number; score: number }[], range: Char
 const EXERCISE_TIPS: Record<string, string> = {
   ex_reach: "Forward reach: slow the return. Count three on the way back and let your hand land softly.",
   ex_h2m: "Hand to mouth: bring the cup up slowly, pause at your lips, and lower it with control.",
-  ex_wallslide: "Wall slide: keep the palm flat and slide only a little higher than feels easy, then rest.",
+  ex_wallslide: "Arm out to the cup: rest your forearm on a table or armrest, move your hand slowly out to the side along the arrow, and rest between reps.",
   ex_handopen: "Hand opening: open every finger fully, hold for three, then relax. Rest between sets.",
   ex_grasp: "Grasp: squeeze for three, then open every finger fully before the next rep.",
   ex_pinch: "Pinch: thumb to each fingertip slowly, light pressure, wrist straight.",

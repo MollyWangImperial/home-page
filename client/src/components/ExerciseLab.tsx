@@ -1,10 +1,17 @@
 import { useState } from "react";
 import { Activity, ChevronRight, Hand, Play } from "lucide-react";
 import { DOMAIN_LABEL, EXERCISE_RUNGS, EXERCISES, LAUNCH_EXERCISE_IDS, SOLO_EXCLUDED_IDS, type Domain, type Rung } from "@/lib/exercise-engine/config";
+import { metricUnitName } from "@/lib/exercise-engine/calibration";
 import "@/pages/exercise-engine.css";
 import { clearLabSessions, readLabOptions, readLabSessions, writeLabOptions, type LabOptions } from "@/lib/exercise-engine/lab-storage";
 
 const DOMAINS: Domain[] = ["upper_limb", "hand", "lower_limb"];
+
+/** A level target in its own unit: degrees for angles, shoulder widths for the slide and carry. */
+const targetText = (value: number, metric: string) => {
+  const unit = metricUnitName(metric);
+  return unit === "degrees" ? `${value}°` : unit === "percent" ? `${value}%` : `${value} ${unit}`;
+};
 
 /** Settings panel: open each launch exercise on its own, at any rung, to test it one by one. */
 export function ExerciseLabPanel({ onLaunch }: { onLaunch: (path: string) => void }) {
@@ -55,7 +62,7 @@ export function ExerciseLabPanel({ onLaunch }: { onLaunch: (path: string) => voi
                 </div>
                 <dl>
                   <div><dt>Camera</dt><dd>{ex.framing}</dd></div>
-                  <div><dt>Targets at level {rung}</dt><dd>{ex.romSteps.map(rom => `${rom.label} ${spec.targets[rom.id]}°`).join(" · ")}{spec.oppositions ? ` · ${spec.oppositions} finger pinch${spec.oppositions > 1 ? "es" : ""}` : ""}</dd></div>
+                  <div><dt>Targets at level {rung}</dt><dd>{ex.romSteps.map(rom => `${rom.label} ${targetText(spec.targets[rom.id], rom.metric)}`).join(" · ")}{spec.oppositions ? ` · ${spec.oppositions} finger pinch${spec.oppositions > 1 ? "es" : ""}` : ""}</dd></div>
                   <div><dt>Dose</dt><dd>{options.quick ? 3 : spec.reps} reps · hold ×{spec.holdScale}</dd></div>
                 </dl>
                 <div className="xe-lab-actions">

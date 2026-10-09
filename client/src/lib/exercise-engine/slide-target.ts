@@ -1,27 +1,72 @@
 import type { Side } from "./config";
+import { drawCup } from "./grasp-target";
 import { drawRingLabel } from "./hand-target";
 import { inView, poseFrameValues, poseJoints, type Frame, type Geo, type LapRest, type PoseInput, type Pt } from "./metrics";
 import { TARGET_COMPLETION_MS, TARGET_HOLD_MS } from "./target-timing";
 import { drawTargetCompletion, drawTestingTarget } from "./target-visual";
 
-// Supported Arm Elevation as a table slide on the shared target flow. The patient sits at the corner of a table
-// that is beside the affected side, forearm resting on a towel, other hand on the thigh, with a front camera at
-// chest height (above the table) seeing the head to the thighs. The hand slides forward along the table, mostly
-// toward the camera, so it hardly moves in the picture: the shoulder's elevation comes from the pose model's 3D
-// landmarks, and a slide dial drawn beside the shoulder shows it. The dial is a side view of the arm on a table
-// whose hand slides into the target circle as the shoulder elevates, with the same circle activation as the other
-// exercises. Positions are raw (unmirrored) image coordinates: x in frame widths, y in frame heights; lengths in
-// frame heights.
+// Supported Arm Elevation on the shared target flow. The forearm rests on a table beside the affected side (a
+// supported slide along it) or on the chair's armrest (lifted from it), the other hand on its thigh, a front camera
+// at chest height seeing the head to the thighs. The hand moves out to the side and a little forward (the scapular
+// plane, the usual safe plane for shoulder elevation after stroke) toward a cup drawn in a target circle, with an
+// arrow showing the way. Most of that movement is across the picture, so the hand's place on screen measures it and
+// decides the circle, as for Graded Forward Reach; a hand moving toward the camera would only change its depth.
+// Positions are raw (unmirrored) image coordinates: x in frame widths, y in frame heights; lengths in frame heights.
 
-const DEG = 180 / Math.PI;
 type P2 = { x: number; y: number };
 const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
 
 /** The cycle's steps, by index (config.ts ex_wallslide). */
 export const SLIDE_STEP = { slide: 0, back: 1 } as const;
+/** What the forearm rests on (the patient's choice at the start). */
+export type SlideSupport = "table" | "armrest";
 
 /** The slide's own part of the set-up snapshot (Geo): the resting hands in the picture and the shoulder span. */
-export type SlideGeo = Geo & { slideWristX?: number; slideWristY?: number; slideOtherX?: number; slideOtherY?: number; slideSpan?: number };
+export type SlideGeo = Geo & { slideWristX?: number; slideWristY?: number; slideOtherX?: number; slideOtherY?: number; slideSpan?: number; slideOut?: number };
+
+// ---------- where the cup is ----------
+
+/** The practice cup's distance out from the resting hand, in shoulder spans; eased to this if not reached for a while. */
+export const SLIDE_PRACTICE_SPANS = 0.6, SLIDE_EASED_SPANS = 0.35, SLIDE_EASE_MS = 12000;
+/** The circles' radius, in shoulder spans (within limits in frame heights)... */
+const CIRCLE_SPAN = 0.22, CIRCLE_MIN = 0.045, CIRCLE_MAX = 0.1;
+/** ...and never more than this share of the distance between the cup and the resting place, so they never touch. */
+const CIRCLE_APART = 0.4;
+/** Once in a circle, the hand stays in it until it is this much further out (a hold is not lost to a flicker). */
+const CIRCLE_STAY = 1.2;
+/** Set-up needs room beside the arm for a cup this far out (shoulder spans), with its circle. */
+const ROOM_SPANS = 0.95;
+
+/**
+ * How far the cup sits above the resting hand for each shoulder span out: level along a table (the hand slides on
+ * it); from the armrest the arm lifts as it moves out, so the cup is out and a little up (about 27 degrees).
+ */
+export const SLIDE_RISE = { table: 0, armrest: 0.5 } as const;
+
+/**
+ * Both circles' radius (frame heights): a share of the shoulder span within limits, and small enough that the cup's
+ * circle and the resting circle stay apart (with the stay margin) however close the cup is or however small the span.
+ */
+export function slideRadius(span: number, spans: number, rise = 0): number {
+  return Math.min(clamp(CIRCLE_SPAN * span, CIRCLE_MIN, CIRCLE_MAX), CIRCLE_APART * spans * span * Math.hypot(1, rise));
+}
+
+/** The circle the hand moves out to: from the resting hand, `spans` shoulder spans away from the body (and `rise` up per span). */
+export function slideCircle(rest: LapRest, out: number, spans: number, aspect: number, rise = 0): P2 & { radius: number } {
+  return { x: rest.x + out * spans * rest.bodyScale / aspect, y: rest.y - rise * spans * rest.bodyScale, radius: slideRadius(rest.bodyScale, spans, rise) };
+}
+
+/** The resting circle the hand comes back to, the same size as that cup's circle. */
+export function restCircle(rest: LapRest, spans: number, rise = 0): P2 & { radius: number } {
+  return { x: rest.x, y: rest.y, radius: slideRadius(rest.bodyScale, spans, rise) };
+}
+
+/** +1 when the affected side is toward +x in the raw image (away from the body's middle), else -1. */
+export function slideOutward(pose: PoseInput | null, side: Side): number | null {
+  const lm = pose?.landmarks, j = poseJoints(side);
+  const s = lm?.[j.shoulder], o = lm?.[j.shoulderOther];
+  return s && o && inView(s) && inView(o) ? Math.sign(s.x - o.x) || 1 : null;
+}
 
 // ---------- the set-up snapshot and the slide's own checks ----------
 
@@ -32,7 +77,7 @@ function shoulderSpan(pose: PoseInput, side: Side, aspect: number): number | und
   return inView(s) && inView(o) ? Math.hypot((s.x - o.x) * aspect, s.y - o.y) : undefined;
 }
 
-/** The snapshot's slide fields: both wrists in the picture and the shoulder span. */
+/** The snapshot's slide fields: both wrists in the picture, the shoulder span and the outward direction. */
 export function slideGeo(pose: PoseInput, side: Side, aspect: number): Partial<SlideGeo> {
   const lm = pose.landmarks, j = poseJoints(side);
   const out: Partial<SlideGeo> = {};
@@ -41,12 +86,14 @@ export function slideGeo(pose: PoseInput, side: Side, aspect: number): Partial<S
   if (inView(other)) { out.slideOtherX = other.x; out.slideOtherY = other.y; }
   const span = shoulderSpan(pose, side, aspect);
   if (span !== undefined) out.slideSpan = span;
+  const outward = slideOutward(pose, side);
+  if (outward !== null) out.slideOut = outward;
   return out;
 }
 
 /** The other hand counts as helping this close to the affected forearm, in shoulder spans... */
 const OTHER_NEAR_SPAN = 0.4;
-/** ...or once it has travelled this far from where it rested at set-up. */
+/** ...or once it has travelled this far from where it rested as the slide started. */
 const OTHER_TRAVEL_SPAN = 0.5;
 
 /** Distance from a point to the segment a-b, in frame heights. */
@@ -58,11 +105,24 @@ function segmentDistance(p: Pt, a: Pt, b: Pt, aspect: number) {
 }
 
 /**
+ * How far the hand has slid out from where it rested, in shoulder spans: its sideways travel in the picture away
+ * from the body (the forward part of the movement only changes its depth). 0 at set-up, before the reference exists.
+ */
+export function slideOut(pose: PoseInput, ref: SlideGeo | null, side: Side, aspect: number): number | undefined {
+  const wrist = pose.landmarks[poseJoints(side).wrist];
+  if (!inView(wrist)) return undefined;
+  if (!ref) return 0;
+  if (ref.slideWristX === undefined || !ref.slideSpan || ref.slideSpan < 0.03) return undefined;
+  const out = ref.slideOut ?? slideOutward(pose, side) ?? 1;
+  return (wrist.x - ref.slideWristX) * out * aspect / ref.slideSpan;
+}
+
+/**
  * The slide's own compensation measures against the set-up reference:
- * - hand_lift_pct: the affected hand higher in the picture than where it rested on the table, in % of the shoulder
- *   span. Sliding along the table never raises the hand in the picture from a camera above the table (it stays level
- *   or sinks as it nears the camera), so a rise is the hand or forearm lifting off the support. The elbow rising is
- *   normal in a slide and is not counted.
+ * - hand_lift_pct (table only): the affected hand higher in the picture than where it rested, in % of the shoulder
+ *   span. Sliding along the table never raises the hand in the picture from a camera above the table (out to the
+ *   side it stays level; the forward part brings it nearer the camera, which only lowers it), so a rise is the hand
+ *   lifting off the support. The elbow rising is normal in a slide and is not counted.
  * - other_hand_pct: the other hand helping, in % of its limit (100 at the limit): it travelled half a shoulder span
  *   from where it rested, or came within 0.4 of a span of the affected forearm.
  */
@@ -81,20 +141,29 @@ export function slideComps(pose: PoseInput, ref: SlideGeo | null, side: Side, as
   return out;
 }
 
+/** Where the forearm rests, for the patient's choice of support (both when it is not known). */
+export const slideRestOn = (support?: SlideSupport) =>
+  support === "table" ? "on the table beside you" : support === "armrest" ? "on the armrest of your chair" : "on a table beside you or on the armrest of your chair";
+
+/** The set-up instruction for the resting forearm. */
+export const slideRestPrompt = (side: Side, support?: SlideSupport) => `Rest your ${side === "left" ? "left" : "right"} forearm ${slideRestOn(support)}, with your elbow bent.`;
+
 /**
- * What set-up waits for, in the patient's words: head to thighs in view with room round the body, the affected
- * forearm resting on the table beside the body (above the lap, elbow bent), the other hand on its thigh, and the
- * camera above the table (seen from above, the resting hand sits no higher in the picture than the elbow).
+ * What set-up waits for, in the patient's words: head to thighs in view with room round the body and beside the arm
+ * for the cup, the affected forearm resting beside the body (on a table or the armrest, above the lap), the other
+ * hand on its thigh, and the camera above the support (seen from above, the resting hand sits no higher in the
+ * picture than the elbow). `support` words the hints for the patient's choice (both when it is not known).
  */
-export function slideRestCheck(pose: PoseInput | null, side: Side, aspect: number): { lapRest?: LapRest; lapMissing?: string } {
+export function slideRestCheck(pose: PoseInput | null, side: Side, aspect: number, support?: SlideSupport): { lapRest?: LapRest; lapMissing?: string } {
   if (!pose) return { lapMissing: "Sit in front of the camera so I can see you." };
   const lm = pose.landmarks, j = poseJoints(side);
   const seen = (...indices: number[]) => indices.every(index => inView(lm[index]));
   const name = side === "left" ? "left" : "right";
+  const on = slideRestOn(support);
   if (!seen(j.nose)) return { lapMissing: "Move the camera back so I can see you from your head to your thighs." };
   if (!seen(j.shoulder, j.shoulderOther)) return { lapMissing: "Move the camera back so I can see both shoulders." };
-  if (!seen(j.hip, j.hipOther)) return { lapMissing: "Sit at the corner of the table, with the table beside you, so I can see both hips." };
-  if (!seen(j.elbow, j.wrist)) return { lapMissing: `Rest your ${name} forearm on the table where the camera can see your elbow and hand.` };
+  if (!seen(j.hip, j.hipOther)) return { lapMissing: "Move the camera back so I can see both hips." };
+  if (!seen(j.elbow, j.wrist)) return { lapMissing: `Rest your ${name} forearm ${on}, where the camera can see your elbow and hand.` };
   if (!seen(j.wristOther)) return { lapMissing: "Rest your other hand on your thigh where the camera can see it." };
   if (lm[j.nose].y < 0.05) return { lapMissing: "Tilt the camera up a little so there is space above your head." };
   if ([j.shoulder, j.shoulderOther, j.elbow, j.wrist, j.wristOther].some(index => lm[index].x < 0.04 || lm[index].x > 0.96)) {
@@ -106,25 +175,28 @@ export function slideRestCheck(pose: PoseInput | null, side: Side, aspect: numbe
   if (span < 0.08 || torso < 0.1) return { lapMissing: "Move the camera a little closer." };
   const wrist = lm[j.wrist], elbow = lm[j.elbow], otherWrist = lm[j.wristOther];
   const out = Math.sign(shoulder.x - other.x) || 1;
-  // The forearm on the table: the hand above the lap, on the affected side of the body.
+  // The forearm resting beside the body: the hand above the lap, on the affected side of the body.
   if (wrist.y > hip.y - 0.2 * torso || (wrist.x - (shoulder.x + other.x) / 2) * out <= 0) {
-    return { lapMissing: `Rest your ${name} forearm on a towel on the table beside you, with your elbow bent.` };
+    return { lapMissing: slideRestPrompt(side, support) };
   }
-  // From a camera above the table the forearm, pointing toward it, has the hand no higher than the elbow.
-  if (wrist.y < elbow.y - 0.05 * span) return { lapMissing: "Raise the camera to chest height, above the table." };
+  // From a camera above the support the forearm, pointing toward it, has the hand no higher than the elbow.
+  if (wrist.y < elbow.y - 0.05 * span) return { lapMissing: "Raise the camera to chest height, above your forearm." };
   // The other hand resting on its thigh.
   if (otherWrist.y < hipOther.y - 0.3 * torso || otherWrist.y > hipOther.y + 0.6 * torso) return { lapMissing: "Rest your other hand on your thigh." };
+  // Room beside the arm for the cup and its circle.
+  const far = wrist.x + out * (ROOM_SPANS * span + slideRadius(span, SLIDE_PRACTICE_SPANS)) / aspect;
+  if (far < 0.02 || far > 0.98) return { lapMissing: "Move the camera back a little, or sit a little toward your other side, so there is room beside your arm for the cup." };
   return { lapRest: { x: wrist.x, y: wrist.y, bodyScale: span } };
 }
 
 /**
- * One camera frame: the shoulder's elevation and the elbow (3D), the five checks, and the set-up's resting hand on
- * the table. During the slide only the affected arm has to stay in view; a check whose body part is out of view
- * stays unmeasured.
+ * One camera frame: how far the hand has slid out (in the picture) and the shoulder's elevation (3D), the checks, and
+ * the set-up's resting hand. During the movement only the affected arm has to stay in view; a check whose body part
+ * is out of view stays unmeasured.
  */
-export function slideFrame(det: { pose: PoseInput | null }, side: Side, t: number, aspect: number, ref: Geo | null): Frame {
+export function slideFrame(det: { pose: PoseInput | null }, side: Side, t: number, aspect: number, ref: Geo | null, support?: SlideSupport): Frame {
   const pose = det.pose;
-  if (!pose) return { t, values: {}, comps: {}, visible: false, missing: "Sit in front of the camera so I can see you.", ...slideRestCheck(null, side, aspect) };
+  if (!pose) return { t, values: {}, comps: {}, visible: false, missing: "Sit in front of the camera so I can see you.", ...slideRestCheck(null, side, aspect, support) };
   const lm = pose.landmarks, j = poseJoints(side);
   const seen = (...indices: number[]) => indices.every(index => inView(lm[index]));
   const body = poseFrameValues(pose, side, ref);
@@ -140,116 +212,34 @@ export function slideFrame(det: { pose: PoseInput | null }, side: Side, t: numbe
   };
   return {
     t, comps, geo,
-    values: armSeen ? { shoulder_flexion: body.values.shoulder_flexion, elbow_extension: body.values.elbow_extension } : {},
-    visible: armSeen, missing: armSeen ? undefined : seen(j.shoulder, j.elbow, j.wrist) ? "Sit at the corner of the table, with the table beside you, so I can see your hips." : "Keep your shoulder, elbow and hand in view of the camera.",
-    ...slideRestCheck(pose, side, aspect),
+    values: armSeen ? { slide_out: slideOut(pose, ref as SlideGeo | null, side, aspect), shoulder_flexion: body.values.shoulder_flexion } : {},
+    visible: armSeen, missing: armSeen ? undefined : seen(j.shoulder, j.elbow, j.wrist) ? "Move the camera back so I can see your hips." : "Keep your shoulder, elbow and hand in view of the camera.",
+    ...slideRestCheck(pose, side, aspect, support),
   };
 }
 
-// ---------- the slide dial beside the shoulder ----------
-
-export type SlideDial = {
-  /** The dial's shoulder, beside the affected shoulder on the outside of the body. */
-  pivot: P2;
-  /** The dial's upper arm length, frame heights (the dial's unit). */
-  radius: number;
-  /** +1 when the dial's hand slides toward +x in the raw image (away from the body), else -1. */
-  out: number;
-};
-
-/** The dial's arm, in upper-arm lengths: the forearm, and the table at the resting elbow's height. */
-const DIAL_FOREARM = 0.9;
-/** The dial's shoulder angle (from straight down) where the target circle sits: the goal is always drawn here. */
-export const DIAL_GOAL_DEG = 42;
-/** The dial's arm is straight here: the hand can slide no further along its table. */
-const DIAL_MAX_DEG = Math.acos(1 / (1 + DIAL_FOREARM)) * DEG;
-/** The circle's radius, the dial's gap from the shoulder and its reach out to the far edge of the circle, in upper-arm lengths. */
-const DIAL_CIRCLE = 0.24, DIAL_GAP = 0.6, DIAL_REACH = 1.62 + DIAL_CIRCLE + 0.1, DIAL_DEPTH = 1 + DIAL_CIRCLE + 0.1;
-
-/** The dial's hand on its table at a shoulder angle (degrees), in upper-arm lengths from the dial's shoulder. */
-export function dialHand(degrees: number): { elbow: [number, number]; hand: [number, number] } {
-  const a = clamp(degrees, 0, DIAL_MAX_DEG) / DEG;
-  const elbow: [number, number] = [Math.sin(a), Math.cos(a)];
-  const drop = 1 - elbow[1];
-  return { elbow, hand: [elbow[0] + Math.sqrt(Math.max(0, DIAL_FOREARM * DIAL_FOREARM - drop * drop)), 1] };
-}
-
-/** The dial from the set-up posture: beside the affected shoulder, sized by the upper arm, kept inside the picture. */
-export function slideDial(pose: PoseInput | null, side: Side, aspect: number): SlideDial | null {
-  const lm = pose?.landmarks, j = poseJoints(side);
-  const shoulder = lm?.[j.shoulder], other = lm?.[j.shoulderOther], elbow = lm?.[j.elbow];
-  if (!shoulder || !other || !elbow || ![shoulder, other, elbow].every(p => inView(p))) return null;
-  const upper = Math.hypot((elbow.x - shoulder.x) * aspect, elbow.y - shoulder.y);
-  const out = Math.sign(shoulder.x - other.x) || 1;
-  const room = (out > 0 ? 0.98 - shoulder.x : shoulder.x - 0.02) * aspect;
-  const radius = Math.min(clamp(0.8 * upper, 0.09, 0.16), room / (DIAL_GAP + DIAL_REACH), (0.98 - shoulder.y) / DIAL_DEPTH);
-  if (radius < 0.06) return null;
-  return { pivot: { x: shoulder.x + out * DIAL_GAP * radius / aspect, y: shoulder.y }, radius, out };
-}
-
-/** Set-up estimates move the dial this share of the way each frame, so it settles steadily. */
-export function followSlideDial(last: SlideDial | null, next: SlideDial | null, share = 0.2): SlideDial | null {
-  if (!next) return last;
-  if (!last) return next;
-  const mix = (a: number, b: number) => a + (b - a) * share;
-  return { pivot: { x: mix(last.pivot.x, next.pivot.x), y: mix(last.pivot.y, next.pivot.y) }, radius: mix(last.radius, next.radius), out: next.out };
-}
-
-/** A point of the dial (upper-arm lengths: along the table away from the body, and down) in raw image coordinates. */
-export function dialPoint(dial: SlideDial, along: number, down: number, aspect: number): P2 {
-  return { x: dial.pivot.x + dial.out * along * dial.radius / aspect, y: dial.pivot.y + down * dial.radius };
-}
-
-/** The dial's shoulder angle for a movement progress (0 resting, 1 at the goal). */
-export const dialDegrees = (progress: number) => clamp(Number.isFinite(progress) ? progress : 0, -0.1, 1.3) * DIAL_GOAL_DEG;
-
 // ---------- each step's target ----------
 
-/** The practice goal: a modest slide from the resting shoulder, before the personal goal is learned (a table allows about 55-63 degrees). */
-export function slidePracticeGoal(rest: number): number {
-  return rest + clamp(0.35 * (60 - rest), 15, 30);
-}
-/** A practice slide not reached in this long comes closer: slide as far as is comfortable. */
-export const SLIDE_EASE_MS = 12000, SLIDE_EASED_DEG = 10;
-/** Once on target, the shoulder may sag this much before it counts as off (a hold is not lost to a flicker). */
-export const SLIDE_HYSTERESIS_DEG = 4;
-/**
- * The arm is back with the shoulder within this share of the way from rest to the goal (at least this many degrees
- * from rest, so a small goal still leaves room for the 3D angle's jitter), the hand down on the table.
- */
-export const SLIDE_BACK_SHARE = 0.3, SLIDE_BACK_MIN_DEG = 8;
-/**
- * The hand back where it rested also counts with the shoulder a little further up (the 3D angle may not settle exactly
- * where it was at set-up), and, after this long sliding back, at any angle.
- */
-const SLIDE_NEARLY_SHARE = 0.4, SLIDE_BACK_LENIENT_MS = 10000;
-/**
- * The resting hand's circle on the table and how far above its resting point the hand still counts as down, in
- * shoulder spans. The circle is small: a hand slid forward to the goal is only about 0.15-0.2 spans away in the picture.
- */
-const HAND_BACK_SPAN = 0.1, HAND_DOWN_SPAN = 0.13;
-
 export type SlideTargetInput = {
-  value: number | undefined;
-  /** The resting shoulder elevation learned at set-up. */
-  rest: number;
-  /** The goal: the practice goal, or the goal learned in practice. */
-  goal: number;
-  returning: boolean;
-  /** The affected hand now, and where it rested at set-up (the shoulder span as the scale). */
-  hand?: P2 | null;
-  restHand?: LapRest | null;
+  /** The affected hand now. */
+  hand: P2 | null;
+  /** Where the hand rested at set-up (its shoulder span as the scale), and the outward direction. */
+  rest: LapRest;
+  out: number;
   aspect: number;
+  /** The cup's distance out from the resting hand, shoulder spans (the practice distance, eased if it had to come closer). */
+  spans: number;
+  /** How far up the cup sits per span out (SLIDE_RISE: level along a table, a little up from the armrest). */
+  rise?: number;
+  returning: boolean;
   armed: boolean;
   practice: boolean;
   t: number;
 };
 
 /**
- * Whether the arm is on this step's target, and how far along it is. Slide: the shoulder at its goal (it stays on
- * target until it sags a few degrees below). Back: the shoulder most of the way back with the hand down on the table.
- * The hand slides mostly toward the camera, so its place in the picture hardly changes: the hand alone never decides
- * that the arm is back. A practice slide not on target for a while eases to a small slide.
+ * Whether the hand is on this step's target, where that target is, and how far along the hand is. Slide: the hand in
+ * the cup's circle. Back: the hand in its resting circle. A practice cup not reached for a while comes closer.
  */
 export class SlideTarget {
   private key = "";
@@ -260,42 +250,62 @@ export class SlideTarget {
 
   reset() { this.key = ""; this.on = false; this.armedSince = null; this.lastOn = null; this.eased = false; }
 
-  update(key: string, input: SlideTargetInput): { contact: boolean; progress: number; goal: number; eased: boolean } {
+  update(key: string, input: SlideTargetInput): { contact: boolean; progress: number; circle: P2 & { radius: number }; spans: number; eased: boolean } {
     if (key !== this.key) { this.reset(); this.key = key; }
     if (input.armed) this.armedSince ??= input.t;
-    let goal = input.goal;
+    let spans = input.spans;
     if (input.practice && !input.returning) {
-      // Eased after a while without contact (since arming, or since the shoulder last sagged off the target).
+      // Eased after a while without contact (since arming, or since the hand last left the circle).
       if (this.armedSince !== null && input.t - Math.max(this.armedSince, this.lastOn ?? -Infinity) >= SLIDE_EASE_MS) this.eased = true;
-      if (this.eased) goal = Math.min(goal, input.rest + SLIDE_EASED_DEG);
+      if (this.eased) spans = Math.min(spans, SLIDE_EASED_SPANS);
     }
-    const value = input.value;
-    const measured = value !== undefined && Number.isFinite(value);
-    const range = Math.max(1, goal - input.rest);
-    const progress = measured ? (value - input.rest) / range : 0;
-    if (input.returning) {
-      const rest = input.restHand, hand = input.hand, span = rest?.bodyScale ?? 0;
-      const placed = Boolean(rest && hand && span > 0);
-      const back = placed && Math.hypot((hand!.x - rest!.x) * input.aspect, hand!.y - rest!.y) <= HAND_BACK_SPAN * span;
-      const down = placed && hand!.y >= rest!.y - HAND_DOWN_SPAN * span;
-      const slack = this.on ? SLIDE_HYSTERESIS_DEG : 0;
-      const bent = measured && value - input.rest <= Math.max(SLIDE_BACK_SHARE * range, SLIDE_BACK_MIN_DEG) + slack;
-      const nearly = measured && value - input.rest <= Math.max(SLIDE_NEARLY_SHARE * range, SLIDE_BACK_MIN_DEG) + slack;
-      const lenient = this.armedSince !== null && input.t - this.armedSince >= SLIDE_BACK_LENIENT_MS;
-      this.on = (down && bent) || (back && (nearly || lenient));
-    } else {
-      this.on = measured && (this.on ? value >= goal - SLIDE_HYSTERESIS_DEG : value >= goal);
-    }
+    const circle = input.returning ? restCircle(input.rest, spans, input.rise ?? 0) : slideCircle(input.rest, input.out, spans, input.aspect, input.rise ?? 0);
+    const hand = input.hand;
+    const distance = hand ? Math.hypot((hand.x - circle.x) * input.aspect, hand.y - circle.y) : Infinity;
+    this.on = Boolean(hand) && distance <= circle.radius * (this.on ? CIRCLE_STAY : 1);
     if (this.on) this.lastOn = input.t;
-    return { contact: this.on, progress, goal, eased: this.eased };
+    const travel = hand ? (hand.x - input.rest.x) * input.out * input.aspect / input.rest.bodyScale : 0;
+    const progress = spans > 0 ? travel / spans : 0;
+    return { contact: this.on, progress: input.returning ? 1 - progress : progress, circle, spans, eased: this.eased };
   }
 }
 
-// ---------- drawing the dial on the camera view ----------
+// ---------- drawing on the camera view ----------
+
+/**
+ * The direction arrow from the hand toward the active circle, on the mirrored camera view: a soft track with
+ * chevrons that drift along it (still, with reduced motion). Canvas pixels.
+ */
+export function drawSlideArrow(ctx: CanvasRenderingContext2D, from: P2, to: P2 & { radius: number }, now: number, reducedMotion: boolean, scale: number) {
+  const dx = to.x - from.x, dy = to.y - from.y, length = Math.hypot(dx, dy);
+  const gap = to.radius + scale * 0.25;
+  if (length <= gap + scale * 0.3) return;
+  const ux = dx / length, uy = dy / length;
+  const start = scale * 0.25, end = length - gap;
+  ctx.save();
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.strokeStyle = "rgba(255,254,250,.6)"; ctx.lineWidth = Math.max(5, scale * 0.16);
+  ctx.beginPath(); ctx.moveTo(from.x + ux * start, from.y + uy * start); ctx.lineTo(from.x + ux * end, from.y + uy * end); ctx.stroke();
+  const size = Math.max(9, scale * 0.38), spacing = size * 1.5;
+  const offset = reducedMotion ? 0 : ((now / 600) % 1) * spacing;
+  ctx.strokeStyle = "#e18e6d"; ctx.lineWidth = Math.max(5, scale * 0.14);
+  for (let along = start + offset; along <= end; along += spacing) {
+    const x = from.x + ux * along, y = from.y + uy * along;
+    ctx.beginPath();
+    ctx.moveTo(x - ux * size - uy * size * 0.7, y - uy * size + ux * size * 0.7);
+    ctx.lineTo(x, y);
+    ctx.lineTo(x - ux * size + uy * size * 0.7, y - uy * size - ux * size * 0.7);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
 
 export type SlideDrawing = {
-  /** The movement's progress (0 resting, 1 at the goal) for the dial's hand. */
-  progress: number;
+  /** The cup's circle and the resting circle, raw image coordinates (radius in frame heights). */
+  cup: P2 & { radius: number };
+  rest: P2 & { radius: number };
+  /** The affected hand now (raw image coordinates), for the arrow. */
+  hand: P2 | null;
   returning: boolean;
   armed: boolean;
   contact: boolean;
@@ -306,146 +316,149 @@ export type SlideDrawing = {
   reducedMotion: boolean;
 };
 
-/** The slide dial on the mirrored camera view: a table, a side-view arm whose hand slides along it, and the active circle. */
-export function drawSlideDial(ctx: CanvasRenderingContext2D, dial: SlideDial, width: number, height: number, state: SlideDrawing) {
-  const aspect = width / height;
-  const at = (along: number, down: number) => { const p = dialPoint(dial, along, down, aspect); return { x: (1 - p.x) * width, y: p.y * height }; };
-  const r = dial.radius * height;
-  const rest = dialHand(0).hand[0], top = dialHand(DIAL_MAX_DEG).hand[0];
-  ctx.save();
-  ctx.lineCap = "round"; ctx.lineJoin = "round";
-  // The table, and the path the hand slides along it.
-  const tableA = at(-0.1, 1.12), tableB = at(top + 0.3, 1.12);
-  ctx.strokeStyle = "rgba(255,254,250,.7)"; ctx.lineWidth = Math.max(4, r * 0.06);
-  ctx.beginPath(); ctx.moveTo(tableA.x, tableA.y); ctx.lineTo(tableB.x, tableB.y); ctx.stroke();
-  const pathA = at(rest, 1), pathB = at(top, 1);
-  ctx.strokeStyle = "rgba(255,254,250,.55)"; ctx.lineWidth = Math.max(3, r * 0.05); ctx.setLineDash([6, 8]);
-  ctx.beginPath(); ctx.moveTo(pathA.x, pathA.y); ctx.lineTo(pathB.x, pathB.y); ctx.stroke(); ctx.setLineDash([]);
-  // The body's side, then the arm: shoulder to elbow to the hand on the table.
-  const trunkA = at(-0.25, -0.1), trunkB = at(-0.25, 1.05);
-  ctx.strokeStyle = "rgba(40,91,73,.85)"; ctx.lineWidth = Math.max(8, r * 0.16);
-  ctx.beginPath(); ctx.moveTo(trunkA.x, trunkA.y); ctx.lineTo(trunkB.x, trunkB.y); ctx.stroke();
-  const arm = dialHand(dialDegrees(state.progress));
-  const shoulder = at(0, 0), elbow = at(arm.elbow[0], arm.elbow[1]), hand = at(arm.hand[0], arm.hand[1]);
-  ctx.strokeStyle = "#e18e6d"; ctx.lineWidth = Math.max(7, r * 0.13);
-  ctx.beginPath(); ctx.moveTo(shoulder.x, shoulder.y); ctx.lineTo(elbow.x, elbow.y); ctx.lineTo(hand.x, hand.y); ctx.stroke();
-  ctx.fillStyle = "#fffefa";
-  ctx.beginPath(); ctx.arc(shoulder.x, shoulder.y, Math.max(5, r * 0.08), 0, Math.PI * 2); ctx.fill();
-  // The active circle: at the goal while sliding forward, at the resting hand while sliding back.
-  const { x, y, radius } = slideDialCircle(dial, state.returning, width, height);
-  drawTestingTarget(ctx, { x, y, radius, armed: state.armed, contact: state.contact, progress: state.hold, now: state.now, reducedMotion: state.reducedMotion });
-  // The hand over the circle, so it can be seen sliding into it.
-  ctx.fillStyle = "#fffefa"; ctx.strokeStyle = "#e18e6d"; ctx.lineWidth = Math.max(3, r * 0.04);
-  ctx.beginPath(); ctx.arc(hand.x, hand.y, Math.max(7, r * 0.1), 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  drawRingLabel(ctx, x, y, radius, state.label, height, state.armed);
-  ctx.restore();
+/** The active circle with the cup in it, the arrow showing the way, on the mirrored camera view. */
+export function drawSlideTargets(ctx: CanvasRenderingContext2D, width: number, height: number, state: SlideDrawing) {
+  const px = (p: P2) => ({ x: (1 - p.x) * width, y: p.y * height });
+  const cup = px(state.cup), rest = px(state.rest);
+  const active = state.returning ? { ...rest, radius: state.rest.radius * height } : { ...cup, radius: state.cup.radius * height };
+  // The cup waits in its circle (and stays there, faded, while the hand comes back).
+  if (state.returning) { ctx.save(); ctx.globalAlpha = 0.45; drawCup(ctx, cup.x, cup.y, state.cup.radius * height * 0.95); ctx.restore(); }
+  drawTestingTarget(ctx, { ...active, armed: state.armed, contact: state.contact, progress: state.hold, now: state.now, reducedMotion: state.reducedMotion });
+  if (!state.returning) drawCup(ctx, cup.x, cup.y, state.cup.radius * height * 0.95);
+  if (state.armed && !state.contact && state.hand) drawSlideArrow(ctx, px(state.hand), active, state.now, state.reducedMotion, state.cup.radius * height);
+  drawRingLabel(ctx, active.x, active.y, active.radius, state.label, height, state.armed);
 }
 
-/** A step's circle on the dial in canvas pixels: the goal while sliding forward, the resting hand while sliding back. */
-export function slideDialCircle(dial: SlideDial, returning: boolean, width: number, height: number) {
-  const [along, down] = dialHand(returning ? 0 : DIAL_GOAL_DEG).hand;
-  const p = dialPoint(dial, along, down, width / height);
-  return { x: (1 - p.x) * width, y: p.y * height, radius: DIAL_CIRCLE * dial.radius * height };
+/** A step's circle in canvas pixels (for the completion animation of the circle just finished). */
+export function slideCanvasCircle(circle: P2 & { radius: number }, width: number, height: number) {
+  return { x: (1 - circle.x) * width, y: circle.y * height, radius: circle.radius * height };
 }
 
-// ---------- the demonstration and the no-camera simulator (side view, 300 x 270 drawing space) ----------
+// ---------- the demonstration and the no-camera simulator (front view, 300 x 270 drawing space) ----------
+
+/**
+ * Which demonstration to show: the patient's own affected side as the mirrored camera shows it (the arm to the
+ * screen's left for a left-affected patient), and the cup level along a table or a little up from the armrest.
+ */
+export type SlideVariant = { side?: Side; armrest?: boolean };
 
 const MOVE_MS = 1400;
-const GHOST = { shoulder: [112, 92] as [number, number], upper: 64, fore: 58, table: 156, goalDeg: 45 };
+const FIG = { head: [120, 48], shoulderA: [166, 96], shoulderO: [74, 96], hipA: [152, 196], hipO: [88, 196] } as const;
+/** The affected hand resting beside the thigh (on the table or armrest), and the cup out to the side: level along a table, a little up from the armrest. */
+const SPOT = { rest: [184, 190] as [number, number], cup: [258, 190] as [number, number], raised: [258, 170] as [number, number] };
 const GHOST_RADIUS = 18;
+const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const smooth = (k: number) => k * k * (3 - 2 * k);
 const unit = (k: number) => clamp(k, 0, 1);
 const poseAt = (fraction: number, returning: boolean) => (returning ? 1 - smooth(fraction) : smooth(fraction));
+/** A drawing-space x on the patient's own side (mirrored for a left-affected patient). */
+const sideX = (x: number, side: Side = "right") => (side === "left" ? 300 - x : x);
+const cupSpot = (armrest = false) => (armrest ? SPOT.raised : SPOT.cup);
 
-/** The ghost's arm at progress p (0 resting, 1 slid forward): its elbow and the hand on the table. */
-export function slideGhostPose(p: number): { elbow: [number, number]; hand: [number, number] } {
-  const a = (GHOST.goalDeg * clamp(p, 0, 1.2)) / DEG;
-  const [sx, sy] = GHOST.shoulder;
-  const elbow: [number, number] = [sx + GHOST.upper * Math.sin(a), sy + GHOST.upper * Math.cos(a)];
-  const drop = GHOST.table - elbow[1];
-  return { elbow, hand: [elbow[0] + Math.sqrt(Math.max(0, GHOST.fore * GHOST.fore - drop * drop)), GHOST.table] };
+/** The ghost's hand at progress p (0 resting, 1 at the cup), drawn for the right side. */
+export function slideGhostPose(p: number, armrest = false): { hand: [number, number] } {
+  const k = clamp(p, 0, 1.1), cup = cupSpot(armrest);
+  return { hand: [lerp(SPOT.rest[0], cup[0], k), lerp(SPOT.rest[1], cup[1], k)] };
 }
 
+function ghostPoint(returning: boolean, armrest = false): [number, number] { return returning ? SPOT.rest : cupSpot(armrest); }
+
 /** The instant the ghost's hand enters its circle, as the reach's demonstration finds it. */
-function contactStartMs(returning: boolean) {
-  const target = slideGhostPose(returning ? 0 : 1).hand;
+function contactStartMs(returning: boolean, armrest: boolean) {
+  const target = ghostPoint(returning, armrest);
   let low = 0, high = 1;
   for (let i = 0; i < 24; i++) {
     const middle = (low + high) / 2;
-    const hand = slideGhostPose(poseAt(middle, returning)).hand;
+    const hand = slideGhostPose(poseAt(middle, returning), armrest).hand;
     if (Math.hypot(hand[0] - target[0], hand[1] - target[1]) <= GHOST_RADIUS) high = middle;
     else low = middle;
   }
   return high * MOVE_MS;
 }
-const CONTACT_MS = [contactStartMs(false), contactStartMs(true)];
+const CONTACT_MS = { table: [contactStartMs(false, false), contactStartMs(true, false)], armrest: [contactStartMs(false, true), contactStartMs(true, true)] };
+const contactMs = (returning: boolean, armrest = false) => CONTACT_MS[armrest ? "armrest" : "table"][returning ? 1 : 0];
 
-export const slideDemoDuration = (returning: boolean) => CONTACT_MS[returning ? 1 : 0] + TARGET_HOLD_MS + TARGET_COMPLETION_MS;
+export const slideDemoDuration = (returning: boolean, armrest = false) => contactMs(returning, armrest) + TARGET_HOLD_MS + TARGET_COMPLETION_MS;
 
-/** The step's circle round the ghost's hand, in canvas pixels: slid forward, or resting for the slide back. */
-export function slideGhostTarget(width: number, height: number, returning: boolean) {
-  const [x, y] = slideGhostPose(returning ? 0 : 1).hand;
+/** The step's circle in canvas pixels: the cup for the movement out, the resting place for the way back. */
+export function slideGhostTarget(width: number, height: number, returning: boolean, variant: SlideVariant = {}) {
+  const [x, y] = ghostPoint(returning, variant.armrest);
   const s = Math.min(width / 300, height / 270);
-  return { x: (width - 300 * s) / 2 + x * s, y: (height - 270 * s) / 2 + y * s, radius: GHOST_RADIUS * s };
+  return { x: (width - 300 * s) / 2 + sideX(x, variant.side) * s, y: (height - 270 * s) / 2 + y * s, radius: GHOST_RADIUS * s };
 }
 
-/** The simulated patient is on target at the end of each movement (level 1 is the goal, 0 resting). */
+/** The simulated patient is on target at the end of each movement (level 1 is the cup, 0 resting). */
 export function slideGhostContact(level: number, returning: boolean): boolean {
   return returning ? level <= 0.05 : level >= 0.95;
 }
 
-/** The side-view figure seated beside a table, the affected forearm on it, sliding the hand forward. */
-export function drawSlideGhost(ctx: CanvasRenderingContext2D, p: number, width: number, height: number, colors = { line: "#3c8255", accent: "#e18e6d", soft: "#b9d3c2" }) {
+/** The front-view figure seated with the affected forearm resting beside the thigh, moving the hand out to the cup. */
+export function drawSlideGhost(ctx: CanvasRenderingContext2D, p: number, width: number, height: number, variant: SlideVariant = {}, colors = { line: "#3c8255", accent: "#e18e6d", soft: "#b9d3c2" }) {
   const s = Math.min(width / 300, height / 270);
+  const side = variant.side;
   ctx.clearRect(0, 0, width, height);
   ctx.save();
   ctx.translate((width - 300 * s) / 2, (height - 270 * s) / 2);
   ctx.scale(s, s);
   ctx.lineCap = "round"; ctx.lineJoin = "round";
-  const line = (pts: [number, number][]) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); };
-  // Chair and table (the towel on its top).
+  const line = (pts: readonly (readonly [number, number])[]) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(sideX(x, side), y) : ctx.moveTo(sideX(x, side), y))); ctx.stroke(); };
+  // The seat, and the support beside the affected thigh (a table or the armrest).
   ctx.strokeStyle = colors.soft; ctx.lineWidth = 6;
-  line([[84, 120], [84, 182], [180, 182], [180, 252]]);
-  line([[120, GHOST.table + 8], [282, GHOST.table + 8]]); line([[270, GHOST.table + 8], [270, 252]]);
-  ctx.lineWidth = 4; line([[130, GHOST.table + 3], [240, GHOST.table + 3]]);
-  // Body: head, trunk, thigh and lower leg.
+  line([[66, 236], [174, 236]]);
+  line([[170, 200], [288, 200]]);
+  // Body: head, trunk, thighs, the other hand resting on its thigh.
   ctx.strokeStyle = colors.line; ctx.lineWidth = 9;
-  ctx.beginPath(); ctx.arc(112, 52, 18, 0, Math.PI * 2); ctx.stroke();
-  line([GHOST.shoulder, [106, 176]]); line([[106, 176], [176, 178], [180, 248]]);
-  // The affected arm, the hand sliding along the table.
-  const arm = slideGhostPose(p);
+  ctx.beginPath(); ctx.arc(sideX(FIG.head[0], side), FIG.head[1], 20, 0, Math.PI * 2); ctx.stroke();
+  line([FIG.shoulderO, FIG.shoulderA]);
+  line([FIG.shoulderO, FIG.hipO, FIG.hipA, FIG.shoulderA]);
+  line([FIG.hipO, [82, 226]]); line([FIG.hipA, [158, 226]]);
+  line([FIG.shoulderO, [62, 160], [80, 222]]);
+  // The affected arm, the elbow bending outward and down, the hand moving out.
+  const [hx, hy] = slideGhostPose(p, variant.armrest).hand, [sx, sy] = FIG.shoulderA;
+  const dx = hx - sx, dy = hy - sy, d = Math.max(1, Math.hypot(dx, dy));
+  const upper = 64, fore = 58, along = Math.min(d, upper + fore - 1);
+  const a = (upper * upper - fore * fore + along * along) / (2 * along);
+  const h = Math.sqrt(Math.max(0, upper * upper - a * a));
+  const elbow: [number, number] = [sx + (a * dx) / d + (h * dy) / d, sy + (a * dy) / d - (h * dx) / d];
   ctx.strokeStyle = colors.accent; ctx.lineWidth = 9;
-  line([GHOST.shoulder, arm.elbow, arm.hand]);
-  ctx.beginPath(); ctx.arc(arm.hand[0], arm.hand[1], 5, 0, Math.PI * 2); ctx.fillStyle = colors.accent; ctx.fill();
+  line([FIG.shoulderA, elbow, [hx, hy]]);
+  ctx.beginPath(); ctx.arc(sideX(hx, side), hy, 6, 0, Math.PI * 2); ctx.fillStyle = colors.accent; ctx.fill();
   ctx.restore();
 }
 
-export function slideDemoState(elapsedMs: number, returning: boolean, armed = true) {
+/** The demonstration's state (the same fields as the reach's): `target` is in the right side's drawing space. */
+export function slideDemoState(elapsedMs: number, returning: boolean, armed = true, armrest = false) {
   const elapsed = armed ? Math.max(0, elapsedMs) : 0;
-  const reached = CONTACT_MS[returning ? 1 : 0];
+  const reached = contactMs(returning, armrest);
   const contact = armed && elapsed >= reached;
   const progress = contact ? unit((elapsed - reached) / TARGET_HOLD_MS) : 0;
   const completionElapsedMs = elapsed - reached - TARGET_HOLD_MS;
   const phase = !armed ? "waiting" : !contact ? "move" : progress < 1 ? "hold" : "complete";
   const pose = poseAt(unit(elapsed / MOVE_MS), returning);
-  const target = slideGhostPose(returning ? 0 : 1).hand;
-  const label = returning ? "Slide back" : "Slide";
+  const target = ghostPoint(returning, armrest);
+  const label = returning ? "Rest" : "Cup";
   const instruction = !armed ? "Listen to the instruction. The circle will become active when the voice finishes."
-    : phase === "complete" ? returning ? "Slide back complete" : "Target complete — now slide your hand back"
-    : phase === "hold" ? `${returning ? "Rest your hand" : "Hold your hand there"} · ${Math.round(progress * 100)}%`
-    : returning ? "Slide your hand back to where it started" : "Slide your hand forward along the table to the circle";
+    : phase === "complete" ? returning ? "Back at rest" : "Target complete — now bring your hand back to rest"
+    : phase === "hold" ? `${returning ? "Rest your hand" : "Hold your hand at the cup"} · ${Math.round(progress * 100)}%`
+    : returning ? "Bring your hand back to where it rested" : armrest ? "Follow the arrow: lift your hand out to the cup" : "Follow the arrow: slide your hand out to the cup";
   return { pose, target, radius: GHOST_RADIUS, armed, contact, progress, completionElapsedMs, phase, label, instruction };
 }
 
-export function drawSlideDemo(ctx: CanvasRenderingContext2D, elapsedMs: number, returning: boolean, width: number, height: number, now: number, reducedMotion = false, armed = true) {
-  const state = slideDemoState(elapsedMs, returning, armed);
-  drawSlideGhost(ctx, state.pose, width, height);
-  const { x, y, radius } = slideGhostTarget(width, height, returning);
+export function drawSlideDemo(ctx: CanvasRenderingContext2D, elapsedMs: number, returning: boolean, width: number, height: number, now: number, reducedMotion = false, armed = true, variant: SlideVariant = {}) {
+  const state = slideDemoState(elapsedMs, returning, armed, variant.armrest);
+  drawSlideGhost(ctx, state.pose, width, height, variant);
+  const s = Math.min(width / 300, height / 270), ox = (width - 300 * s) / 2, oy = (height - 270 * s) / 2;
+  const { x, y, radius } = slideGhostTarget(width, height, returning, variant);
+  const cup = slideGhostTarget(width, height, false, variant);
+  if (returning) { ctx.save(); ctx.globalAlpha = 0.45; drawCup(ctx, cup.x, cup.y, cup.radius * 0.95); ctx.restore(); }
   if (state.phase === "complete") {
     drawTargetCompletion(ctx, { x, y, radius, elapsed: Math.min(state.completionElapsedMs, TARGET_COMPLETION_MS - 1), now, reducedMotion: reducedMotion || state.completionElapsedMs >= TARGET_COMPLETION_MS });
   } else {
     drawTestingTarget(ctx, { x, y, radius, armed, contact: state.contact, progress: state.progress, now, reducedMotion });
   }
+  if (!returning) drawCup(ctx, cup.x, cup.y, cup.radius * 0.95);
+  const [hx, hy] = slideGhostPose(state.pose, variant.armrest).hand;
+  if (armed && !state.contact) drawSlideArrow(ctx, { x: ox + sideX(hx, variant.side) * s, y: oy + hy * s }, { x, y, radius }, now, reducedMotion, radius);
   ctx.save();
   ctx.font = "600 12px Manrope, sans-serif";
   ctx.textAlign = "center";

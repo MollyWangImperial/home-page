@@ -2,12 +2,13 @@ import type { Side } from "./config";
 import type { SessionRecord } from "./session";
 
 // Test-lab conveniences only: which options were last used and the last few test sessions, kept in this browser.
-export type LabOptions = { side: Side; quick: boolean; sim: boolean; chairBack: boolean; assisted: boolean };
+/** armrest: Supported Arm Elevation with the forearm on the chair's armrest instead of a table beside it. */
+export type LabOptions = { side: Side; quick: boolean; sim: boolean; chairBack: boolean; assisted: boolean; armrest: boolean };
 
 const OPTIONS_KEY = "rehyn.exerciseLab.options";
 const SESSIONS_KEY = "rehyn.exerciseLab.sessions";
 
-export const DEFAULT_LAB_OPTIONS: LabOptions = { side: "right", quick: true, sim: false, chairBack: false, assisted: false };
+export const DEFAULT_LAB_OPTIONS: LabOptions = { side: "right", quick: true, sim: false, chairBack: false, assisted: false, armrest: false };
 
 export function readLabOptions(): LabOptions {
   try {
