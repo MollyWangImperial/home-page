@@ -467,7 +467,8 @@ it("starts every seated scored repetition from the 3-2-1 countdown without repea
 it("keeps instructing every repetition of exercises without seated targets", () => {
   const spoken: string[] = [];
   const voice: Voice = { say: line => spoken.push(line), busy: () => false, stop: () => {} };
-  const session = new ExerciseSession({ exerciseId: "ex_wallslide", rung: 1, side: "right", reviewBetweenReps: true, repsOverride: 2 }, voice);
+  // Seated Toe Lift: still scored on angles alone (the others now run the on-screen target flow).
+  const session = new ExerciseSession({ exerciseId: "ex_ankle_dorsiflexion", rung: 1, side: "right", reviewBetweenReps: true, repsOverride: 2 }, voice);
   session.start(0); session.skipAhead(1); session.skipAhead(2);
   let t = 2;
   for (let n = 0; n < 6000 && session.snapshot().phase !== "done"; n++) {

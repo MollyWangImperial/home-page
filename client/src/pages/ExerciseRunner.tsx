@@ -5,7 +5,7 @@ import { ArrowLeft, Camera, Check, Eye, Footprints, Hand, LoaderCircle, Mic, Mic
 import { useSettings } from "@/components/AccountSettings";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { buildRung, EVERYDAY_EXERCISE_ID, EXERCISES, DOMAIN_LABEL, LEVEL_BY_RUNG, resolveExercise, usesSeatedTargets, usesTargetFlow, type Rung, type Side } from "@/lib/exercise-engine/config";
-import { metricUnit, reachAngleProgress } from "@/lib/exercise-engine/calibration";
+import { metricUnit, metricUnitName, reachAngleProgress } from "@/lib/exercise-engine/calibration";
 import { EXERCISE_PREVIEW_SCREENS, exercisePreviewScreen, exerciseScreenPreview, type ExercisePreviewScreen } from "@/lib/exercise-engine/screen-preview";
 import { TARGET_HOLD_MS } from "@/lib/exercise-engine/target-timing";
 import { drawGhost, reachGhostPose, mouthGhostPose } from "@/lib/exercise-engine/ghost";
@@ -17,6 +17,8 @@ import { CupTrack } from "@/lib/exercise-engine/cup-track";
 import { affectedHand, drawHandDemo, drawHandZone, drawRingLabel, followZone, handCovers, handDemoState, handGhostContact, handGhostTarget, handOpenFrame, handOpenness, handRingTarget, handZone, inHandZone, palmFacing, palmRing, REST_OPEN_MAX, startLimit, waiveLimit, type HandZone } from "@/lib/exercise-engine/hand-target";
 import { CupCarry, drawCup, drawGraspDemo, drawGraspGhost, followLayout, graspDemoState, GRASP_STEP, graspFrame, graspGhostContact, graspGhostTarget, graspHand, graspLapRadius, graspLayout, graspPoint, graspRings, graspTarget, type GraspLayout } from "@/lib/exercise-engine/grasp-target";
 import { dialCircle, drawKneeDemo, drawKneeDial, followDial, KNEE_STEP, kneeDemoState, kneeDial, kneeFrame, kneeGhostContact, kneeGhostTarget, kneePracticeGoal, kneeRestCheck, KneeTarget, type KneeDial } from "@/lib/exercise-engine/knee-target";
+import { drawSlideDemo, drawSlideDial, drawSlideGhost, followSlideDial, slideDemoState, slideDial, slideDialCircle, slideFrame, slideGhostContact, slideGhostTarget, slidePracticeGoal, slideRestCheck, SLIDE_STEP, SlideTarget, type SlideDial } from "@/lib/exercise-engine/slide-target";
+import { drawPeg, drawPegTray, drawPinchDemo, drawPinchGhost, gapOf, imageGap, pegsDropped, pinchCircle, pinchDemoState, PINCH_FINGERS, pinchFinger, pinchFrame, pinchGap, pinchGhostContact, pinchGhostTarget, pinchHand, pinchPracticeGoal, PinchTarget, startGap, tipAlong, TOUCH_CLOSURE, trayPoint, type PinchStep } from "@/lib/exercise-engine/pinch-target";
 import { LightingProbe, type Lighting } from "@/lib/exercise-engine/lighting";
 import { TARGET_COMPLETION_MS } from "@/lib/exercise-engine/target-timing";
 import { NEXT_REP_COUNTDOWN_LINE } from "@/lib/exercise-engine/spoken";
@@ -43,13 +45,13 @@ const AUTO_LEVEL: Record<Exclude<AutoMode, "off">, number> = { good: 1, short: 0
 
 type BodyCheck = { id: string; label: string; visible: boolean; progress: number; hint: string };
 
-type Live = { label: string; value: number | undefined; target: number; start: number; unit: string; scale?: number }[];
+type Live = { label: string; value: number | undefined; target: number; start: number; unit: string; scale?: number; units?: string }[];
 type CompLive = { label: string; value: number | undefined; limit: number }[];
 
 // The target flow's demonstration, its states and the simulator's target, for each exercise that uses it.
-const ghostTargetFor = (id: string) => (id === "ex_h2m" ? mouthGhostTarget : id === "ex_handopen" ? handGhostTarget : id === KNEE_ID ? kneeGhostTarget : reachGhostTarget);
-const drawDemoFor = (id: string) => (id === "ex_h2m" ? drawMouthDemo : id === "ex_handopen" ? drawHandDemo : id === KNEE_ID ? drawKneeDemo : drawReachDemo);
-const demoStateFor = (id: string) => (id === "ex_h2m" ? mouthDemoState : id === "ex_handopen" ? handDemoState : id === KNEE_ID ? kneeDemoState : reachDemoState);
+const ghostTargetFor = (id: string) => (id === "ex_h2m" ? mouthGhostTarget : id === "ex_handopen" ? handGhostTarget : id === KNEE_ID ? kneeGhostTarget : id === SLIDE_ID ? slideGhostTarget : reachGhostTarget);
+const drawDemoFor = (id: string) => (id === "ex_h2m" ? drawMouthDemo : id === "ex_handopen" ? drawHandDemo : id === KNEE_ID ? drawKneeDemo : id === SLIDE_ID ? drawSlideDemo : drawReachDemo);
+const demoStateFor = (id: string) => (id === "ex_h2m" ? mouthDemoState : id === "ex_handopen" ? handDemoState : id === KNEE_ID ? kneeDemoState : id === SLIDE_ID ? slideDemoState : reachDemoState);
 /** Hand opening's rings follow the palm, steadied so landmark jitter does not shake them. */
 const RING_FOLLOW = 0.35;
 /** Grasp and transport: each step's label beside its circle, and the step names in the coach card. */
@@ -62,6 +64,21 @@ const KNEE_ID = "ex_lower_selective";
 const KNEE_LABELS = ["Straighten", "Foot down"];
 const KNEE_STEPS = ["Straighten", "Lower"];
 const KNEE_DIAL_HINT = "Move the camera so you are in the middle of the picture, with space beside your knees.";
+/** Supported Arm Elevation (a table slide): the slide dial's circle labels and the step names in the coach card. */
+const SLIDE_ID = "ex_wallslide";
+const SLIDE_LABELS = ["Slide", "Back"];
+const SLIDE_STEPS = ["Slide forward", "Slide back"];
+const SLIDE_DIAL_HINT = "Move the camera so you are in the middle of the picture, with space beside your shoulder.";
+/** Pinch and Peg: the steps in the coach card (the palm first, then each finger's pinch and let-go). */
+const PINCH_ID = "ex_pinch";
+const PINCH_STEPS = ["Palm ready", "First finger", "Let go", "Middle finger", "Let go"];
+/** A cycle step as the pinch's demonstration and drawing see it: its finger, whether it lets go, and its place. */
+const pinchStepOf = (cycle: { kind: string; finger?: number }[], index: number): PinchStep => {
+  const at = Math.max(0, index), step = cycle[at];
+  // A let-go step lets go of the finger the step before it pinched.
+  const finger = step?.kind === "return" ? cycle[at - 1]?.finger : step?.finger;
+  return { finger: pinchFinger(finger), letGo: step?.kind === "return", index: at };
+};
 
 export default function ExerciseRunner() {
   const [, params] = useRoute("/exercise/:id");
@@ -118,6 +135,12 @@ export default function ExerciseRunner() {
   const graspLast = useRef<{ key: string; step: number } | null>(null);
   const lightingProbe = useRef(new LightingProbe());
   const lighting = useRef<Lighting | null>(null);
+  // Pinch and Peg: the thumb's target, the circle round the thumb and fingertip (steadied, as the hand opening's
+  // ring), and the circle that just completed (for its animation).
+  const pinchTarget = useRef(new PinchTarget());
+  const pinchShown = useRef<{ key: string; x: number; y: number; radius: number; contact: boolean } | null>(null);
+  const pinchDone = useRef<{ key: string; x: number; y: number; radius: number; startedAt: number } | null>(null);
+  const pinchLast = useRef<{ key: string; step: number; x: number; y: number; radius: number } | null>(null);
   // Seated Knee Extension: the knee dial beside the leg (placed at set-up), the knee's target, and the circle that
   // just completed (for its animation).
   const kneeDialRef = useRef<KneeDial | null>(null);
@@ -125,6 +148,13 @@ export default function ExerciseRunner() {
   const kneeShown = useRef<{ progress: number; contact: boolean } | null>(null);
   const kneeDone = useRef<{ key: string; step: number; startedAt: number } | null>(null);
   const kneeLast = useRef<{ key: string; step: number } | null>(null);
+  // Supported Arm Elevation: the slide dial beside the shoulder (placed at set-up), the slide's target, and the circle
+  // that just completed (for its animation).
+  const slideDialRef = useRef<SlideDial | null>(null);
+  const slideTarget = useRef(new SlideTarget());
+  const slideShown = useRef<{ progress: number; contact: boolean } | null>(null);
+  const slideDone = useRef<{ key: string; step: number; startedAt: number } | null>(null);
+  const slideLast = useRef<{ key: string; step: number } | null>(null);
   const [said, setSaid] = useState("");
   const [muted, setMuted] = useState(false);
   const [englishAvailable, setEnglishAvailable] = useState(true);
@@ -206,18 +236,21 @@ export default function ExerciseRunner() {
     const canvas = previewCanvasRef.current;
     const ctx = canvas?.getContext("2d");
     const state = preview.snapshot;
-    const grasp = cfg.id === "ex_grasp";
+    const grasp = cfg.id === "ex_grasp", pinch = cfg.id === PINCH_ID;
     if (canvas && ctx) {
       const pose = state.phase === "setup" || state.phase === "demo" || !state.targetArmed || state.kind === "return" ? 0 : 1;
       if (grasp) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawGraspGhost(ctx, state.stepIndex, pose, canvas.width, canvas.height); }
+      else if (pinch) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawPinchGhost(ctx, pinchStepOf(cfg.cycle, state.stepIndex), pose, canvas.width, canvas.height); }
+      else if (cfg.id === SLIDE_ID) drawSlideGhost(ctx, pose, canvas.width, canvas.height);
       else drawGhost(ctx, cfg.ghost, pose, canvas.width, canvas.height);
-      const target = grasp ? graspGhostTarget(canvas.width, canvas.height, state.stepIndex) : ghostTargetFor(cfg.id)(canvas.width, canvas.height, state.kind === "return");
+      const target = grasp ? graspGhostTarget(canvas.width, canvas.height, state.stepIndex) : pinch ? pinchGhostTarget(canvas.width, canvas.height, pinchStepOf(cfg.cycle, state.stepIndex)) : ghostTargetFor(cfg.id)(canvas.width, canvas.height, state.kind === "return");
       if ((state.phase === "warm" || state.phase === "reps") && !state.review && !state.awaitingReady) drawTestingTarget(ctx, { ...target, armed: state.targetArmed, contact: state.inZone && state.targetArmed, progress: state.holdProgress, now: performance.now(), reducedMotion: true });
     }
     const demo = ghostRef.current;
     const demoContext = demo?.getContext("2d");
     if (state.phase === "demo" && demo && demoContext) {
       if (grasp) drawGraspDemo(demoContext, state.demoStepElapsedMs, Math.max(0, state.demoStepIndex), demo.width, demo.height, performance.now(), true, state.targetArmed);
+      else if (pinch) drawPinchDemo(demoContext, state.demoStepElapsedMs, pinchStepOf(cfg.cycle, state.demoStepIndex), demo.width, demo.height, performance.now(), true, state.targetArmed);
       else drawDemoFor(cfg.id)(demoContext, state.demoStepElapsedMs, state.kind === "return", demo.width, demo.height, performance.now(), true, state.targetArmed);
     }
   }, [preview, cfg]);
@@ -245,7 +278,8 @@ export default function ExerciseRunner() {
       if (s.auto !== "off" && !s.manual) {
         const moving = (snapNow.phase === "warm" || snapNow.phase === "reps") && step && (grasp || step.kind === "reach" || step.kind === "open" || step.kind === "pinch");
         const want = !snapNow.targetArmed && (snapNow.phase === "warm" || snapNow.phase === "reps") ? s.level : moving && snapNow.holdProgress < 1 ? (snapNow.phase === "warm" ? 1 : AUTO_LEVEL[s.auto]) : 0;
-        s.level += Math.sign(want - s.level) * Math.min(Math.abs(want - s.level), dt * 1.6);
+        // The table slide's simulated patient slides at a controlled pace, under its "slowly" reminder.
+        s.level += Math.sign(want - s.level) * Math.min(Math.abs(want - s.level), dt * (session.cfg.id === SLIDE_ID ? 0.8 : 1.6));
       } else s.level = s.sliderLevel;
       const comps = s.auto === "leaning" && !s.manual ? (session.cfg.compensations[0] ? [session.cfg.compensations[0].id] : []) : s.comps;
       frame = simFrame(t, session.cfg, session.targets(), { level: s.level, compensations: comps });
@@ -253,6 +287,8 @@ export default function ExerciseRunner() {
         const level = Math.min(1, Math.max(0, s.level));
         if (session.cfg.id === "ex_handopen") frame.targetContact = handGhostContact(level, step?.kind === "return");
         else if (session.cfg.id === KNEE_ID) frame.targetContact = kneeGhostContact(level, step?.kind === "return");
+        else if (session.cfg.id === PINCH_ID) frame.targetContact = pinchGhostContact(level, step?.kind === "return");
+        else if (session.cfg.id === SLIDE_ID) frame.targetContact = slideGhostContact(level, step?.kind === "return");
         else if (grasp) frame.targetContact = graspGhostContact(level, snapNow.stepIndex);
         else {
           const hand = (session.cfg.id === "ex_h2m" ? mouthGhostPose : reachGhostPose)(level).wrist;
@@ -284,7 +320,8 @@ export default function ExerciseRunner() {
           const detection = hold?.held ? { ...tracked, pose: hold.pose } : tracked;
           // Hand opening's shaded area follows the body during set-up and stays where it was learned afterwards.
           // While a repetition waits for the palm it slowly re-centres on the shoulders, unless the hand hides one.
-          if (session.cfg.id === "ex_handopen" && (now.phase === "setup" || (now.awaitingReady && !handCovers(affectedHand(tracked, opts.side), tracked.pose, opts.side, video.videoWidth / video.videoHeight)))) {
+          // Pinch and Peg is held in the same shaded area.
+          if ((session.cfg.id === "ex_handopen" || session.cfg.id === PINCH_ID) && (now.phase === "setup" || (now.awaitingReady && !handCovers(affectedHand(tracked, opts.side), tracked.pose, opts.side, video.videoWidth / video.videoHeight)))) {
             handZoneRef.current = followZone(handZoneRef.current, handZone(tracked.pose, opts.side, video.videoWidth / video.videoHeight), now.phase === "setup" ? 0.2 : 0.05);
           }
           // Grasp and transport: the cup's circles follow the body during set-up and stay where they were learned;
@@ -294,24 +331,31 @@ export default function ExerciseRunner() {
           // lighting is checked there too, as for grasp and transport.
           // The dial as this frame places it: set-up waits until it fits beside the knee now, not only once before.
           const dialNow = kneeNow && now.phase === "setup" ? kneeDial(tracked.pose, opts.side, video.videoWidth / video.videoHeight) : null;
-          if ((graspNow || kneeNow) && now.phase === "setup") {
+          // Supported Arm Elevation: the slide dial follows the shoulder during set-up in the same way, with the lighting.
+          const slideNow = session.cfg.id === SLIDE_ID;
+          const slideDialNow = slideNow && now.phase === "setup" ? slideDial(tracked.pose, opts.side, video.videoWidth / video.videoHeight) : null;
+          // Pinch and Peg checks the lighting at set-up too: fingertips are the first landmarks poor light loses.
+          const pinchNow = session.cfg.id === PINCH_ID;
+          if ((graspNow || kneeNow || slideNow || pinchNow) && now.phase === "setup") {
             if (graspNow) graspLayoutRef.current = followLayout(graspLayoutRef.current, graspLayout(tracked.pose, opts.side, video.videoWidth / video.videoHeight, now.rung));
-            else kneeDialRef.current = followDial(kneeDialRef.current, dialNow);
+            else if (kneeNow) kneeDialRef.current = followDial(kneeDialRef.current, dialNow);
+            else if (slideNow) slideDialRef.current = followSlideDial(slideDialRef.current, slideDialNow);
             lighting.current = lightingProbe.current.sample(video, tracked.pose, t);
           }
           frame = buildFrame(session, detection, opts.side, t, video.videoWidth / video.videoHeight, { zone: handZoneRef.current, gripAxis: cupCarry.current.grip });
-          if ((graspNow || kneeNow) && now.phase === "setup") {
+          if ((graspNow || kneeNow || slideNow || pinchNow) && now.phase === "setup") {
             const light = lighting.current;
             if (graspNow && !graspLayoutRef.current) { frame.lapRest = undefined; frame.lapMissing = "Sit back so your shoulders and both hips are in view."; }
             else if (graspNow && handOpenness(graspHand(detection, opts.side)) === undefined) { frame.lapRest = undefined; frame.lapMissing = GRASP_HAND_HINT; }
             else if (kneeNow && frame.lapRest && (!dialNow || !kneeDialRef.current)) { frame.lapRest = undefined; frame.lapMissing = KNEE_DIAL_HINT; }
-            // The knee names a body position to fix first; the light comes once the body is in place.
+            else if (slideNow && frame.lapRest && (!slideDialNow || !slideDialRef.current)) { frame.lapRest = undefined; frame.lapMissing = SLIDE_DIAL_HINT; }
+            // The knee and the slide name a body position to fix first; the light comes once the body is in place.
             else if ((graspNow || frame.lapRest) && light && !light.ok && !lightingProbe.current.waived()) { frame.lapRest = undefined; frame.lapMissing = light.hint; }
           }
           if (now.phase === "setup") {
             const dt = Math.min(100, Math.max(0, t - (bodyLastT.current || t)));
             bodyLastT.current = t;
-            setBodyChecks(cameraBodyChecks(session, detection, opts.side, handZoneRef.current, video.videoWidth / video.videoHeight, graspNow || kneeNow ? { lighting: lighting.current, waived: lightingProbe.current.waived(), dialFits: dialNow !== null } : undefined).map(check => {
+            setBodyChecks(cameraBodyChecks(session, detection, opts.side, handZoneRef.current, video.videoWidth / video.videoHeight, graspNow || kneeNow || slideNow || pinchNow ? { lighting: lighting.current, waived: lightingProbe.current.waived(), dialFits: kneeNow ? dialNow !== null : slideDialNow !== null } : undefined).map(check => {
               const progress = Math.max(0, Math.min(1, (bodyProgress.current[check.id] ?? 0) + dt / (check.visible ? 1400 : -550)));
               bodyProgress.current[check.id] = progress;
               return { ...check, progress };
@@ -451,6 +495,67 @@ export default function ExerciseRunner() {
             kneeShown.current = null;
             kneeDone.current = kneeLast.current = null;
           }
+          if (slideNow && (now.phase === "warm" || now.phase === "reps") && !now.review) {
+            // Supported Arm Elevation: the slide dial's circle sits at the goal while sliding forward (the shoulder's 3D
+            // elevation at the goal learned in practice) and at the resting hand while sliding back (the hand back on
+            // the table where it rested).
+            const rest = session.restValues().shoulder_flexion, restHand = session.lapPoint, dial = slideDialRef.current;
+            if (Number.isFinite(rest) && restHand && dial) {
+              const wrist = detection.pose?.landmarks[poseJoints(opts.side).wrist];
+              const returning = now.kind === "return";
+              // Practice slides back from the goal it learned (it may have eased), so the dial's hand does not jump.
+              const learned = session.learnedValue("shoulder_flexion");
+              const goal = now.phase === "reps" ? session.targets().shoulder_flexion : returning && learned !== undefined ? learned : slidePracticeGoal(rest);
+              const target = slideTarget.current.update(`${now.phase}:${now.repIndex}:${now.stepIndex}`, {
+                value: frame.values.shoulder_flexion, rest, goal, returning, hand: wrist && inView(wrist) ? wrist : null, restHand,
+                aspect: video.videoWidth / video.videoHeight, armed: now.targetArmed, practice: now.phase === "warm", t,
+              });
+              frame.targetContact = frame.visible && target.contact;
+              frame.targetProgress = frame.targetContact ? 1 : Math.max(0, Math.min(0.98, returning ? 1 - target.progress : target.progress));
+              // The dial's hand stays where it was while the shoulder is briefly unmeasured.
+              const measured = Number.isFinite(frame.values.shoulder_flexion);
+              slideShown.current = { progress: measured ? target.progress : slideShown.current?.progress ?? 0, contact: frame.targetContact };
+            } else { frame.visible = false; frame.missing = "Go back to Set up so I can place the slide dial."; }
+          } else if (slideNow && (now.phase === "setup" || now.phase === "demo")) {
+            // Back to the demonstration or set-up: the practice starts again from the resting arm.
+            slideTarget.current.reset();
+            slideShown.current = null;
+            slideDone.current = slideLast.current = null;
+          }
+          if (pinchNow && (now.phase === "warm" || now.phase === "reps") && !now.review) {
+            // Pinch and Peg: a circle round the thumb tip and the fingertip this step pinches, steadied as the hand
+            // opening's ring. The pinch is on target with the thumb closed to the goal, tip to tip, on that finger; the
+            // let-go once the thumb opens back most of the way (pinch-target.ts).
+            const aspect = video.videoWidth / video.videoHeight;
+            const pinchStep = pinchStepOf(session.cfg.cycle, now.stepIndex);
+            const finger = pinchStep.finger, metric = PINCH_FINGERS[finger].metric;
+            const rest = session.restValues()[metric];
+            const hand = pinchHand(detection, opts.side);
+            if (Number.isFinite(rest) && hand) {
+              // Practice lets go from the closure just learned (the pinch may have eased), as the knee and slide do.
+              const learned = session.learnedValue(metric);
+              const goal = now.phase === "reps" ? Math.min(TOUCH_CLOSURE, session.targets()[metric]) : pinchStep.letGo && learned !== undefined ? learned : pinchPracticeGoal(rest);
+              const key = `${now.phase}:${now.repIndex}:${now.stepIndex}`;
+              const target = pinchTarget.current.update(key, {
+                closure: frame.values[metric], imageGap: imageGap(hand, finger, aspect), along: tipAlong(hand, finger), rival: frame.values[PINCH_FINGERS[1 - finger].metric],
+                rest, goal, letGo: pinchStep.letGo, armed: now.targetArmed, practice: now.phase === "warm", t,
+              });
+              // A pinch counts only with the hand in its area; letting go counts anywhere.
+              frame.targetContact = frame.visible && target.contact && (pinchStep.letGo || frame.placed !== false);
+              frame.targetProgress = frame.targetContact ? 1 : Math.min(0.98, target.progress);
+              const circle = pinchCircle(hand, finger, aspect, pinchStep.letGo ? target.release : target.goal);
+              if (circle) {
+                const last = pinchShown.current?.key === key ? pinchShown.current : null;
+                const follow = (from: number | undefined, to: number) => (from === undefined ? to : from + (to - from) * RING_FOLLOW);
+                pinchShown.current = { key, x: follow(last?.x, circle.x), y: follow(last?.y, circle.y), radius: follow(last?.radius, circle.radius), contact: frame.targetContact };
+              }
+            }
+          } else if (pinchNow && (now.phase === "setup" || now.phase === "demo")) {
+            // Back to the demonstration or set-up: the practice starts again with the thumb apart.
+            pinchTarget.current.reset();
+            pinchShown.current = null;
+            pinchDone.current = pinchLast.current = null;
+          }
           if (!now.review && reachTarget.current && now.kind === "return" && hold?.atMouth) {
             // The cup has not left the mouth yet: a forearm flickering down is not the hand on the lap.
             frame.visible = true;
@@ -483,7 +588,8 @@ export default function ExerciseRunner() {
       session.push(frame);
       const currentSnapshot = session.snapshot();
       const handOpening = session.cfg.id === "ex_handopen";
-      if (!opts.sim && handOpening && handZoneRef.current && !currentSnapshot.review && ["setup", "warm", "reps"].includes(currentSnapshot.phase)) {
+      // Pinch and Peg is held in the same shaded area.
+      if (!opts.sim && (handOpening || session.cfg.id === PINCH_ID) && handZoneRef.current && !currentSnapshot.review && ["setup", "warm", "reps"].includes(currentSnapshot.phase)) {
         // The shaded area: emphasised at set-up and while a step waits for the palm, then a faint reminder.
         const canvas = overlayRef.current, ctx = canvas?.getContext("2d");
         const setup = currentSnapshot.phase === "setup";
@@ -492,6 +598,38 @@ export default function ExerciseRunner() {
           if (canvas && ctx) drawHandZone(ctx, handZoneRef.current, canvas.width, canvas.height, { emphasis: setup || currentSnapshot.awaitingReady, ready: setup ? Boolean(frame.lapRest) : currentSnapshot.awaitingReady && frame.ready === true, side: opts.side, now: t, reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
         } catch (err) {
           console.warn("Shaded area drawing failed", err);
+        }
+      }
+      const pinchZone = handZoneRef.current, shown = pinchShown.current;
+      if (!opts.sim && session.cfg.id === PINCH_ID && pinchZone && !currentSnapshot.review && !currentSnapshot.awaitingReady && (currentSnapshot.phase === "warm" || currentSnapshot.phase === "reps")) {
+        // Pinch and Peg: the circle round the thumb and fingertip with its label, the peg to pick up (or held until let
+        // go), the tray the pegs drop into, and the circle just completed.
+        const canvas = overlayRef.current, ctx = canvas?.getContext("2d");
+        if (canvas && ctx) {
+          try {
+            const W = canvas.width, H = canvas.height, step = currentSnapshot.stepIndex, reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            const repKey = `${currentSnapshot.phase}:${currentSnapshot.repIndex}`;
+            const letGo = currentSnapshot.kind === "return";
+            // Contact as measured for this step (the frame's contact can belong to the step that just completed).
+            const here = shown?.key === `${currentSnapshot.phase}:${currentSnapshot.repIndex}:${step}`;
+            const contact = here && frame.targetContact === true;
+            const last = pinchLast.current;
+            if (last?.key === repKey && last.step !== step) pinchDone.current = { key: repKey, x: last.x, y: last.y, radius: last.radius, startedAt: t };
+            const tray = trayPoint(pinchZone);
+            drawPegTray(ctx, (1 - tray.x) * W, tray.y * H, tray.size * H, pegsDropped(step) + (letGo && contact ? 1 : 0));
+            if (shown && here) {
+              const x = (1 - shown.x) * W, y = shown.y * H, radius = shown.radius * H;
+              pinchLast.current = { key: repKey, step, x: shown.x, y: shown.y, radius: shown.radius };
+              drawTestingTarget(ctx, { x, y, radius, armed: currentSnapshot.targetArmed, contact, progress: currentSnapshot.holdProgress, now: t, reducedMotion: reduced });
+              drawRingLabel(ctx, x, y, radius, letGo ? "Let go" : "Pinch", H, currentSnapshot.targetArmed);
+              // The peg sits in the circle to be picked up, is held while pinched, and drops once the fingers open.
+              if (!(letGo && contact)) drawPeg(ctx, x, y, Math.max(14, radius * 0.75), contact || letGo);
+            } else pinchLast.current = last?.key === repKey ? { ...last, step } : null;
+            const done = pinchDone.current;
+            if (done?.key === repKey && t - done.startedAt < TARGET_COMPLETION_MS) drawTargetCompletion(ctx, { x: (1 - done.x) * W, y: done.y * H, radius: done.radius * H, elapsed: t - done.startedAt, reducedMotion: reduced });
+          } catch (err) {
+            console.warn("Pinch drawing failed", err);
+          }
         }
       }
       const layout = graspLayoutRef.current, lapPoint = session.lapPoint;
@@ -536,6 +674,24 @@ export default function ExerciseRunner() {
           }
         }
       }
+      const slide = slideDialRef.current;
+      if (!opts.sim && session.cfg.id === SLIDE_ID && slide && !currentSnapshot.review && (currentSnapshot.phase === "warm" || currentSnapshot.phase === "reps")) {
+        // Supported Arm Elevation: the slide dial with its active circle, and the circle just completed.
+        const canvas = overlayRef.current, ctx = canvas?.getContext("2d");
+        if (canvas && ctx) {
+          try {
+            const step = currentSnapshot.stepIndex, reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            const repKey = `${currentSnapshot.phase}:${currentSnapshot.repIndex}`;
+            if (slideLast.current?.key === repKey && slideLast.current.step !== step) slideDone.current = { key: repKey, step: slideLast.current.step, startedAt: t };
+            slideLast.current = { key: repKey, step };
+            drawSlideDial(ctx, slide, canvas.width, canvas.height, { progress: slideShown.current?.progress ?? 0, returning: currentSnapshot.kind === "return", armed: currentSnapshot.targetArmed, contact: frame.targetContact === true, hold: currentSnapshot.holdProgress, label: SLIDE_LABELS[step] ?? "", now: t, reducedMotion: reduced });
+            const done = slideDone.current;
+            if (done?.key === repKey && t - done.startedAt < TARGET_COMPLETION_MS) drawTargetCompletion(ctx, { ...slideDialCircle(slide, done.step === SLIDE_STEP.back, canvas.width, canvas.height), elapsed: t - done.startedAt, reducedMotion: reduced });
+          } catch (err) {
+            console.warn("Slide dial drawing failed", err);
+          }
+        }
+      }
       if (!opts.sim && !currentSnapshot.review && reachTarget.current && !currentSnapshot.awaitingReady) {
         const label = (text: string, target: { x: number; y: number; radius: number }) => {
           const canvas = overlayRef.current, ctx = canvas?.getContext("2d");
@@ -561,7 +717,7 @@ export default function ExerciseRunner() {
         setSnap(snapshot);
         const targets = session.targets();
         setLive({
-          roms: session.cfg.romSteps.map(rom => ({ label: rom.label, value: frame!.values[rom.metric], target: targets[rom.id], start: usesTargetFlow(session.cfg.id) ? snapshot.startingAngles[rom.id] ?? NaN : 0, unit: "°", scale: metricUnit(rom.metric) })),
+          roms: session.cfg.romSteps.map(rom => ({ label: rom.label, value: frame!.values[rom.metric], target: targets[rom.id], start: usesTargetFlow(session.cfg.id) ? snapshot.startingAngles[rom.id] ?? NaN : 0, unit: "°", scale: metricUnit(rom.metric), units: metricUnitName(rom.metric) })),
           comps: session.cfg.compensations.map(comp => ({ label: comp.label, value: compensationStatus(frame!.comps, comp).ratio, limit: 1 })),
         });
         drawGhostFor(ghostRef.current, session, snapshot, opts.sim ? simRef.current.level : snapshot.liveAttainment);
@@ -610,11 +766,20 @@ export default function ExerciseRunner() {
     graspLast.current = null;
     lightingProbe.current.reset();
     lighting.current = null;
+    pinchTarget.current.reset();
+    pinchShown.current = null;
+    pinchDone.current = null;
+    pinchLast.current = null;
     kneeDialRef.current = null;
     kneeTarget.current.reset();
     kneeShown.current = null;
     kneeDone.current = null;
     kneeLast.current = null;
+    slideDialRef.current = null;
+    slideTarget.current.reset();
+    slideShown.current = null;
+    slideDone.current = null;
+    slideLast.current = null;
     mouthHold.current.reset();
     mouthHoldKey.current = "";
     bodyProgress.current = {};
@@ -641,7 +806,8 @@ export default function ExerciseRunner() {
       setStage("loading");
       try {
         // Hand opening tracks the hand every frame (on the graphics processor when it can) and the body every third.
-        const tracker = await createTracker(cfg.tracking, cfg.id === "ex_handopen" ? { poseEvery: 3, handGpu: true } : cfg.id === "ex_grasp" ? { poseEvery: 2, handGpu: true } : undefined);
+        // Pinch and Peg tracks as hand opening does: the hand every frame, the body every third.
+        const tracker = await createTracker(cfg.tracking, cfg.id === "ex_handopen" || cfg.id === PINCH_ID ? { poseEvery: 3, handGpu: true } : cfg.id === "ex_grasp" ? { poseEvery: 2, handGpu: true } : undefined);
         trackerRef.current = tracker;
         // The run view (and its <video>) only renders once there is a snapshot, so set both, then wait for the element.
         setSnap(session.snapshot());
@@ -723,6 +889,7 @@ export default function ExerciseRunner() {
   const previewIndex = EXERCISE_PREVIEW_SCREENS.findIndex(screen => screen.id === previewScreen);
   const reachDemo = snap?.phase === "demo" && usesTargetFlow(cfg.id)
     ? cfg.id === "ex_grasp" ? graspDemoState(snap.demoStepElapsedMs, Math.max(0, snap.demoStepIndex), snap.targetArmed)
+    : cfg.id === PINCH_ID ? pinchDemoState(snap.demoStepElapsedMs, pinchStepOf(cfg.cycle, snap.demoStepIndex), snap.targetArmed)
     : demoStateFor(cfg.id)(snap.demoStepElapsedMs, cfg.cycle[snap.demoStepIndex]?.kind === "return", snap.targetArmed) : null;
   // "How did that feel?": stored for Alira's safety rules and learning (never in the screen preview), then learning starts.
   const saveFelt = (answer: FeltAnswer) => {
@@ -767,8 +934,9 @@ export default function ExerciseRunner() {
                 if (session?.goBack(i + 1, performance.now())) {
                   if (i === 0) {
                     bodyProgress.current = {}; bodyLastT.current = 0; setBodyChecks(checks => checks.map(check => ({ ...check, progress: 0 })));
-                    // A set-up done again places the knee dial afresh.
+                    // A set-up done again places the knee dial (or the slide dial) afresh.
                     kneeDialRef.current = null;
+                    slideDialRef.current = null;
                   }
                   setSnap(session.snapshot());
                 }
@@ -801,7 +969,7 @@ export default function ExerciseRunner() {
         <div className="xe-run">
           <section className="xe-stage" aria-label={preview ? "Camera area preview" : opts.sim ? "Simulated patient" : "Camera view"}>
             {preview ? <div className="xe-simstage"><canvas ref={previewCanvasRef} width={640} height={480} aria-label="Exercise pose and target preview" /><span className="xe-simtag">Camera off · screen preview</span></div> : opts.sim ? (
-              <div className="xe-simstage"><canvas ref={ghostRef} width={480} height={390} aria-label={reachDemo ? `Movement demonstration: ${reachDemo.instruction}` : usesTargetFlow(cfg.id) && (snap.phase === "warm" || snap.phase === "reps") ? `${cfg.id === "ex_grasp" ? GRASP_LABELS[snap.stepIndex] ?? "Cup" : cfg.id === KNEE_ID ? KNEE_LABELS[snap.stepIndex] ?? "Knee" : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Relax" : "Open" : snap.kind === "return" ? "Lap" : cfg.id === "ex_h2m" ? "Mouth" : "Reach"} target ${snap.targetArmed ? "active" : "inactive while the instruction plays"}` : "Movement ghost"} /><span className="xe-simtag">No camera · simulated patient</span></div>
+              <div className="xe-simstage"><canvas ref={ghostRef} width={480} height={390} aria-label={reachDemo ? `Movement demonstration: ${reachDemo.instruction}` : usesTargetFlow(cfg.id) && (snap.phase === "warm" || snap.phase === "reps") ? `${cfg.id === "ex_grasp" ? GRASP_LABELS[snap.stepIndex] ?? "Cup" : cfg.id === KNEE_ID ? KNEE_LABELS[snap.stepIndex] ?? "Knee" : cfg.id === SLIDE_ID ? SLIDE_LABELS[snap.stepIndex] ?? "Slide" : cfg.id === PINCH_ID ? snap.kind === "return" ? "Let go" : "Pinch" : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Relax" : "Open" : snap.kind === "return" ? "Lap" : cfg.id === "ex_h2m" ? "Mouth" : "Reach"} target ${snap.targetArmed ? "active" : "inactive while the instruction plays"}` : "Movement ghost"} /><span className="xe-simtag">No camera · simulated patient</span></div>
             ) : (
               <div className="xe-video">
                 <video ref={videoRef} playsInline muted />
@@ -823,12 +991,16 @@ export default function ExerciseRunner() {
                   {cfg.id === "ex_handopen" && !snap.review && <HandSteps current={snap.awaitingReady ? 0 : snap.kind === "return" ? 2 : 1} />}
                   {cfg.id === "ex_grasp" && !snap.review && <HandSteps steps={GRASP_STEPS} current={snap.stepIndex} label="Steps of this repetition" />}
                   {cfg.id === KNEE_ID && !snap.review && <HandSteps steps={KNEE_STEPS} current={snap.stepIndex} label="Steps of this repetition" />}
+                  {cfg.id === SLIDE_ID && !snap.review && <HandSteps steps={SLIDE_STEPS} current={snap.stepIndex} label="Steps of this repetition" />}
+                  {cfg.id === PINCH_ID && !snap.review && <HandSteps steps={PINCH_STEPS} current={snap.awaitingReady ? 0 : snap.stepIndex + 1} label="Steps of this repetition" />}
                   <div className={`xe-gauge ${snap.inZone ? "is-zone" : ""}`} aria-label="Hold on target" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(snap.holdProgress * 100)}>
                     <i className="fill" style={{ width: `${snap.holdProgress * 100}%` }} />
 
                   </div>
                   <p className="xe-hint">{snap.awaitingReady ? "Show me your palm in the shaded area to begin" : !snap.targetArmed ? "Listen to the instruction. Wait for the circle to become active." : cfg.id === "ex_grasp" ? snap.inZone ? "Hold it there..." : GRASP_HINTS[snap.stepIndex] ?? ""
                     : cfg.id === KNEE_ID ? snap.kind === "return" ? "Lower your foot slowly to the floor and pause" : snap.inZone ? "Hold it there..." : "Straighten your knee until the foot on the knee dial reaches the circle"
+                    : cfg.id === PINCH_ID ? snap.kind === "return" ? "Open your thumb and finger to let the peg drop into the tray" : snap.inZone ? "Hold the peg..." : `Bring your thumb to your ${PINCH_FINGERS[pinchStepOf(cfg.cycle, snap.stepIndex).finger].name}, tip to tip, in the circle`
+                    : cfg.id === SLIDE_ID ? snap.kind === "return" ? "Slide your hand back to where it started and pause" : snap.inZone ? "Hold it there..." : "Slide your hand forward until the hand on the slide dial reaches the circle"
                     : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Close your hand into the small circle and pause" : snap.inZone ? "Hold it there..." : "Open your fingers out to the ring, keeping your wrist straight" : snap.kind === "return" || snap.kind === "close" ? "Return your hand to the lap circle and pause" : snap.inZone ? "Hold it there..." : cfg.id === "ex_h2m" ? "Bring your hand to the mouth circle, keeping your head up" : "Reach your hand into the target ring"}</p>
                 </>
               )}
@@ -870,8 +1042,8 @@ export default function ExerciseRunner() {
               </div>
             ) : snap.phase !== "demo" ? <div className="xe-card xe-live">
               <h3>Movement</h3>
-              {!snap.targetsReady && <p className="xe-note">{cfg.id === "ex_handopen" ? "Hold your hand open at the practice ring so I can learn your movement goals." : cfg.id === KNEE_ID ? "Straighten your knee to the practice circle and hold so I can learn your movement goal." : usesTargetFlow(cfg.id) ? "Hold at the practice circle so I can learn your movement goals." : "Learning your starting position. Your movement goals will appear after practice."}</p>}
-              {viewLive.roms.map(r => <MetricBar key={r.label} label={r.label} value={r.value} threshold={r.target} start={r.start} scale={r.scale} ready={snap.targetsReady} personalized={usesTargetFlow(cfg.id)} pending={cfg.id === "ex_handopen" ? "Keep opening" : cfg.id === KNEE_ID ? "Keep straightening" : undefined} />)}
+              {!snap.targetsReady && <p className="xe-note">{cfg.id === "ex_handopen" ? "Hold your hand open at the practice ring so I can learn your movement goals." : cfg.id === KNEE_ID ? "Straighten your knee to the practice circle and hold so I can learn your movement goal." : cfg.id === SLIDE_ID ? "Slide your hand to the practice circle and hold so I can learn your movement goals." : cfg.id === PINCH_ID ? "Bring your thumb to the practice circle and hold so I can learn your pinch for each finger." : usesTargetFlow(cfg.id) ? "Hold at the practice circle so I can learn your movement goals." : "Learning your starting position. Your movement goals will appear after practice."}</p>}
+              {viewLive.roms.map(r => <MetricBar key={r.label} label={r.label} value={r.value} threshold={r.target} start={r.start} scale={r.scale} units={r.units} ready={snap.targetsReady} personalized={usesTargetFlow(cfg.id)} pending={cfg.id === "ex_handopen" ? "Keep opening" : cfg.id === KNEE_ID ? "Keep straightening" : cfg.id === SLIDE_ID ? "Keep sliding" : cfg.id === PINCH_ID ? "Keep closing" : undefined} />)}
               {viewLive.comps.map(c => <MetricBar key={c.label} label={c.label} value={c.value} threshold={c.limit} ready={snap.targetsReady} limit />)}
             </div> : null}
 
@@ -920,6 +1092,8 @@ export default function ExerciseRunner() {
           {cfg.id === "ex_handopen" && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Hand up in the shaded area, fingers relaxed.</p>}
           {cfg.id === "ex_grasp" && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Hand resting on your lap, ready to reach for the cup.</p>}
           {cfg.id === KNEE_ID && <p className="xe-countdown-note"><Footprints size={16} aria-hidden="true" /> Sit tall, both feet flat on the floor, ready to straighten your knee.</p>}
+          {cfg.id === SLIDE_ID && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Forearm resting on the towel, ready to slide your hand forward.</p>}
+          {cfg.id === PINCH_ID && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Hand up in the shaded area, thumb apart from your finger.</p>}
         </div>
       </div>}
 
@@ -987,7 +1161,10 @@ function Intro(props: { base: (typeof EXERCISES)[string]; cfg: ReturnType<typeof
         <label className="xe-check"><input type="checkbox" checked={muted} onChange={e => setMuted(e.target.checked)} /> Mute the voice (subtitles only)</label>
         </>}
       </div>
-      {cfg.tracking !== "pose" && !opts.sim && <p className="xe-note"><Hand size={14} aria-hidden="true" /> {base.id === "ex_handopen" ? "Rest your elbow on an armrest or table and hold your hand up in the shaded area beside your body, at chest height, palm to the camera. That keeps your face and both shoulders in view." : base.id === "ex_grasp" ? "Sit without a table, with your head to mid-thigh in view and both hands resting on your thighs. The cup is drawn on screen. Have good light in front of you." : "Hold the hand close to the camera with every fingertip in view."}</p>}
+      {cfg.tracking !== "pose" && !opts.sim && <p className="xe-note"><Hand size={14} aria-hidden="true" /> {base.id === "ex_handopen" ? "Rest your elbow on an armrest or table and hold your hand up in the shaded area beside your body, at chest height, palm to the camera. That keeps your face and both shoulders in view." : base.id === "ex_grasp" ? "Sit without a table, with your head to mid-thigh in view and both hands resting on your thighs. The cup is drawn on screen. Have good light in front of you."
+        : base.id === PINCH_ID ? "Rest your elbow on an armrest or table and hold your hand up in the shaded area beside your body, at chest height, palm to the camera. The peg and tray are drawn on screen. Have good light in front of you."
+        : "Hold the hand close to the camera with every fingertip in view."}</p>}
+      {base.id === SLIDE_ID && !opts.sim && <p className="xe-note"><Hand size={14} aria-hidden="true" /> Sit at the corner of a table so it is beside your affected side, forearm resting on a towel and your other hand on your thigh. Place the camera in front of you at chest height, above the table, so you are in view from your head to your thighs, with good light in front of you.</p>}
       {base.id === KNEE_ID && !opts.sim && <p className="xe-note"><Footprints size={14} aria-hidden="true" /> Place the camera about 2 metres in front of you at knee to hip height, so you are in view from your head to your feet while you sit. Use a stable chair with a back, keep a carer nearby, and have good light in front of you.</p>}
       {base.domain === "lower_limb" && base.id !== KNEE_ID && !opts.sim && <p className="xe-note">Lower-limb tracking seated and front-on is unverified. If the angles look unstable, try the simulator or a side-on phone position.</p>}
       <div className="xe-actions">
@@ -1013,7 +1190,7 @@ function Results({ snap, base, cfg, clips, debugDirectory, onAgain, onBack, onFe
       )}
       {snap.reps.length > 0 && (
         <table className="xe-table">
-          <thead><tr><th>Rep</th><th>Level</th><th>{cfg.id === "ex_h2m" || cfg.id === "ex_grasp" ? "Movement" : cfg.id === "ex_handopen" ? "Opening" : cfg.id === KNEE_ID ? "Knee" : "Reach"}</th><th>Form</th><th>Score</th></tr></thead>
+          <thead><tr><th>Rep</th><th>Level</th><th>{cfg.id === "ex_h2m" || cfg.id === "ex_grasp" ? "Movement" : cfg.id === "ex_handopen" ? "Opening" : cfg.id === KNEE_ID ? "Knee" : cfg.id === SLIDE_ID ? "Slide" : cfg.id === PINCH_ID ? "Pinch" : "Reach"}</th><th>Form</th><th>Score</th></tr></thead>
           <tbody>
             {snap.reps.map(rep => (
               <tr key={rep.index} className={rep.good ? "good" : ""}>
@@ -1099,6 +1276,15 @@ function buildFrame(session: ExerciseSession, det: Detection, side: Side, t: num
   const zone = extra.zone ?? null;
   if (cfg.id === "ex_grasp") return graspFrame(det, side, t, aspect, session.reference, { gripAxis: extra.gripAxis });
   if (cfg.id === KNEE_ID) return kneeFrame(det, side, t, aspect, session.reference);
+  if (cfg.id === SLIDE_ID) return slideFrame(det, side, t, aspect, session.reference);
+  if (cfg.id === PINCH_ID) {
+    // Each pinch starts with the thumb apart: nearly as far as at set-up, and at most halfway from there to the first
+    // finger's goal, so a pinch never starts already on target (pinch-target.ts).
+    const rest = session.restValues().pinch_index;
+    if (!Number.isFinite(rest)) return pinchFrame(det, side, t, aspect, session.reference, { zone: extra.zone ?? null });
+    const goal = session.snapshot().phase === "reps" ? Math.min(TOUCH_CLOSURE, session.targets().pinch_index) : pinchPracticeGoal(rest);
+    return pinchFrame(det, side, t, aspect, session.reference, { zone: extra.zone ?? null, startGap: Math.max(startGap(rest), gapOf(rest + 0.5 * (goal - rest))) });
+  }
   if (cfg.id === "ex_handopen") {
     // Each repetition starts from a relaxed hand, at most as open as the close circle (hand-target.ts).
     const rest = session.restValues().hand_openness;
@@ -1151,8 +1337,10 @@ function drawOverlay(canvas: HTMLCanvasElement | null, video: HTMLVideoElement, 
   const Y = (y: number) => y * h;
   const j = poseJoints(side);
   const mine = new Set([j.shoulder, j.elbow, j.wrist, j.hip, j.knee, j.ankle, j.foot]);
-  // Hand opening checks only the face and shoulders: the arm and hips are often behind the table.
-  const handOpen = session.cfg.id === "ex_handopen";
+  // Hand opening (and Pinch and Peg, set up the same way) checks only the face and shoulders: the arm and hips are
+  // often behind the table.
+  const pinch = session.cfg.id === PINCH_ID;
+  const handOpen = session.cfg.id === "ex_handopen" || pinch;
   if (det.pose) {
     const lm = det.pose.landmarks;
     ctx.lineWidth = Math.max(3, w / 220);
@@ -1181,7 +1369,7 @@ function drawOverlay(canvas: HTMLCanvasElement | null, video: HTMLVideoElement, 
   }
   if (tracking !== "pose" && det.hands.length) {
     const wrist = det.pose ? det.pose.landmarks[j.wrist] : undefined;
-    const hand = handOpen ? affectedHand(det, side) : chooseHand(det.hands, tracking === "pose+hand" ? wrist : undefined);
+    const hand = pinch ? pinchHand(det, side) : handOpen ? affectedHand(det, side) : chooseHand(det.hands, tracking === "pose+hand" ? wrist : undefined);
     if (hand) {
       ctx.strokeStyle = "rgba(127,229,163,.95)";
       ctx.lineWidth = Math.max(2, w / 320);
@@ -1189,9 +1377,11 @@ function drawOverlay(canvas: HTMLCanvasElement | null, video: HTMLVideoElement, 
       ctx.fillStyle = "#fff";
       hand.landmarks.forEach(p => { ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), Math.max(2, w / 360), 0, Math.PI * 2); ctx.fill(); });
       const step = session.currentStep;
-      if (step?.kind === "pinch") {
+      // The thumb tip and the fingertip a pinch step brings together.
+      if (step?.kind === "pinch" || (pinch && step?.kind === "reach")) {
         ctx.fillStyle = "#e18e6d";
-        [4, 8 + 4 * (step.finger ?? 0)].forEach(i => { ctx.beginPath(); ctx.arc(X(hand.landmarks[i].x), Y(hand.landmarks[i].y), Math.max(6, w / 120), 0, Math.PI * 2); ctx.fill(); });
+        const tip = pinch ? PINCH_FINGERS[pinchFinger(step.finger)].tip : 8 + 4 * (step.finger ?? 0);
+        [4, tip].forEach(i => { ctx.beginPath(); ctx.arc(X(hand.landmarks[i].x), Y(hand.landmarks[i].y), Math.max(6, w / 120), 0, Math.PI * 2); ctx.fill(); });
       }
     }
   }
@@ -1205,6 +1395,10 @@ function drawGhostFor(canvas: HTMLCanvasElement | null, session: ExerciseSession
   if (snap.phase === "demo") {
     if (session.cfg.id === "ex_grasp") {
       drawGraspDemo(ctx, snap.demoStepElapsedMs, Math.max(0, snap.demoStepIndex), canvas.width, canvas.height, performance.now(), window.matchMedia("(prefers-reduced-motion: reduce)").matches, snap.targetArmed);
+      return;
+    }
+    if (session.cfg.id === PINCH_ID) {
+      drawPinchDemo(ctx, snap.demoStepElapsedMs, pinchStepOf(session.cfg.cycle, snap.demoStepIndex), canvas.width, canvas.height, performance.now(), window.matchMedia("(prefers-reduced-motion: reduce)").matches, snap.targetArmed);
       return;
     }
     if (usesTargetFlow(session.cfg.id)) {
@@ -1221,11 +1415,13 @@ function drawGhostFor(canvas: HTMLCanvasElement | null, session: ExerciseSession
     const returning = cycle ? cycle.kind === "return" : idx === 1;
     p = returning ? 1 - within : Math.min(1, within * 1.3);
   }
-  const grasp = session.cfg.id === "ex_grasp";
+  const grasp = session.cfg.id === "ex_grasp", pinch = session.cfg.id === PINCH_ID;
   if (grasp) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawGraspGhost(ctx, snap.stepIndex, p, canvas.width, canvas.height); }
+  else if (pinch) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawPinchGhost(ctx, pinchStepOf(session.cfg.cycle, snap.stepIndex), p, canvas.width, canvas.height); }
+  else if (session.cfg.id === SLIDE_ID) drawSlideGhost(ctx, p, canvas.width, canvas.height);
   else drawGhost(ctx, session.cfg.ghost, p, canvas.width, canvas.height);
   if (usesTargetFlow(session.cfg.id) && (snap.phase === "warm" || snap.phase === "reps") && !snap.review) {
-    drawTestingTarget(ctx, { ...(grasp ? graspGhostTarget(canvas.width, canvas.height, snap.stepIndex) : ghostTargetFor(session.cfg.id)(canvas.width, canvas.height, snap.kind === "return")), armed: snap.targetArmed, contact: snap.targetArmed && snap.inZone, progress: snap.holdProgress, now: performance.now(), reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
+    drawTestingTarget(ctx, { ...(grasp ? graspGhostTarget(canvas.width, canvas.height, snap.stepIndex) : pinch ? pinchGhostTarget(canvas.width, canvas.height, pinchStepOf(session.cfg.cycle, snap.stepIndex)) : ghostTargetFor(session.cfg.id)(canvas.width, canvas.height, snap.kind === "return")), armed: snap.targetArmed, contact: snap.targetArmed && snap.inZone, progress: snap.holdProgress, now: performance.now(), reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
   }
 }
 
@@ -1244,6 +1440,22 @@ function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Dete
       }),
       { id: "wrist", label: `${labels.wrist} in the shaded area`, visible: placed, hint: zone?.hint ?? `Rest your elbow on an armrest or table and hold your ${side} hand up in the shaded area beside your body.` },
       { id: "fingers", label: "Palm to camera, fingers relaxed", visible: placed && palmFacing(hand, side) >= 0.5 && (handOpenness(hand) ?? Infinity) <= REST_OPEN_MAX, hint: "Turn your palm to the camera and let your fingers relax and curl gently. Don't open your hand yet." },
+    ];
+  }
+  if (session.cfg.id === PINCH_ID) {
+    // As hand opening: face and shoulders for the posture checks, the hand in the shaded area palm to the camera; then
+    // the thumb resting away from the first finger, and the lighting (fingertips are what poor light loses first).
+    const hand = pinchHand(detection, side);
+    const placed = handVisible(hand).ok && inHandZone(palmRing(hand, aspect), zone, aspect);
+    const light = lightingInfo?.lighting;
+    return [
+      ...POSE_NEEDS.upper.filter(need => need.joint === "nose" || need.joint === "shoulder" || need.joint === "shoulderOther").map(need => {
+        const point = detection.pose?.landmarks[joints[need.joint]];
+        return { id: need.joint, label: labels[need.joint], visible: !!point && (point.visibility ?? 1) >= 0.5 && point.x > 0.01 && point.x < 0.99 && point.y > 0.01 && point.y < 0.99, hint: need.say };
+      }),
+      { id: "wrist", label: `${labels.wrist} in the shaded area`, visible: placed, hint: zone?.hint ?? `Rest your elbow on an armrest or table and hold your ${side} hand up in the shaded area beside your body.` },
+      { id: "fingers", label: "Palm to camera, thumb apart", visible: placed && palmFacing(hand, side) >= 0.5 && (pinchGap(hand, 0) ?? 0) >= 0.3, hint: "Turn your palm to the camera and let your thumb rest a little away from your first finger." },
+      { id: "lighting", label: lightingInfo?.waived && light && !light.ok ? "Lighting (could be better)" : "Lighting", visible: Boolean(light?.ok || lightingInfo?.waived), hint: light?.hint ?? "Checking the light..." },
     ];
   }
   const inViewCheck = (index: number) => { const point = detection.pose?.landmarks[index]; return !!point && (point.visibility ?? 1) >= 0.5 && point.x > 0.01 && point.x < 0.99 && point.y > 0.01 && point.y < 0.99; };
@@ -1277,6 +1489,23 @@ function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Dete
       { id: "lighting", label: lightingInfo?.waived && light && !light.ok ? "Lighting (could be better)" : "Lighting", visible: Boolean(light?.ok || lightingInfo?.waived), hint: light?.hint ?? "Checking the light..." },
     ];
   }
+  if (session.cfg.id === SLIDE_ID) {
+    // Head to thighs (the trunk checks need the face, shoulders and hips), the forearm resting on the table beside
+    // the body with the other hand on its thigh, room beside the shoulder for the slide dial, and the lighting.
+    const light = lightingInfo?.lighting;
+    const both = (a: number, b: number) => inViewCheck(a) && inViewCheck(b);
+    const position = slideRestCheck(detection.pose, side, aspect);
+    return [
+      { id: "nose", label: "Face", visible: inViewCheck(joints.nose), hint: "Move the camera back so I can see you from your head to your thighs." },
+      { id: "shoulders", label: "Both shoulders", visible: both(joints.shoulder, joints.shoulderOther), hint: "Move the camera back so I can see both shoulders." },
+      { id: "hips", label: "Both hips", visible: both(joints.hip, joints.hipOther), hint: "Sit at the corner of the table, with the table beside you, so I can see both hips." },
+      { id: "arm", label: `${labels.elbow} and hand`, visible: both(joints.elbow, joints.wrist), hint: `Rest your ${side} forearm on the table where the camera can see your elbow and hand.` },
+      { id: "otherHand", label: "Other hand", visible: inViewCheck(joints.wristOther), hint: "Rest your other hand on your thigh where the camera can see it." },
+      // Set-up also waits for room beside the shoulder for the slide dial: the row says so rather than showing green.
+      { id: "position", label: "Forearm on the table, space around you", visible: Boolean(position.lapRest) && lightingInfo?.dialFits !== false, hint: position.lapMissing ?? (lightingInfo?.dialFits === false ? SLIDE_DIAL_HINT : `Rest your ${side} forearm on a towel on the table beside you, with your elbow bent.`) },
+      { id: "lighting", label: lightingInfo?.waived && light && !light.ok ? "Lighting (could be better)" : "Lighting", visible: Boolean(light?.ok || lightingInfo?.waived), hint: light?.hint ?? "Checking the light..." },
+    ];
+  }
   const checks: Omit<BodyCheck, "progress">[] = session.cfg.tracking === "hand" ? [] : POSE_NEEDS[session.cfg.domain === "lower_limb" ? "lower" : "upper"].map(need => {
     const point = detection.pose?.landmarks[joints[need.joint]];
     return { id: need.joint, label: labels[need.joint] ?? need.joint, visible: !!point && (point.visibility ?? 1) >= 0.5 && point.x > 0.01 && point.x < 0.99 && point.y > 0.01 && point.y < 0.99, hint: need.say };
@@ -1305,17 +1534,21 @@ function HandSteps({ current, steps = HAND_STEPS, label: name = "Steps for this 
   </ol>;
 }
 
-/** scale: the measure's units per degree (metricUnit); a distance across the body is read out in shoulder widths. */
-function MetricBar({ label, value, threshold, start = 0, scale = 1, ready, limit = false, personalized = false, pending = "Keep reaching" }: { label: string; value: number | undefined; threshold: number; start?: number; scale?: number; ready: boolean; limit?: boolean; personalized?: boolean; pending?: string }) {
+/**
+ * scale: the measure's units per degree (metricUnit); units: how it is read out (metricUnitName): degrees, shoulder
+ * widths for a distance across the body, or percent for the pinch's closure.
+ */
+function MetricBar({ label, value, threshold, start = 0, scale = 1, units, ready, limit = false, personalized = false, pending = "Keep reaching" }: { label: string; value: number | undefined; threshold: number; start?: number; scale?: number; units?: string; ready: boolean; limit?: boolean; personalized?: boolean; pending?: string }) {
   const range = threshold - start;
   const progress = personalized ? reachAngleProgress(value, threshold, start, scale) : range > 0 && value !== undefined ? (value - start) / range : 0;
-  const angle = scale === 1;
-  const say = (n: number) => angle ? `${Math.round(n)} degrees` : `${n.toFixed(2)} shoulder widths`;
+  const unitName = units ?? (scale === 1 ? "degrees" : "shoulder widths");
+  const angle = unitName === "degrees", closure = unitName === "percent";
+  const say = (n: number) => angle || closure ? `${Math.round(n)} ${unitName}` : `${n.toFixed(2)} ${unitName}`;
   const crossed = ready && progress >= 1;
   const learning = personalized ? "Learning your movement goal" : "Learning starting position";
   const percent = value === undefined ? 0 : Math.min(100, Math.max(0, ready ? progress / 1.4 * 100 : value / (limit ? 1.4 : 180) * 100));
   return <section className={`xe-metric ${crossed ? limit ? "is-limit" : "is-met" : ""}`}>
     <div className="xe-metric-label"><b>{label}</b><span>{value === undefined ? "Finding you…" : !ready ? learning : crossed ? limit ? "Ease back" : "Target reached" : limit ? "Within limit" : pending}</span></div>
-    <div className="xe-metric-track" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percent)} aria-valuetext={value === undefined ? "Tracking unavailable" : !ready ? learning : limit ? crossed ? "Above posture limit" : "Within posture limit" : `Estimated ${angle ? "angle" : "distance"} ${say(value)}; resting ${angle ? "angle" : "position"} ${say(start)}; goal ${say(threshold)}${personalized ? "; learned at the practice target" : ""}`}><i style={{ width: `${percent}%` }} />{ready && <em style={{ left: `${100 / 1.4}%` }} />}</div>
+    <div className="xe-metric-track" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percent)} aria-valuetext={value === undefined ? "Tracking unavailable" : !ready ? learning : limit ? crossed ? "Above posture limit" : "Within posture limit" : `Estimated ${angle ? "angle" : closure ? "closure" : "distance"} ${say(value)}; resting ${angle ? "angle" : closure ? "closure" : "position"} ${say(start)}; goal ${say(threshold)}${personalized ? "; learned at the practice target" : ""}`}><i style={{ width: `${percent}%` }} />{ready && <em style={{ left: `${100 / 1.4}%` }} />}</div>
   </section>;
 }

@@ -72,7 +72,10 @@ describe("launch set and rungs (section 1)", () => {
   it("rung 2 is the existing medium target", () => {
     expect(EXERCISE_RUNGS.ex_reach[2].targets).toEqual({ shoulder_flexion: 60, elbow_extension: 140 });
   });
-  it("pinch uses 1 / 3 / 5 oppositions", () => {
-    expect([1, 2, 3].map(rung => EXERCISE_RUNGS.ex_pinch[rung as 1 | 2 | 3].cycle.filter(step => step.kind === "pinch").length)).toEqual([1, 3, 5]);
+  it("pinch uses 2 / 3 / 5 pinches, level 1 the first then the middle finger, each followed by letting go", () => {
+    const pinches = (rung: 1 | 2 | 3) => EXERCISE_RUNGS.ex_pinch[rung].cycle.filter(step => step.kind === "reach");
+    expect([1, 2, 3].map(rung => pinches(rung as 1 | 2 | 3).length)).toEqual([2, 3, 5]);
+    expect(pinches(1).map(step => step.finger)).toEqual([0, 1]);
+    expect(EXERCISE_RUNGS.ex_pinch[1].cycle.map(step => step.kind)).toEqual(["reach", "return", "reach", "return"]);
   });
 });

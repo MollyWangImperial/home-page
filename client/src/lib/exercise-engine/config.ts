@@ -29,10 +29,12 @@ export const usesSeatedTargets = (id: string) => id === "ex_reach" || id === "ex
  * Exercises run with the on-screen target flow: a resting position learned at set-up, a demonstration,
  * a practice repetition that learns the personal goal, then scored repetitions on contact targets after a
  * countdown. The seated ones (above), Active Hand Opening (a ring around the palm), Cylindrical Grasp
- * and Transport (a drawn cup picked up, carried across the body and set down), and Seated Knee Extension
- * (a knee dial beside the leg whose foot reaches the circle as the knee straightens).
+ * and Transport (a drawn cup picked up, carried across the body and set down), Seated Knee Extension
+ * (a knee dial beside the leg whose foot reaches the circle as the knee straightens), Pinch and Peg (a
+ * circle round the thumb and fingertip that pick up a drawn peg), and Supported Arm Elevation (a table slide:
+ * a slide dial beside the shoulder whose hand slides into the circle as the shoulder elevates).
  */
-export const usesTargetFlow = (id: string) => usesSeatedTargets(id) || id === "ex_handopen" || id === "ex_grasp" || id === "ex_lower_selective";
+export const usesTargetFlow = (id: string) => usesSeatedTargets(id) || id === "ex_handopen" || id === "ex_grasp" || id === "ex_lower_selective" || id === "ex_pinch" || id === "ex_wallslide";
 
 /** SESSION_DIFFICULTY_PRESETS from backend/server.py. */
 export const DOSE_PRESETS: Record<Level, { repFactor: number; targetYDelta: number; targetDistanceScale: number; radiusScale: number; holdScale: number }> = {
@@ -54,6 +56,8 @@ export type RomStep = {
   steps?: number[];
   /** Target flow: the scored goal is this share of the way from rest to the practice hold (omitted: the hold itself). */
   learnedShare?: number;
+  /** Target flow: the scored goal is never above this (pinch: the thumb touching the fingertip). */
+  learnedCap?: number;
 };
 
 export type Compensation = {
@@ -139,6 +143,26 @@ const cr = (id: string, label: string, metric: string, thresholdDeg: number, min
 });
 
 const ret = (caption: string, voice: string): CycleStep => ({ caption, voice, kind: "return", gate: [], holdMs: 500 });
+
+// Pinch and Peg (pinch-target.ts): the thumb meets the first or the middle finger, tip to tip, the two fingers a front
+// camera tracks reliably. Each pinch picks up a drawn peg and holds; each let-go drops it into the drawn tray.
+const PINCH_FINGER_NAMES = ["first finger", "middle finger"];
+const PINCH_METRICS = ["pinch_index", "pinch_middle"];
+const PINCH_SEQUENCE = [0, 1, 0, 1, 0];
+export const PINCH_OPPOSITIONS: Record<Rung, number> = { 1: 2, 2: 3, 3: 5 };
+function pinchSteps(fingers: number[]): CycleStep[] {
+  return fingers.flatMap((finger, index) => {
+    const name = PINCH_FINGER_NAMES[finger], first = index === 0;
+    const pinch: CycleStep = {
+      caption: `Pinch your thumb to your ${name}`,
+      voice: first ? `Bring your thumb and ${name} together, tip to tip like an O, to pick up the peg in the circle, and hold.` : `Now bring your thumb and ${name} together, tip to tip, to pick up the next peg, and hold.`,
+      kind: "reach", gate: [PINCH_METRICS[finger]], holdMs: 1500, finger, learn: [PINCH_METRICS[finger]], cue: `Pinch your ${name}.`,
+      // Each repetition starts once the palm faces the camera in the shaded area with the thumb apart.
+      ...(first ? { readyGate: true } : {}),
+    };
+    return [pinch, { ...ret("Let go", "Now open your thumb and finger to let the peg drop into the tray."), cue: "Let go." }];
+  });
+}
 
 export const EXERCISES: Record<string, ExerciseConfig> = {
   ex_reach: {
@@ -232,32 +256,48 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     domain: "upper_limb",
     chain: "Shoulder lifts with support",
     dailyTask: "Reaching a shelf, combing hair",
-    framing: "Front, seated, forearm on table",
+    // A table slide: the table beside the affected side, so the hips, lap and other hand stay in view (slide-target.ts).
+    framing: "Front, seated, table beside the affected side, forearm on a towel, head to thighs in view",
     tracking: "pose",
     ghost: "raise",
-    setupVoice: "We will practise supported arm elevation. Sit tall with your affected forearm supported on a table or towel. Move only in a comfortable, pain-free range.",
-    calibrationInstruction: "Sit tall with your supported forearm, shoulders, and hips visible. Hold the comfortable starting position without pain.",
+    setupVoice: "Welcome. We are going to practise sliding your arm forward along a table. Sit at the corner of a table so it is beside your affected side, with your forearm resting on a towel on the table and your other hand on your thigh. Place the camera in front of you at chest height, above the table, so I can see you from your head to your thighs. Move only in a comfortable, pain-free range.",
+    calibrationInstruction: "Sit tall with your elbow bent and your forearm resting on the towel. Make sure the room is well lit, with the light in front of you. Hold still while I learn your starting position.",
+    // Shoulder elevation and the elbow from the pose model's 3D landmarks. A flat table allows about 55-63 degrees, so
+    // the live goal is the one learned in practice, just inside the practice hold; the levels stay for planning.
     romSteps: [
-      { id: "shoulder_flexion", label: "Supported arm elevation", metric: "shoulder_flexion", targets: { easy: 60, medium: 80, difficult: 95 }, weight: 0.8 },
-      { id: "elbow_extension", label: "Supported elbow position", metric: "elbow_extension", targets: { easy: 120, medium: 132, difficult: 140 }, weight: 0.2 },
+      { id: "shoulder_flexion", label: "Supported arm elevation", metric: "shoulder_flexion", targets: { easy: 60, medium: 80, difficult: 95 }, weight: 0.8, learnedShare: 0.9 },
+      { id: "elbow_extension", label: "Supported elbow position", metric: "elbow_extension", targets: { easy: 120, medium: 132, difficult: 140 }, weight: 0.2, learnedShare: 0.9 },
     ],
     compensations: [
-      cr("shoulder_hike", "shoulder hike", "shoulder_hike_delta", 8, 8, 0.35, "Keep the shoulder heavy and away from your ear as the arm slides."),
-      cr("side_lean", "side lean", "trunk_side_lean_delta", 10, 8, 0.35, "Return your chest to the middle before raising the arm again."),
+      // Engineering defaults, measured against the upright set-up posture while the hand slides forward (step 0).
+      // Leaning forward pushes the hand further and inflates the shoulder angle: the main one here.
+      cr("trunk_forward", "leaning forward", "trunk_approach_pct", 6, 4, 0, "Sit tall and let your shoulder do the sliding.", { unit: "%", minConsecutiveMs: 200, steps: [0] }),
+      cr("shoulder_hike", "shoulder hike", "shoulder_hike_rel_delta", 7, 4, 0, "Keep your shoulder down and relaxed as you slide.", { minConsecutiveMs: 300, alternative: [{ metric: "shoulder_elevation_pct", threshold: 15 }], steps: [0] }),
+      cr("side_lean", "leaning sideways", "trunk_side_lean_delta", 8, 4, 0, "Stay tall and centred as you slide.", { minConsecutiveMs: 300, steps: [0] }),
+      // The hand rising in the picture: lifted off the support instead of sliding along it (% of the shoulder span).
+      cr("hand_lift", "hand lifting off the table", "hand_lift_pct", 13, 4, 0, "Keep your hand and forearm resting on the towel as you slide.", { unit: "%", minConsecutiveMs: 300, steps: [0] }),
+      // The other hand off its thigh or at the affected forearm (% of its limit).
+      cr("other_hand", "other hand helping", "other_hand_pct", 100, 4, 0, "Keep your other hand resting on your thigh.", { unit: "%", minConsecutiveMs: 400, steps: [0] }),
     ],
     cycle: [
-      { caption: "Slide toward the upper target", voice: "Using the support, slowly slide your affected arm toward the upper target. Stop before pain and keep your shoulder relaxed.", kind: "reach", gate: ["shoulder_flexion", "elbow_extension"], holdMs: 1500 },
-      ret("Slide back with support", "Now slide your arm back to the starting position, slowly and with control."),
+      { caption: "Slide your hand forward and hold", voice: "Slowly slide your hand forward along the table until the hand on the dial reaches the circle. Keep your shoulder relaxed and your body upright, and stop before pain. Hold it there.", kind: "reach", gate: ["shoulder_flexion"], holdMs: 1500, cue: "Slide forward." },
+      { ...ret("Slide your hand back", "Now slowly slide your hand back to where it started."), cue: "Slide back slowly." },
     ],
     feedback: [
-      { comp: "shoulder_hike", say: "Your shoulder lifted toward your ear. Try keeping your shoulder relaxed and pressed down as you raise your arm." },
-      { comp: "side_lean", say: "I noticed you leaned to one side. On the next repetition, try to stay tall and centered." },
-      { attainmentBelow: 0.7, say: "Almost reached the top. On the next try, exhale gently and try to go a little higher." },
+      // Worded like the other target-flow exercises, so the final repetition's version drops "on the next ..." the same way.
+      { comp: "trunk_forward", say: "I noticed your body leaned forward to push your hand further. On the next repetition, try sitting tall and let your shoulder do the sliding." },
+      { comp: "shoulder_hike", say: "I noticed your shoulder lifted toward your ear. On the next repetition, try keeping your shoulder down and relaxed as you slide." },
+      { comp: "side_lean", say: "I noticed you leaned to one side. On the next repetition, try staying tall and centred as you slide." },
+      { comp: "hand_lift", say: "I noticed your hand lifted off the table. On the next repetition, try keeping your hand and forearm resting on the towel as you slide." },
+      { comp: "other_hand", say: "I noticed your other hand moved to help. On the next repetition, try keeping your other hand resting on your thigh." },
+      { attainmentBelow: 0.7, say: "Nearly there. On the next repetition, try sliding a little further if it feels comfortable." },
     ],
-    praise: "Wonderful shoulder elevation. Keep that same control on the next repetition.",
+    praise: "Wonderful controlled slide. Keep that same smooth movement on the next repetition.",
     bestLabel: "arm lift",
     bestRomId: "shoulder_flexion",
-    rescueNote: "Upper target lower",
+    rescueNote: "Smaller slide target",
+    // Flinging the hand forward or dropping it back: a reminder only, the hold already keeps a fling from counting.
+    speedCue: { metric: "shoulder_flexion", degPerS: 60, lift: "Nice and slow as you slide.", lower: "Slide back a little more slowly." },
   },
   ex_handopen: {
     id: "ex_handopen",
@@ -363,19 +403,48 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     domain: "hand",
     chain: "Fingers pinch",
     dailyTask: "Buttons, zips, picking up a pill",
-    framing: "Front, hand close to camera",
-    tracking: "hand",
+    // Set up as Active Hand Opening: the hand up in the shaded area leaves the face and both shoulders in view.
+    framing: "Front, elbow on an armrest or table, hand up beside the body at chest height, palm to the camera",
+    // The hand every frame; the body every third frame, for the trunk, shoulder and other-hand checks (tracker.ts).
+    tracking: "pose+hand",
     ghost: "pinch",
-    setupVoice: "We will practice pinch. A small peg and a container are drawn on your screen, so you do not need real objects. Pinch your thumb to each finger in turn as I call it, and let go between each one.",
-    calibrationInstruction: "Support your forearm and hold your affected hand toward the camera. Keep your thumb, all four fingers, and wrist clearly visible.",
-    romSteps: [{ id: "pinch_flexion", label: "Thumb and finger control", metric: "pinch_flexion", targets: { easy: 35, medium: 50, difficult: 65 }, weight: 1 }],
-    compensations: [],
-    cycle: [], // built per rung: 1 / 3 / 5 oppositions, see pinchCycle()
-    feedback: [{ attainmentBelow: 0.7, say: "Nearly there. Curl the finger a little more to meet your thumb." }],
-    praise: "Lovely pinch control. Keep the thumb and finger meeting cleanly.",
-    bestLabel: "pinch",
-    bestRomId: "pinch_flexion",
-    rescueNote: "Fewer oppositions (5 to 3 to 1)",
+    setupVoice: "Welcome. We are going to practise pinching, as if picking up a small peg. The peg and a tray are drawn on your screen, so you do not need real objects. Rest your affected elbow on an armrest or a table, and hold your hand up in the shaded area beside your body, at chest height, with your palm facing the camera. Keeping your hand there leaves your face and both shoulders in view.",
+    calibrationInstruction: "Before we begin, hold your hand in the shaded area with your palm facing the camera, your fingers relaxed and your thumb resting a little away from your first finger. Make sure the room is well lit, with the light in front of you. Hold still while I learn your starting position.",
+    // How far the thumb has closed on each fingertip (pinch-target.ts), 0-100: 75 is touching. The scored goal sits just
+    // inside the closest pinch held in practice, and is never more than touching.
+    romSteps: [
+      { id: "pinch_index", label: "Thumb to first finger", metric: "pinch_index", targets: { easy: 60, medium: 68, difficult: 75 }, weight: 0.5, steps: [0], learnedShare: 0.95, learnedCap: 75 },
+      { id: "pinch_middle", label: "Thumb to middle finger", metric: "pinch_middle", targets: { easy: 60, medium: 68, difficult: 75 }, weight: 0.5, steps: [2], learnedShare: 0.95, learnedCap: 75 },
+    ],
+    compensations: [
+      // Engineering defaults, measured against the hand and posture learned at set-up, while the thumb closes (steps
+      // 0 and 2). The trunk, shoulder, wrist and palm checks are Active Hand Opening's.
+      cr("trunk_forward", "leaning forward", "trunk_approach_pct", 6, 4, 0, "Sit tall and let your fingers do the work.", { unit: "%", minConsecutiveMs: 200, steps: [0, 2] }),
+      cr("shoulder_hike", "shoulder hike", "shoulder_hike_rel_delta", 7, 4, 0, "Keep your shoulder relaxed as you pinch.", { minConsecutiveMs: 300, alternative: [{ metric: "shoulder_elevation_pct", threshold: 15 }], steps: [0, 2] }),
+      cr("forearm_turn", "palm turning away", "forearm_turn_deg", 25, 4, 0, "Keep your palm facing the camera as you pinch.", { minConsecutiveMs: 300, steps: [0, 2] }),
+      // The other hand within a palm length of the affected palm (1 / its distance in palm lengths).
+      cr("other_hand", "other hand helping", "other_hand_near", 1, 4, 0, "Rest your other hand on your lap.", { minConsecutiveMs: 500, steps: [0, 2] }),
+      // The palm tipping toward the camera: the wrist flexing to help the pinch (the backend's 18° pinch rule).
+      cr("wrist_bend", "wrist bending", "wrist_flexion_deg", 18, 4, 0, "Keep your wrist straight and let your thumb and finger do the work.", { minConsecutiveMs: 300, steps: [0, 2] }),
+      // The middle, ring and little fingers curling in with the first finger's pinch (loss of finger independence),
+      // in hundredths of a palm length. Not judged for the middle finger, which naturally pulls the ring finger along.
+      cr("mass_flexion", "other fingers curling", "mass_flexion_pct", 25, 4, 0, "Keep your other fingers relaxed and out as you pinch.", { minConsecutiveMs: 400, steps: [0] }),
+    ],
+    cycle: pinchSteps(PINCH_SEQUENCE.slice(0, PINCH_OPPOSITIONS[1])),
+    feedback: [
+      // Worded like the other target-flow exercises, so the final repetition's version drops "on the next ..." the same way.
+      { comp: "trunk_forward", say: "I noticed your body leaned forward toward your hand. On the next repetition, try sitting tall and let your fingers do the work." },
+      { comp: "shoulder_hike", say: "I noticed your shoulder lifted toward your ear. On the next repetition, try keeping your shoulder relaxed as you pinch." },
+      { comp: "forearm_turn", say: "I noticed your palm turned away from the camera. On the next repetition, try keeping your palm facing the camera as you pinch." },
+      { comp: "other_hand", say: "I noticed your other hand came over to help. On the next repetition, try resting your other hand on your lap." },
+      { comp: "wrist_bend", say: "I noticed your wrist bent to help the pinch. On the next repetition, try keeping your wrist straight and let your thumb and finger do the work." },
+      { comp: "mass_flexion", say: "I noticed your other fingers curled in with the pinch. On the next repetition, try keeping your other fingers relaxed and out." },
+      { attainmentBelow: 0.7, say: "Nearly there. On the next repetition, try bringing your thumb a little closer to your fingertip." },
+    ],
+    praise: "Lovely pinch control. Keep the thumb and finger meeting cleanly, tip to tip.",
+    bestLabel: "pinch closure",
+    bestRomId: "pinch_index",
+    rescueNote: "Fewer pinches (5 to 3 to 2)",
   },
   ex_lower_selective: {
     id: "ex_lower_selective",
@@ -466,17 +535,9 @@ export const SOLO_EXCLUDED_IDS = ["ex_trunk", "ex_scapdepress", "ex_bilateral", 
 export const CHAIR_BACK_SETUP_CUE = "Settle your back firmly against the chair and keep it touching the chair the whole time.";
 const CHAIR_BACK_TRUNK = cr("trunk_lean", "trunk lean", "face_approach_pct", 6, 5, 0, "Settle your back against the chair before the next reach.", { minConsecutiveMs: 250, unit: "%", alternative: [{ metric: "face_mean_growth_pct", threshold: 3 }, { metric: "shoulder_approach_pct", threshold: 5 }] });
 
-const PINCH_FINGER_NAMES = ["index finger", "middle finger", "ring finger", "little finger"];
-const PINCH_SEQUENCE = [0, 1, 2, 3, 0];
-export const PINCH_OPPOSITIONS: Record<Rung, number> = { 1: 1, 2: 3, 3: 5 };
-
+/** Pinch and Peg's cycle at each level (the target flow runs level 1: the first finger, then the middle finger). */
 function pinchCycle(rung: Rung): CycleStep[] {
-  const steps: CycleStep[] = [];
-  PINCH_SEQUENCE.slice(0, PINCH_OPPOSITIONS[rung]).forEach(finger => {
-    steps.push({ caption: `Pinch your thumb to your ${PINCH_FINGER_NAMES[finger]}`, voice: `Pinch your thumb and ${PINCH_FINGER_NAMES[finger]} together, as if lifting the peg.`, kind: "pinch", gate: ["pinch_flexion"], holdMs: 500, finger });
-    steps.push(ret("Let go", "Now let go and open your hand."));
-  });
-  return steps;
+  return pinchSteps(PINCH_SEQUENCE.slice(0, PINCH_OPPOSITIONS[rung]));
 }
 
 export type RungSpec = {

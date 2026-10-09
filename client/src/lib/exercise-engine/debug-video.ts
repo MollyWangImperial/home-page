@@ -63,6 +63,14 @@ export class DebugVideoRecorder {
       // The knee's 3D angle; the lean, thigh and other-leg checks in % of the set-up posture (knee-target.ts).
       ctx.fillText(`Knee ${measured(frame.values.knee_extension, "°")} · Lean forward ${measured(frame.comps.trunk_approach_pct, "%")} · Lean back ${measured(frame.comps.trunk_retreat_pct, "%")} · Side ${measured(frame.comps.trunk_side_lean_delta, "°")}`, 14, this.canvas.height - 39);
       ctx.fillText(`Hip lift ${measured(frame.comps.hip_hike_delta, "°")} · Thigh lift ${measured(frame.comps.thigh_lift_pct, "%")} · Other leg ${measured(frame.comps.other_leg_pct, "%")} (knee ${measured(frame.comps.other_knee_delta, "°")}) · Foot ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
+    } else if (this.session.exerciseId === "ex_wallslide") {
+      // The shoulder's elevation and the elbow (3D); the hand checks in % of the shoulder span or of their limit (slide-target.ts).
+      ctx.fillText(`Shoulder ${measured(frame.values.shoulder_flexion, "°")} · Elbow ${measured(frame.values.elbow_extension, "°")} · Lean forward ${measured(frame.comps.trunk_approach_pct, "%")} · Side ${measured(frame.comps.trunk_side_lean_delta, "°")}`, 14, this.canvas.height - 39);
+      ctx.fillText(`Shoulder hike ${measured(frame.comps.shoulder_hike_rel_delta, "°")} (ear gap ${measured(frame.comps.shoulder_elevation_pct, "%")}) · Hand lift ${measured(frame.comps.hand_lift_pct, "%")} · Other hand ${measured(frame.comps.other_hand_pct, "%")} · Hand ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
+    } else if (this.session.exerciseId === "ex_pinch") {
+      // Closure: how far the thumb has closed on each fingertip, 0-100 (75 touching); curl in hundredths of a palm length (pinch-target.ts).
+      ctx.fillText(`Thumb to first ${measured(frame.values.pinch_index, "")} · to middle ${measured(frame.values.pinch_middle, "")} · Wrist bend ${measured(frame.comps.wrist_flexion_deg, "°")} · Palm turn ${measured(frame.comps.forearm_turn_deg, "°")} · Fingers curl ${measured(frame.comps.mass_flexion_pct, "")}`, 14, this.canvas.height - 39);
+      ctx.fillText(`Trunk forward ${measured(frame.comps.trunk_approach_pct, "%")} · Shoulder hike ${measured(frame.comps.shoulder_hike_rel_delta, "°")} · Other hand ${measured(frame.comps.other_hand_near, "×")} · Pinch ${frame.targetContact ? "on target" : "off target"}`, 14, this.canvas.height - 15);
     } else if (this.session.exerciseId === "ex_handopen") {
       // Openness is the fingertips' mean distance from the palm's centre, in palm lengths (hand-target.ts).
       ctx.fillText(`Finger straightness ${measured(frame.values.finger_extension, "°")} · Openness ${frame.values.hand_openness === undefined ? "unknown" : frame.values.hand_openness.toFixed(2)} · Wrist bend ${measured(frame.comps.wrist_flexion_deg, "°")} · Palm turn ${measured(frame.comps.forearm_turn_deg, "°")}`, 14, this.canvas.height - 39);

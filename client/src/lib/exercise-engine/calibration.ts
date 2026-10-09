@@ -5,6 +5,9 @@ const median = (values: number[]) => [...values].sort((a, b) => a - b)[Math.floo
 /** Measures that are not angles, in their own units per degree (the carry across the body is in shoulder widths). */
 const UNIT_PER_DEGREE: Record<string, number> = { carry_across: 0.03 };
 export const metricUnit = (metric: string) => UNIT_PER_DEGREE[metric] ?? 1;
+/** How a measure's value is read out (angles are in degrees): the pinch's closure is a percentage (pinch-target.ts). */
+const UNIT_NAME: Record<string, string> = { carry_across: "shoulder widths", pinch_index: "percent", pinch_middle: "percent" };
+export const metricUnitName = (metric: string) => UNIT_NAME[metric] ?? "degrees";
 
 /** A camera-projected angle may decrease during a reach; use the learned direction. unit: metricUnit(metric). */
 export function reachAngleProgress(value: number | undefined, target: number, start: number, unit = 1): number {

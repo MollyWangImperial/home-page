@@ -16,7 +16,8 @@ export const repsAheadLine = (planned: number) => `Good. Now ${word(planned)} re
 /** Said as each scored repetition's 3-2-1 countdown starts (recorded once in Alira's voice). */
 export const NEXT_REP_COUNTDOWN_LINE = "The next repetition starts in three seconds.";
 export const goodRepsLine = (good: number, planned: number) => `${cap(word(good))} of ${word(planned)} good reps.`;
-export const bestLine = (label: string, degrees: number) => `Your best ${label} was ${Math.round(degrees)} degrees.`;
+/** units: how the measure is read out (degrees unless calibration.ts metricUnitName says otherwise, as for the pinch). */
+export const bestLine = (label: string, degrees: number, units = "degrees") => `Your best ${label} was ${Math.round(degrees)} ${units}.`;
 export const finishedLevelLine = (rung: number) => `You finished at level ${rung} of 3.`;
 
 /** Advice after a repetition: "Move a little further through elbow bend on your next repetition." */
@@ -33,6 +34,9 @@ export const graspHandInViewLine = (finalRep: boolean) =>
 /** Seated Knee Extension's version: the whole seated body, head to feet, carries its posture checks. */
 export const bodyInViewLine = (finalRep: boolean) =>
   `Keep your whole body, from your head to your feet, in view so I can check your posture${finalRep ? "." : " on the next repetition."}`;
+/** Supported Arm Elevation's version when only its hand checks were missed (the body was in view). */
+export const slideHandsInViewLine = (finalRep: boolean) =>
+  `Keep both hands in view, one on the table and one on your thigh, so I can check them${finalRep ? "." : " on the next repetition."}`;
 export const reachedTargetsLine = (finalRep: boolean) =>
   finalRep ? "You reached the movement targets with a smooth movement." : "You reached the movement targets. Keep the same smooth movement on your next repetition.";
 export const finalRepAdvice = (say: string) => say.replace("On the next repetition, try", "Try").replace(" on the next try", "");
@@ -64,5 +68,13 @@ export const ANGLE_ADVICE: Record<string, Record<string, { review: string; next:
   },
   ex_lower_selective: {
     knee_extension: { review: "Straighten your knee a little more, as far as is comfortable.", next: "On the next repetition, straighten your knee a little more, as far as is comfortable." },
+  },
+  ex_wallslide: {
+    shoulder_flexion: { review: "Slide your hand a little further forward, keeping your body upright.", next: "On the next repetition, slide your hand a little further forward, keeping your body upright." },
+    elbow_extension: { review: "Let your elbow straighten a little more as your hand slides forward.", next: "On the next repetition, let your elbow straighten a little more as your hand slides forward." },
+  },
+  ex_pinch: {
+    pinch_index: { review: "Bring your thumb a little closer to your first fingertip, tip to tip.", next: "On the next repetition, bring your thumb a little closer to your first fingertip, tip to tip." },
+    pinch_middle: { review: "Bring your thumb a little closer to your middle fingertip, tip to tip.", next: "On the next repetition, bring your thumb a little closer to your middle fingertip, tip to tip." },
   },
 };

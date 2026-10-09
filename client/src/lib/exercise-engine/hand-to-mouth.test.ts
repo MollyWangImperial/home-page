@@ -464,13 +464,14 @@ function seated(exerciseId: string, voice: Voice = quiet(), reps = 1) {
   return { session, push, until, toScoredRep };
 }
 const SEATED = ["ex_reach", "ex_h2m"];
-/** Every exercise on the shared target flow: the seated ones, Active Hand Opening and Seated Knee Extension. */
-const TARGET_FLOW = [...SEATED, "ex_handopen", "ex_lower_selective"];
-/** The arm and hand exercises, which ask for the affected hand when it leaves the view (the knee asks for the legs). */
-const HAND_FLOW = TARGET_FLOW.filter(id => id !== "ex_lower_selective");
+/** Every exercise on the shared target flow: the seated ones, Active Hand Opening, Seated Knee Extension and Supported Arm Elevation. */
+const TARGET_FLOW = [...SEATED, "ex_handopen", "ex_lower_selective", "ex_wallslide", "ex_pinch"];
+/** The exercises that ask for the affected hand when it leaves the view (the knee asks for the legs, the slide names what is missing). */
+const HAND_FLOW = TARGET_FLOW.filter(id => id !== "ex_lower_selective" && id !== "ex_wallslide");
 
 describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
-  it.each(TARGET_FLOW)("%s: each scored repetition starts after the countdown, with each step instructed only in practice", id => {
+  // Two-step cycles (a target, then back); Pinch and Peg's four steps are counted in pinch-target.test.ts.
+  it.each(TARGET_FLOW.filter(id => EXERCISES[id].cycle.length === 2))("%s: each scored repetition starts after the countdown, with each step instructed only in practice", id => {
     const said: string[] = [];
     const p = seated(id, quiet(said), 3);
     let countdowns = 0, previous: string | null = null, inactive = 0;
@@ -536,6 +537,7 @@ describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
     ["ex_h2m", { shoulder_flexion: 12 }, [MOUTH_SHOULDER_ADVICE]],
     ["ex_handopen", { finger_extension: 115 }, ["Open your fingers a little wider, out to the ring."]],
     ["ex_lower_selective", { knee_extension: 110 }, ["Straighten your knee a little more, as far as is comfortable."]],
+    ["ex_wallslide", { shoulder_flexion: 15 }, ["Slide your hand a little further forward, keeping your body upright."]],
   ] as const)("%s: the review names the angle that fell short, in the movement's own words (%j)", (id, values, advice) => {
     const p = seated(id);
     p.toScoredRep();
