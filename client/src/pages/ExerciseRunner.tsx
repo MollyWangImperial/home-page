@@ -672,8 +672,11 @@ export default function ExerciseRunner() {
             kneeLast.current = { key: repKey, step };
             // The arrow at the foot: which way to straighten (out to the side, where the camera sees the knee move).
             const guide = kneeGuide(session.reference, dial, canvas.width / canvas.height);
-            if (guide) drawKneeGuide(ctx, guide, canvas.width, canvas.height, { lowering: currentSnapshot.kind === "return", emphasis: currentSnapshot.targetArmed && frame.targetContact !== true, now: t, reducedMotion: reduced });
-            drawKneeDial(ctx, dial, canvas.width, canvas.height, { progress: kneeShown.current?.progress ?? 0, lowering: currentSnapshot.kind === "return", armed: currentSnapshot.targetArmed, contact: frame.targetContact === true, hold: currentSnapshot.holdProgress, label: KNEE_LABELS[step] ?? "", now: t, reducedMotion: reduced });
+            // It moves from the moment the movement is asked for (the instruction included) until the knee is there.
+            if (guide) drawKneeGuide(ctx, guide, canvas.width, canvas.height, { lowering: currentSnapshot.kind === "return", emphasis: frame.targetContact !== true, now: t, reducedMotion: reduced });
+            // In practice the dial says it moves with the knee (said once, in the practice instruction, too).
+            const practiceHint = currentSnapshot.phase === "warm" && currentSnapshot.kind !== "return" ? "Moves with your knee" : undefined;
+            drawKneeDial(ctx, dial, canvas.width, canvas.height, { progress: kneeShown.current?.progress ?? 0, lowering: currentSnapshot.kind === "return", armed: currentSnapshot.targetArmed, contact: frame.targetContact === true, hold: currentSnapshot.holdProgress, label: KNEE_LABELS[step] ?? "", now: t, reducedMotion: reduced, hint: practiceHint });
             const done = kneeDone.current;
             if (done?.key === repKey && t - done.startedAt < TARGET_COMPLETION_MS) drawTargetCompletion(ctx, { ...dialCircle(dial, done.step === KNEE_STEP.lower, canvas.width, canvas.height), elapsed: t - done.startedAt, reducedMotion: reduced });
           } catch (err) {

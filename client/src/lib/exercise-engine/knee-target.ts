@@ -1,5 +1,4 @@
 import type { Side } from "./config";
-import { drawRingLabel } from "./hand-target";
 import { angleAt, inView, poseFrameValues, poseJoints, type Frame, type Geo, type LapRest, type PoseInput, type Pt } from "./metrics";
 import { TARGET_COMPLETION_MS, TARGET_HOLD_MS } from "./target-timing";
 import { drawTargetCompletion, drawTestingTarget } from "./target-visual";
@@ -321,7 +320,8 @@ function drawDialBase(ctx: CanvasRenderingContext2D, d: DialPx, progress: number
   ctx.textAlign = "center";
   if (light) ctx.fillStyle = "#285b49";
   else { ctx.fillStyle = "#fffefa"; ctx.shadowColor = "rgba(0,0,0,.6)"; ctx.shadowBlur = 5; }
-  ctx.fillText(caption, d.x - d.dir * DIAL_THIGH_SHARE * d.r * 0.3, d.y - d.r * 0.36);
+  // Over the dial's thigh, clear of the circle's own label out at the goal.
+  ctx.fillText(caption, d.x - d.dir * DIAL_THIGH_SHARE * d.r * 1.1, d.y - d.r * 0.3);
   ctx.restore();
 }
 
@@ -345,6 +345,8 @@ export type DialDrawing = {
   label: string;
   now: number;
   reducedMotion: boolean;
+  /** A line under the dial (practice: that its foot moves with the patient's knee). */
+  hint?: string;
 };
 
 /** The knee dial on the mirrored camera view: the gauge, and the active circle at the goal (straighten) or at rest (lower). */
@@ -355,7 +357,27 @@ export function drawKneeDial(ctx: CanvasRenderingContext2D, dial: KneeDial, widt
   const radius = DIAL_CIRCLE_SHARE * d.r;
   drawTestingTarget(ctx, { x: target.x, y: target.y, radius, armed: state.armed, contact: state.contact, progress: state.hold, now: state.now, reducedMotion: state.reducedMotion });
   drawDialFoot(ctx, d, state.progress);
-  drawRingLabel(ctx, target.x, target.y, radius, state.label, height, state.armed);
+  // The circle's label below it (the dial's own caption is above), kept inside the picture.
+  ctx.save();
+  const labelPx = Math.max(14, Math.round(height / 28));
+  ctx.font = `800 ${labelPx}px Manrope, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillStyle = state.armed ? "#fffefa" : "rgba(255,254,250,.7)"; ctx.shadowColor = "rgba(0,0,0,.6)"; ctx.shadowBlur = 6;
+  const labelHalf = ctx.measureText(state.label).width / 2;
+  ctx.fillText(state.label, clamp(target.x, labelHalf + 8, Math.max(labelHalf + 8, width - labelHalf - 8)), Math.min(height - 8, target.y + radius + labelPx + 4));
+  ctx.restore();
+  if (state.hint) {
+    // Under the dial's resting foot, kept inside the picture.
+    ctx.save();
+    const fontPx = Math.max(13, Math.round(height / 34));
+    ctx.font = `800 ${fontPx}px Manrope, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#fffefa"; ctx.shadowColor = "rgba(0,0,0,.7)"; ctx.shadowBlur = 6;
+    const half = ctx.measureText(state.hint).width / 2;
+    const x = clamp(d.x, half + 8, Math.max(half + 8, width - half - 8));
+    ctx.fillText(state.hint, x, Math.min(height - 8, d.y + d.r * (1 + DIAL_CIRCLE_SHARE) + fontPx * 1.1));
+    ctx.restore();
+  }
 }
 
 /** The circle the last step completed, in canvas pixels (for its completion animation). */
@@ -388,6 +410,9 @@ export function kneeGuide(ref: Geo | null, dial: KneeDial | null, aspect: number
   };
 }
 
+/** How long the arrow's bright pulse takes to sweep from the foot to the arrowhead, ms. */
+const ARROW_SWEEP_MS = 1300;
+
 /** A point along the arrow's curve (k 0 at its start, 1 at its end). */
 const along = (a: P2, c: P2, b: P2, k: number): P2 => ({ x: (1 - k) ** 2 * a.x + 2 * (1 - k) * k * c.x + k ** 2 * b.x, y: (1 - k) ** 2 * a.y + 2 * (1 - k) * k * c.y + k ** 2 * b.y });
 
@@ -396,26 +421,42 @@ function drawArrow(ctx: CanvasRenderingContext2D, from: P2, control: P2, to: P2,
   ctx.save();
   ctx.globalAlpha = options.emphasis ? 1 : 0.5;
   ctx.lineCap = "round"; ctx.lineJoin = "round";
+  // Moving while the patient is asked to make this movement: the band breathes, the dashes flow toward the head, a
+  // bright pulse sweeps from the foot along the path and the head throbs as it arrives. Still when motion is reduced.
+  const animate = options.emphasis && !options.reducedMotion;
+  const breathe = animate ? 0.5 + 0.5 * Math.sin((options.now / 900) * Math.PI * 2) : 0;
+  const sweep = animate ? (options.now % ARROW_SWEEP_MS) / ARROW_SWEEP_MS : 0;
+  const path = () => { ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.quadraticCurveTo(control.x, control.y, to.x, to.y); };
   // A soft band under a dashed line, so it shows on any background.
-  ctx.strokeStyle = "rgba(255,254,250,.45)"; ctx.lineWidth = options.width * 2.2;
-  ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.quadraticCurveTo(control.x, control.y, to.x, to.y); ctx.stroke();
-  ctx.strokeStyle = "#e18e6d"; ctx.lineWidth = options.width; ctx.setLineDash([options.width * 2.2, options.width * 1.6]);
-  ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.quadraticCurveTo(control.x, control.y, to.x, to.y); ctx.stroke();
-  ctx.setLineDash([]);
-  // The head, along the curve's last direction.
+  ctx.strokeStyle = `rgba(255,254,250,${0.4 + 0.25 * breathe})`; ctx.lineWidth = options.width * (2.2 + 0.6 * breathe);
+  path(); ctx.stroke();
+  const dash = options.width * 2.2, gap = options.width * 1.6;
+  ctx.strokeStyle = "#e18e6d"; ctx.lineWidth = options.width; ctx.setLineDash([dash, gap]);
+  if (animate) ctx.lineDashOffset = -((options.now / 1000) * options.width * 18) % (dash + gap);
+  path(); ctx.stroke();
+  ctx.setLineDash([]); ctx.lineDashOffset = 0;
+  if (animate) {
+    // The pulse: a bright head with a fading tail, sweeping along the path toward the arrowhead.
+    for (let i = 7; i >= 0; i--) {
+      const k = sweep - i * 0.035;
+      if (k < 0) continue;
+      const p = along(from, control, to, Math.min(1, k));
+      ctx.fillStyle = `rgba(255,254,250,${(1 - i / 8) * 0.95})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, options.width * (1.15 - i * 0.1), 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  // The head, along the curve's last direction; it swells as the pulse reaches it.
   const tail = along(from, control, to, 0.9);
-  const angle = Math.atan2(to.y - tail.y, to.x - tail.x), head = options.width * 3.4;
+  const arrive = animate ? Math.max(0, 1 - Math.abs(sweep - 0.95) / 0.18) : 0;
+  const angle = Math.atan2(to.y - tail.y, to.x - tail.x), head = options.width * 3.4 * (1 + 0.15 * breathe + 0.3 * arrive);
   ctx.fillStyle = "#e18e6d"; ctx.strokeStyle = "rgba(255,254,250,.9)"; ctx.lineWidth = Math.max(1.5, options.width * 0.35);
+  if (animate) { ctx.shadowColor = "rgba(255,226,200,.9)"; ctx.shadowBlur = options.width * (2 + 4 * arrive); }
   ctx.beginPath();
   ctx.moveTo(to.x + Math.cos(angle) * head * 0.4, to.y + Math.sin(angle) * head * 0.4);
   ctx.lineTo(to.x + Math.cos(angle + 2.5) * head, to.y + Math.sin(angle + 2.5) * head);
   ctx.lineTo(to.x + Math.cos(angle - 2.5) * head, to.y + Math.sin(angle - 2.5) * head);
   ctx.closePath(); ctx.fill(); ctx.stroke();
-  if (options.emphasis && !options.reducedMotion) {
-    const dot = along(from, control, to, (options.now % 1400) / 1400);
-    ctx.fillStyle = "#fffefa";
-    ctx.beginPath(); ctx.arc(dot.x, dot.y, options.width * 0.9, 0, Math.PI * 2); ctx.fill();
-  }
+  ctx.shadowBlur = 0;
   ctx.font = `800 ${options.fontPx}px Manrope, sans-serif`;
   ctx.textAlign = "center";
   ctx.globalAlpha = 1;
@@ -578,7 +619,7 @@ export function kneeDemoState(elapsedMs: number, returning: boolean, armed = tru
     : phase === "complete" ? returning ? "Foot down complete" : "Knee straight enough — now lower your foot slowly"
     : phase === "hold" ? `${returning ? "Rest your foot on the floor" : "Hold your knee straight"} · ${Math.round(progress * 100)}%`
     : returning ? "Bend your knee and lower your foot slowly to the floor"
-    : "Straighten your knee, swinging your foot out along the arrow. The knee dial fills toward its circle";
+    : "Straighten your knee, swinging your foot out along the arrow. The knee dial moves with the knee, toward its circle";
   return { pose, target, radius: DIAL_CIRCLE_SHARE * DEMO_DIAL.r, armed, contact, progress, completionElapsedMs, phase, label, instruction };
 }
 
