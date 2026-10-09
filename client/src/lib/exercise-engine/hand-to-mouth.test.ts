@@ -465,9 +465,9 @@ function seated(exerciseId: string, voice: Voice = quiet(), reps = 1) {
 }
 const SEATED = ["ex_reach", "ex_h2m"];
 /** Every exercise on the shared target flow: the seated ones, Active Hand Opening, Seated Knee Extension and Supported Arm Elevation. */
-const TARGET_FLOW = [...SEATED, "ex_handopen", "ex_lower_selective", "ex_wallslide", "ex_pinch"];
+const TARGET_FLOW = [...SEATED, "ex_handopen", "ex_lower_selective", "ex_wallslide", "ex_pinch", "ex_ankle_dorsiflexion"];
 /** The exercises that ask for the affected hand when it leaves the view (the knee asks for the legs, the slide names what is missing). */
-const HAND_FLOW = TARGET_FLOW.filter(id => id !== "ex_lower_selective" && id !== "ex_wallslide");
+const HAND_FLOW = TARGET_FLOW.filter(id => id !== "ex_lower_selective" && id !== "ex_wallslide" && id !== "ex_ankle_dorsiflexion");
 
 describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
   // Two-step cycles (a target, then back); Pinch and Peg's four steps are counted in pinch-target.test.ts.
@@ -537,6 +537,7 @@ describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
     ["ex_h2m", { shoulder_flexion: 12 }, [MOUTH_SHOULDER_ADVICE]],
     ["ex_handopen", { finger_extension: 115 }, ["Open your fingers a little wider, out to the ring."]],
     ["ex_lower_selective", { knee_extension: 110 }, ["Straighten your knee a little more, as far as is comfortable."]],
+    ["ex_ankle_dorsiflexion", { toe_lift: -17 }, ["Lift your toes a little higher, keeping your heel down."]],
     ["ex_wallslide", { slide_out: 0.2 }, ["Move your hand a little further out toward the cup."]],
   ] as const)("%s: the review names the angle that fell short, in the movement's own words (%j)", (id, values, advice) => {
     const p = seated(id);

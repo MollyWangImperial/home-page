@@ -66,6 +66,9 @@ export const ANGLE_ADVICE: Record<string, Record<string, { review: string; next:
     finger_extension: { review: "Open your hand a little wider as you reach for the cup.", next: "On the next repetition, open your hand a little wider as you reach for the cup." },
     carry_across: { review: "Carry the cup a little further across your body.", next: "On the next repetition, carry the cup a little further across your body." },
   },
+  ex_ankle_dorsiflexion: {
+    toe_lift: { review: "Lift your toes a little higher, keeping your heel down.", next: "On the next repetition, lift your toes a little higher, keeping your heel down." },
+  },
   ex_lower_selective: {
     knee_extension: { review: "Straighten your knee a little more, as far as is comfortable.", next: "On the next repetition, straighten your knee a little more, as far as is comfortable." },
   },

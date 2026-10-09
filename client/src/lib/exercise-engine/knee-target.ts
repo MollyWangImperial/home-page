@@ -23,7 +23,7 @@ export const KNEE_STEP = { lift: 0, lower: 1 } as const;
 // ---------- the knee's measure and the set-up snapshot ----------
 
 /** The lower leg's length in the picture (frame heights), knee to ankle. */
-function shinLength(knee: Pt, ankle: Pt, aspect: number) {
+export function shinLength(knee: Pt, ankle: Pt, aspect: number) {
   return Math.hypot((ankle.x - knee.x) * aspect, ankle.y - knee.y);
 }
 
@@ -417,7 +417,7 @@ const ARROW_SWEEP_MS = 1300;
 const along = (a: P2, c: P2, b: P2, k: number): P2 => ({ x: (1 - k) ** 2 * a.x + 2 * (1 - k) * k * c.x + k ** 2 * b.x, y: (1 - k) ** 2 * a.y + 2 * (1 - k) * k * c.y + k ** 2 * b.y });
 
 /** A curved arrow (canvas pixels) with a label, and a dot running along it unless motion is reduced. */
-function drawArrow(ctx: CanvasRenderingContext2D, from: P2, control: P2, to: P2, options: { width: number; label: string; emphasis: boolean; now: number; reducedMotion: boolean; labelAt: P2; fontPx: number; light?: boolean; bounds?: { width: number; height: number } }) {
+export function drawArrow(ctx: CanvasRenderingContext2D, from: P2, control: P2, to: P2, options: { width: number; label: string; emphasis: boolean; now: number; reducedMotion: boolean; labelAt: P2; fontPx: number; light?: boolean; bounds?: { width: number; height: number } }) {
   ctx.save();
   ctx.globalAlpha = options.emphasis ? 1 : 0.5;
   ctx.lineCap = "round"; ctx.lineJoin = "round";
@@ -510,7 +510,7 @@ const DEMO_SHIN = 62, DEMO_SWING = 70, DEMO_OUT = 42;
 const DEMO_DIAL = { x: 240, y: 92, r: 46 };
 
 /** The scene's x for the affected side: as drawn for a right leg, mirrored for a left. */
-const sideX = (x: number, side: Side) => (side === "left" ? 300 - x : x);
+export const sideX = (x: number, side: Side) => (side === "left" ? 300 - x : x);
 
 function demoDial(side: Side): DialPx {
   return { x: sideX(DEMO_DIAL.x, side), y: DEMO_DIAL.y, r: DEMO_DIAL.r, dir: side === "left" ? -1 : 1 };
@@ -522,6 +522,34 @@ function demoAnkle(p: number, side: Side): [number, number] {
   const [kx, ky] = FRONT.kneeA;
   return [sideX(kx + DEMO_SHIN * Math.sin(a) * out, side), ky + DEMO_SHIN * Math.cos(a)];
 }
+
+/**
+ * The seated figure seen from the front, in the 300 x 270 drawing space (the caller has scaled to it): chair and
+ * floor, head, trunk, both arms resting on the thighs, and the other leg. The affected leg is the caller's (the knee
+ * straightens it, the toe lift lifts its toes; frontHip and frontKnee give where it starts).
+ */
+export function drawSeatedFront(ctx: CanvasRenderingContext2D, side: Side) {
+  const P = (p: readonly [number, number]): [number, number] => [sideX(p[0], side), p[1]];
+  const line = (points: [number, number][]) => { ctx.beginPath(); points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); };
+  ctx.save();
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.strokeStyle = "#b9d3c2"; ctx.lineWidth = 6;
+  line([[100, 70], [100, 166]]); line([[200, 70], [200, 166]]); line([[96, 166], [204, 166]]);
+  ctx.lineWidth = 3; line([[60, 258], [240, 258]]);
+  ctx.strokeStyle = "#3c8255"; ctx.lineWidth = 9;
+  ctx.beginPath(); ctx.arc(150, FRONT.head[1], 18, 0, Math.PI * 2); ctx.stroke();
+  line([P(FRONT.shoulderO), P(FRONT.shoulderA)]);
+  line([P(FRONT.shoulderO), P(FRONT.hipO), P(FRONT.hipA), P(FRONT.shoulderA)]);
+  line([P(FRONT.shoulderO), P([110, 126]), P([134, 166])]);
+  line([P(FRONT.shoulderA), P([190, 126]), P([166, 166])]);
+  line([P(FRONT.hipO), P(FRONT.kneeO), P(FRONT.ankleO)]);
+  line([P(FRONT.ankleO), P([117, 252])]);
+  ctx.restore();
+}
+
+/** The front figure's affected knee, and where its foot rests, in the drawing space (mirrored for a left side). */
+export const frontKnee = (side: Side): [number, number] => [sideX(FRONT.kneeA[0], side), FRONT.kneeA[1]];
+export const frontHip = (side: Side): [number, number] => [sideX(FRONT.hipA[0], side), FRONT.hipA[1]];
 
 /**
  * The front-view scene for the demonstration, the simulator and the screen previews: the seated figure as the
@@ -538,19 +566,7 @@ export function drawKneeScene(ctx: CanvasRenderingContext2D, width: number, heig
   ctx.scale(s, s);
   ctx.lineCap = "round"; ctx.lineJoin = "round";
   const line = (points: [number, number][]) => { ctx.beginPath(); points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); };
-  // Chair back, seat and floor.
-  ctx.strokeStyle = "#b9d3c2"; ctx.lineWidth = 6;
-  line([[100, 70], [100, 166]]); line([[200, 70], [200, 166]]); line([[96, 166], [204, 166]]);
-  ctx.lineWidth = 3; line([[60, 258], [240, 258]]);
-  // Body: head, trunk, both arms resting on the thighs, the other leg.
-  ctx.strokeStyle = "#3c8255"; ctx.lineWidth = 9;
-  ctx.beginPath(); ctx.arc(150, FRONT.head[1], 18, 0, Math.PI * 2); ctx.stroke();
-  line([P(FRONT.shoulderO), P(FRONT.shoulderA)]);
-  line([P(FRONT.shoulderO), P(FRONT.hipO), P(FRONT.hipA), P(FRONT.shoulderA)]);
-  line([P(FRONT.shoulderO), P([110, 126]), P([134, 166])]);
-  line([P(FRONT.shoulderA), P([190, 126]), P([166, 166])]);
-  line([P(FRONT.hipO), P(FRONT.kneeO), P(FRONT.ankleO)]);
-  line([P(FRONT.ankleO), P([117, 252])]);
+  drawSeatedFront(ctx, side);
   // The arrow: which way the foot goes.
   const rest = demoAnkle(0, side), end = demoAnkle(1, side);
   if (state.arrow) {

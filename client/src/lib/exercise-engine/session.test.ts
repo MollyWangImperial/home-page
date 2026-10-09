@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { LAUNCH_EXERCISE_IDS, type Rung } from "./config";
 import { ExerciseSession, simFrame, type Voice } from "./session";
+import { ANGLE_SCORED_ID } from "./angle-scored-fixture";
 
 const FRAME_MS = 33;
 
@@ -467,8 +468,8 @@ it("starts every seated scored repetition from the 3-2-1 countdown without repea
 it("keeps instructing every repetition of exercises without seated targets", () => {
   const spoken: string[] = [];
   const voice: Voice = { say: line => spoken.push(line), busy: () => false, stop: () => {} };
-  // Seated Toe Lift: still scored on angles alone (the others now run the on-screen target flow).
-  const session = new ExerciseSession({ exerciseId: "ex_ankle_dorsiflexion", rung: 1, side: "right", reviewBetweenReps: true, repsOverride: 2 }, voice);
+  // Every launch exercise now runs the on-screen target flow: a test copy of the former angle-scored toe lift.
+  const session = new ExerciseSession({ exerciseId: ANGLE_SCORED_ID, rung: 1, side: "right", reviewBetweenReps: true, repsOverride: 2 }, voice);
   session.start(0); session.skipAhead(1); session.skipAhead(2);
   let t = 2;
   for (let n = 0; n < 6000 && session.snapshot().phase !== "done"; n++) {

@@ -34,7 +34,9 @@ export const usesSeatedTargets = (id: string) => id === "ex_reach" || id === "ex
  * circle round the thumb and fingertip that pick up a drawn peg), and Supported Arm Elevation (a drawn cup out
  * to the side, reached along an arrow from a table or the armrest).
  */
-export const usesTargetFlow = (id: string) => usesSeatedTargets(id) || id === "ex_handopen" || id === "ex_grasp" || id === "ex_lower_selective" || id === "ex_pinch" || id === "ex_wallslide";
+export const usesTargetFlow = (id: string) => usesSeatedTargets(id) || id === "ex_handopen" || id === "ex_grasp" || id === "ex_lower_selective" || id === "ex_pinch" || id === "ex_wallslide"
+  // Seated Toe Lift: an ankle dial beside the shoulder whose toes turn up into the circle as the toes lift (toe-target.ts).
+  || id === "ex_ankle_dorsiflexion";
 
 /** SESSION_DIFFICULTY_PRESETS from backend/server.py. */
 export const DOSE_PRESETS: Record<Level, { repFactor: number; targetYDelta: number; targetDistanceScale: number; radiusScale: number; holdScale: number }> = {
@@ -58,6 +60,13 @@ export type RomStep = {
   learnedShare?: number;
   /** Target flow: the scored goal is never above this (pinch: the thumb touching the fingertip). */
   learnedCap?: number;
+  /** Target flow: the scored goal is at least this far beyond rest (toe lift: so jitter alone cannot reach it). */
+  learnedFloor?: number;
+  /**
+   * The session's best is reported as the movement from the repetition's start, times this, in degrees (toe lift: its
+   * rise in % of the lower leg, about 1.1 degrees each), when the measure itself is not an angle from zero.
+   */
+  bestFromStart?: number;
 };
 
 export type Compensation = {
@@ -508,25 +517,51 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     domain: "lower_limb",
     chain: "Foot clears",
     dailyTask: "Walking without catching the toe",
-    framing: "Front, seated, knees to feet in frame",
+    // Seated the whole time with the foot where it is, so the patient never moves out of view; the face and shoulders
+    // carry the trunk checks, the lighting check and the ankle dial's place.
+    framing: "Front, seated, head to feet in view, both feet flat on the floor",
     tracking: "pose",
     ghost: "toe",
-    setupVoice: "Sit securely with your affected foot flat and your heel supported on the floor. We will practise lifting the front of your foot without lifting the heel.",
-    calibrationInstruction: "Move the phone back until I can see your hips, knees and feet. Keep the heel down and hold still.",
-    romSteps: [{ id: "ankle_dorsiflexion", label: "Ankle dorsiflexion", metric: "ankle_dorsiflexion", targets: { easy: 6, medium: 10, difficult: 14 }, weight: 1 }],
-    compensations: [cr("knee_motion", "knee lift", "knee_motion_delta", 10, 8, 0.4, "Keep the knee quiet while the ankle moves.")],
+    setupVoice: "Welcome. We are going to practise lifting the front of your foot while your heel stays on the floor. Sit in a stable chair with a back, with both feet flat on the floor, and keep a carer nearby if you need help with balance. Place the camera about two metres in front of you, at about knee height, so I can see you from your head to your feet. Bare feet or thin flat shoes work best. You do not need to move your chair or your feet. Stop if you feel cramp, pain or numbness.",
+    calibrationInstruction: "Sit tall with your back against the chair, both feet flat on the floor and your hands resting on your thighs. Make sure the room is well lit, with the light in front of you. Hold still while I learn your starting position.",
+    // How far the toes rise above the ankle in the picture, in % of the lower leg's image length (toe-target.ts):
+    // negative at rest, where the toes sit lower. The live goal is learned in practice; the levels stay ascending for
+    // planning. The best is reported as the lift from rest in about-degrees.
+    romSteps: [{ id: "toe_lift", label: "Toe lift", metric: "toe_lift", targets: { easy: -14, medium: -12, difficult: -10 }, weight: 1, learnedShare: 0.9, learnedFloor: 3.5, bestFromStart: 1.1 }],
+    compensations: [
+      // Engineering defaults, in % of the resting lower leg's image length (or degrees), against the set-up posture,
+      // while the toes lift (step 0).
+      // The heel leaving the floor: the ankle rising, or the lower leg swinging forward (a knee kick; toe-target.ts toeComps).
+      cr("heel_lift", "heel lifting", "heel_lift_pct", 5, 4, 0, "Keep your heel on the floor and lift only the front of your foot.", { unit: "%", minConsecutiveMs: 400, steps: [0] }),
+      // The knee rising in the picture: the whole leg lifting from the hip instead of the ankle moving.
+      cr("knee_motion", "knee lifting", "thigh_lift_pct", 7, 4, 0, "Keep your knee still and let your ankle do the lifting.", { unit: "%", minConsecutiveMs: 300, steps: [0] }),
+      // The knee moving sideways against the hip on its side (the hip turning to tip the foot).
+      cr("knee_sideways", "knee falling out or in", "knee_sideways_pct", 10, 4, 0, "Keep your knee pointing straight ahead.", { unit: "%", minConsecutiveMs: 400, steps: [0] }),
+      // The other foot moving, or its toes lifting along (a mirror movement, counted double: toe-target.ts toeComps).
+      cr("other_leg", "other leg helping", "other_leg_pct", 15, 4, 0, "Keep your other foot still on the floor.", { unit: "%", minConsecutiveMs: 400, alternative: [{ metric: "other_knee_delta", threshold: 20 }], steps: [0] }),
+      cr("trunk_forward", "leaning forward", "trunk_approach_pct", 4, 4, 0, "Sit tall with your back against the chair.", { unit: "%", minConsecutiveMs: 300, steps: [0] }),
+      cr("trunk_lean", "leaning back", "trunk_retreat_pct", 4, 4, 0, "Sit tall and let your ankle do the lifting.", { unit: "%", minConsecutiveMs: 300, steps: [0] }),
+    ],
     cycle: [
-      { caption: "Lift your toes and forefoot, and hold", voice: "Keeping the heel down, gently lift your toes and the front of your foot. Hold for a comfortable moment.", kind: "reach", gate: ["ankle_dorsiflexion"], holdMs: 1000 },
-      ret("Lower slowly", "Lower the front of your foot slowly until it rests on the floor."),
+      { caption: "Lift your toes and hold", voice: "Keeping your heel on the floor, slowly lift your toes and the whole front of your foot, until the ankle dial reaches its circle. Keep your knee still and sit tall. Hold it there.", kind: "reach", gate: ["toe_lift"], holdMs: 1500, cue: "Lift your toes, heel down." },
+      { ...ret("Lower your toes slowly", "Now slowly lower the front of your foot to the floor."), cue: "Lower slowly." },
     ],
     feedback: [
-      { comp: "knee_motion", say: "Your knee lifted with the foot. Keep the knee quiet while the ankle moves." },
-      { attainmentBelow: 0.7, say: "Nearly there. Keep the heel planted and aim for a slightly higher toe lift." },
+      // Worded like the other target-flow exercises, so the final repetition's version drops "on the next ..." the same way.
+      { comp: "heel_lift", say: "I noticed your heel came up. On the next repetition, try keeping your heel on the floor and lifting only the front of your foot." },
+      { comp: "knee_motion", say: "I noticed your knee lifted. On the next repetition, try keeping your knee still and let your ankle do the lifting." },
+      { comp: "knee_sideways", say: "I noticed your knee moved to the side. On the next repetition, try keeping your knee pointing straight ahead." },
+      { comp: "other_leg", say: "I noticed your other leg moved to help. On the next repetition, try keeping your other foot still on the floor." },
+      { comp: "trunk_forward", say: "I noticed you leaned forward. On the next repetition, try sitting tall with your back against the chair." },
+      { comp: "trunk_lean", say: "I noticed you leaned back. On the next repetition, try sitting tall and let your ankle do the lifting." },
+      { attainmentBelow: 0.7, say: "Nearly there. On the next repetition, try lifting your toes a little higher, keeping your heel down." },
     ],
-    praise: "Great effort. Keep the heel planted and the lift smooth.",
+    praise: "Lovely controlled lift. Keep the heel down and the movement slow.",
     bestLabel: "toe lift",
-    bestRomId: "ankle_dorsiflexion",
-    rescueNote: "Shorter hold",
+    bestRomId: "toe_lift",
+    rescueNote: "Smaller toe target",
+    // Flicking the toes up or dropping them: a reminder only (in % of the lower leg each second).
+    speedCue: { metric: "toe_lift", degPerS: 25, lift: "Nice and slow as you lift.", lower: "Nice and slow as you lower." },
   },
 };
 

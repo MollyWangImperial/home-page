@@ -36,9 +36,9 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
   // Supported Arm Elevation is worded, and checked, for the table or the armrest.
   const cfg = resolveExercise(exerciseId, false, armrest);
   const planned = REPS_BY_RUNG[rung];
-  const hand = cfg.id === "ex_handopen", grasp = cfg.id === "ex_grasp", knee = cfg.id === "ex_lower_selective", slide = cfg.id === "ex_wallslide", pinch = cfg.id === "ex_pinch";
-  const targets: Record<string, number> = cfg.id === "ex_h2m" ? { elbow_flexion: 85, shoulder_flexion: 40 } : hand ? { finger_extension: 165 } : grasp ? { elbow_extension: 140, shoulder_flexion: 45, finger_extension: 165, carry_across: 0.95 } : knee ? { knee_extension: 125 } : slide ? { shoulder_flexion: 45, slide_out: 0.6 } : pinch ? { pinch_index: 75, pinch_middle: 75 } : { shoulder_flexion: 40, elbow_extension: 129 };
-  const startingAngles: Record<string, number> = cfg.id === "ex_h2m" ? { elbow_flexion: 25, shoulder_flexion: 8 } : hand ? { finger_extension: 120 } : grasp ? { elbow_extension: 100, shoulder_flexion: 8, finger_extension: 120, carry_across: 0 } : knee ? { knee_extension: 95 } : slide ? { shoulder_flexion: 12, slide_out: 0 } : pinch ? { pinch_index: 30, pinch_middle: 30 } : { shoulder_flexion: 8, elbow_extension: 100 };
+  const hand = cfg.id === "ex_handopen", grasp = cfg.id === "ex_grasp", knee = cfg.id === "ex_lower_selective", toe = cfg.id === "ex_ankle_dorsiflexion", slide = cfg.id === "ex_wallslide", pinch = cfg.id === "ex_pinch";
+  const targets: Record<string, number> = cfg.id === "ex_h2m" ? { elbow_flexion: 85, shoulder_flexion: 40 } : hand ? { finger_extension: 165 } : grasp ? { elbow_extension: 140, shoulder_flexion: 45, finger_extension: 165, carry_across: 0.95 } : knee ? { knee_extension: 125 } : toe ? { toe_lift: -12 } : slide ? { shoulder_flexion: 45, slide_out: 0.6 } : pinch ? { pinch_index: 75, pinch_middle: 75 } : { shoulder_flexion: 40, elbow_extension: 129 };
+  const startingAngles: Record<string, number> = cfg.id === "ex_h2m" ? { elbow_flexion: 25, shoulder_flexion: 8 } : hand ? { finger_extension: 120 } : grasp ? { elbow_extension: 100, shoulder_flexion: 8, finger_extension: 120, carry_across: 0 } : knee ? { knee_extension: 95 } : toe ? { toe_lift: -20 } : slide ? { shoulder_flexion: 12, slide_out: 0 } : pinch ? { pinch_index: 30, pinch_middle: 30 } : { shoulder_flexion: 8, elbow_extension: 100 };
   // The return step: the second of two for the other exercises, the fifth for grasp and transport.
   const back = grasp ? 4 : 1;
   const lean = cfg.compensations[0].id;
@@ -60,7 +60,7 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
     rung, rungStart: rung, repIndex: phase === "warm" ? 0 : final ? planned : 2, repsPlanned: planned,
     stepIndex: returning ? back : 0, stepCount: cfg.cycle.length, caption: cfg.cycle[returning ? back : 0].caption, kind: returning ? "return" : hand ? "open" : "reach",
     liveAttainment: 0.78, inZone: !waiting, targetArmed: !waiting && phase !== "setup", holdProgress: waiting ? 0 : 0.48,
-    prompt: screen === "setup" ? hand || pinch ? `Hold your ${side} hand up in the shaded area with your palm facing the camera.` : grasp ? `Rest your ${side} hand on the visible top of your ${side} thigh.` : knee ? "Put both feet flat on the floor, about hip-width apart." : slide ? slideRestPrompt(side, armrest ? "armrest" : "table") : `Bring your ${side} hand into view and rest it on your lap.` : "",
+    prompt: screen === "setup" ? hand || pinch ? `Hold your ${side} hand up in the shaded area with your palm facing the camera.` : grasp ? `Rest your ${side} hand on the visible top of your ${side} thigh.` : knee ? "Put both feet flat on the floor, about hip-width apart." : toe ? "Rest your foot flat on the floor, toes down." : slide ? slideRestPrompt(side, armrest ? "armrest" : "table") : `Bring your ${side} hand into view and rest it on your lap.` : "",
     idlePrompt: screen === "idle", rescued: screen === "rescue", arrow: screen === "rescue" ? lean : null,
     feedback: screen === "rescue" ? "Let's bring the target a little closer." : "",
     reps: final ? reps : complete || screen === "countdown" ? reps.slice(0, 3) : scored ? [reps[0]] : [],
@@ -68,7 +68,7 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
     calibrationProgress: 0.55, targetsReady: scored, startingAngles,
     record: phase === "done" ? {
       engine: "screen-preview", exercise_id: cfg.id, rung_start: rung, rung_end: rung, reps_planned: planned,
-      repetition_scores: reps.map(rep => rep.score), quality_reps: reps.filter(rep => rep.good).length, best_attainment: 1, best_value: cfg.id === "ex_h2m" ? 85 : hand ? 165 : grasp ? 140 : knee ? 125 : slide ? 45 : pinch ? 92 : 40, best_label: cfg.id === "ex_h2m" ? "elbow bend" : hand ? "finger opening" : knee || slide || pinch ? cfg.bestLabel : "reach",
+      repetition_scores: reps.map(rep => rep.score), quality_reps: reps.filter(rep => rep.good).length, best_attainment: 1, best_value: cfg.id === "ex_h2m" ? 85 : hand ? 165 : grasp ? 140 : knee ? 125 : toe ? 13 : slide ? 45 : pinch ? 92 : 40, best_label: cfg.id === "ex_h2m" ? "elbow bend" : hand ? "finger opening" : toe || knee || slide || pinch ? cfg.bestLabel : "reach",
       compensation_counts: second === lean ? { [lean]: 3 } : { [lean]: 2, [second]: 1 }, hold_pass_count: planned, not_attempted: false, assisted: false, chair_back: false,
       score: Math.round(reps.reduce((sum, rep) => sum + rep.score, 0) / planned), wrap: "", finished_at: "screen-preview",
     } : null,
@@ -77,7 +77,16 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
     countdownProgress: 0.5,
     awaitingReady: (hand || pinch) && screen === "warm-waiting",
   };
-  const bodyChecks = knee ? [
+  const bodyChecks = toe ? [
+    { id: "nose", label: "Face" },
+    { id: "shoulders", label: "Both shoulders" },
+    { id: "hips", label: "Both hips" },
+    { id: "knees", label: "Both knees" },
+    { id: "feet", label: "Both feet" },
+    { id: "toes", label: `${side === "right" ? "Right" : "Left"} toes` },
+    { id: "position", label: "Foot flat, heel down, space around you" },
+    { id: "lighting", label: "Lighting" },
+  ].map(check => ({ ...check, visible: check.id !== "position", progress: check.id === "position" ? 0.2 : 1, hint: "Rest your foot flat on the floor, toes down." })) : knee ? [
     { id: "nose", label: "Face" },
     { id: "shoulders", label: "Both shoulders" },
     { id: "hips", label: "Both hips" },

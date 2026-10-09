@@ -3,6 +3,7 @@ import { EXERCISES, LAUNCH_EXERCISE_IDS, REPS_BY_RUNG, type Rung } from "./confi
 import { isGoodRep, isMiss, repScore, SCORING, type HoldOutcome } from "./scoring";
 import { ExerciseSession, simFrame, type Voice } from "./session";
 import { TARGET_HOLD_MS } from "./target-timing";
+import { ANGLE_SCORED_ID } from "./angle-scored-fixture";
 import { ADAPTATION_VERSION, DEFAULT_EXERCISE_TUNING, exerciseTuning, type ExerciseTuning, type ParamValues } from "../../../../shared/alira-adaptation";
 
 // Alira's learning may only change a fixed, bounded set of settings. These tests check that the
@@ -162,8 +163,8 @@ describe("hold time", () => {
 
   it("scales an angle-scored step's hold by the same factor", () => {
     // Seated toe lift at level 2: a 1000 ms hold at the medium dose (hold scale 1).
-    const standard = angleSession("ex_ankle_dorsiflexion", 2);
-    const shorter = angleSession("ex_ankle_dorsiflexion", 2, tuned({ "exercise.hold_seconds": 1.2 }));
+    const standard = angleSession(ANGLE_SCORED_ID, 2);
+    const shorter = angleSession(ANGLE_SCORED_ID, 2, tuned({ "exercise.hold_seconds": 1.2 }));
     for (let n = 0; n < 4; n++) { standard.push(1, 100); shorter.push(1, 100); }
     expect(standard.session.snapshot().holdProgress).toBeCloseTo(0.4);
     expect(shorter.session.snapshot().holdProgress).toBeCloseTo(0.5);
@@ -207,8 +208,8 @@ describe("planned repetitions", () => {
 
 describe("target zone", () => {
   it("counts a 0.65 reach as in the zone on an angle-scored exercise when the zone is 0.6", () => {
-    const standard = angleSession("ex_ankle_dorsiflexion", 2);
-    const wider = angleSession("ex_ankle_dorsiflexion", 2, tuned({ "exercise.target_zone": 0.6 }));
+    const standard = angleSession(ANGLE_SCORED_ID, 2);
+    const wider = angleSession(ANGLE_SCORED_ID, 2, tuned({ "exercise.target_zone": 0.6 }));
     for (let n = 0; n < 3; n++) { standard.push(0.65, 100); wider.push(0.65, 100); }
     expect(standard.session.snapshot().liveAttainment).toBeCloseTo(0.65);
     expect(standard.session.snapshot().inZone).toBe(false);
@@ -222,10 +223,10 @@ describe("target zone", () => {
     const profile: Profile = rep => ({ level: rep <= 2 ? 0.65 : 1, compensations: [] });
     expect(isMiss(0.65)).toBe(true);
     expect(isMiss(0.65, 0.6)).toBe(false);
-    const standard = run("ex_ankle_dorsiflexion", 3, profile, { reps: 4 });
+    const standard = run(ANGLE_SCORED_ID, 3, profile, { reps: 4 });
     expect(standard.said).toContain("Let's bring the target a little closer.");
     expect(standard.record.rung_end).toBe(2);
-    const wider = run("ex_ankle_dorsiflexion", 3, profile, { reps: 4, tuning: tuned({ "exercise.target_zone": 0.6 }) });
+    const wider = run(ANGLE_SCORED_ID, 3, profile, { reps: 4, tuning: tuned({ "exercise.target_zone": 0.6 }) });
     expect(wider.said).not.toContain("Let's bring the target a little closer.");
     expect(wider.record.rung_end).toBe(3);
     expect(wider.record.repetition_scores.slice(0, 2)).toEqual([65, 65]);
@@ -237,8 +238,8 @@ describe("grading", () => {
     const profile: Profile = () => ({ level: 0.85, compensations: [] });
     expect(isGoodRep(0.85, "full", 0)).toBe(false);
     expect(isGoodRep(0.85, "full", 0, 0.8)).toBe(true);
-    const standard = run("ex_ankle_dorsiflexion", 2, profile, { reps: 3 });
-    const kinder = run("ex_ankle_dorsiflexion", 2, profile, { reps: 3, tuning: tuned({ "exercise.good_rep_share": 0.8 }) });
+    const standard = run(ANGLE_SCORED_ID, 2, profile, { reps: 3 });
+    const kinder = run(ANGLE_SCORED_ID, 2, profile, { reps: 3, tuning: tuned({ "exercise.good_rep_share": 0.8 }) });
     expect(standard.session.snapshot().reps.map(rep => rep.attainment)).toEqual(kinder.session.snapshot().reps.map(rep => rep.attainment));
     expect(kinder.session.snapshot().reps[0].attainment).toBeCloseTo(0.85);
     expect(standard.session.snapshot().reps.map(rep => rep.good)).toEqual([false, false, false]);

@@ -1,12 +1,17 @@
 import type { Frame, LapRest } from "./metrics";
 
 const median = (values: number[]) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
+/**
+ * Seated Toe Lift's rise is in % of the lower leg (toe-target.ts), about 1.1 degrees each. Half a unit per degree keeps
+ * the minimum excursions that scale with it (3 units, 1.5% of the lower leg) small enough for a weak ankle.
+ */
+const TOE_LIFT_UNIT = 0.5;
 
 /** Measures that are not angles, in their own units per degree (the carry across the body and the slide out to the cup are in shoulder widths). */
-const UNIT_PER_DEGREE: Record<string, number> = { carry_across: 0.03, slide_out: 0.03 };
+const UNIT_PER_DEGREE: Record<string, number> = { carry_across: 0.03, slide_out: 0.03, toe_lift: TOE_LIFT_UNIT };
 export const metricUnit = (metric: string) => UNIT_PER_DEGREE[metric] ?? 1;
 /** How a measure's value is read out (angles are in degrees): the pinch's closure is a percentage (pinch-target.ts). */
-const UNIT_NAME: Record<string, string> = { carry_across: "shoulder widths", slide_out: "shoulder widths", pinch_index: "percent", pinch_middle: "percent" };
+const UNIT_NAME: Record<string, string> = { carry_across: "shoulder widths", slide_out: "shoulder widths", pinch_index: "percent", pinch_middle: "percent", toe_lift: "percent of the lower leg" };
 export const metricUnitName = (metric: string) => UNIT_NAME[metric] ?? "degrees";
 
 /** A camera-projected angle may decrease during a reach; use the learned direction. unit: metricUnit(metric). */
@@ -21,12 +26,13 @@ export function reachAngleProgress(value: number | undefined, target: number, st
 /** Only the active practice-target hold contributes; lap/approach/voice frames are excluded. */
 export class ReachTargetCalibration {
   private samples: Frame["values"][] = [];
-  constructor(private readonly metrics = ["shoulder_flexion", "elbow_extension"]) {}
+  /** range: the values a held frame may have (angles 0-180; the toe lift's rise is negative at rest). */
+  constructor(private readonly metrics = ["shoulder_flexion", "elbow_extension"], private readonly range: [number, number] = [0, 180]) {}
 
   reset() { this.samples = []; }
 
   observe(frame: Frame) {
-    if (this.metrics.map(metric => frame.values[metric]).every(value => typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 180)) {
+    if (this.metrics.map(metric => frame.values[metric]).every(value => typeof value === "number" && Number.isFinite(value) && value >= this.range[0] && value <= this.range[1])) {
       this.samples.push({ ...frame.values });
     }
   }
