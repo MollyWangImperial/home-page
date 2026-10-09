@@ -36,6 +36,14 @@ import { beginDebugVideos, DebugVideoRecorder, type DebugClip, type DebugVideoSe
 import { loadExerciseTuning, saveReport } from "@/lib/alira-learning-store";
 import { startLearning } from "@/lib/alira-learning-client";
 import { tunedReps, type ExerciseTuning, type FeltReport, type PainReport } from "@shared/alira-adaptation";
+// The movement check (the Assessment page): one camera task run on its exercise in assessment mode.
+import { CAMERA_TASKS, chestPoint, handLevelContact, handLevelGoal, OTHER_HAND_IN_VIEW, OTHER_THIGH_IN_VIEW, reachLevelGap, reachLevelRadius, reachLevelY, towardTarget } from "@/lib/assessment-engine/tasks";
+import { otherHandArm } from "@/lib/assessment-engine/other-hand";
+import type { AssessmentTaskResult, AttemptRecord, CameraTaskId, LevelSpec } from "@/lib/assessment-engine/types";
+import { ASSESSMENT_LINES, withAssessment, type SessionAssessment } from "@/lib/exercise-engine/session";
+import { LEARNED_RING_SHARE } from "@/lib/exercise-engine/hand-target";
+import { otherHandNear } from "@/lib/exercise-engine/pinch-target";
+import type { PoseInput } from "@/lib/exercise-engine/metrics";
 import "./exercise-engine.css";
 
 const BEATS = ["Set up", "Show me", "Warm rep", "Scored reps", "Rescue", "Wrap"];
@@ -87,12 +95,40 @@ const pinchStepOf = (cycle: { kind: string; finger?: number }[], index: number):
   return { finger: pinchFinger(finger), letGo: step?.kind === "return", index: at };
 };
 
-export default function ExerciseRunner() {
+/**
+ * The movement check (the Assessment page): one camera task run on its exercise, with its levels instead of scored
+ * repetitions. Never saved as an exercise result; onDone hands the task's result back, onExit leaves without one.
+ */
+export type AssessmentRunnerProps = {
+  taskId: CameraTaskId;
+  exerciseId: string;
+  side: Side;
+  levels: LevelSpec[];
+  startLevel: number;
+  compensations: SessionAssessment["compensations"];
+  cycle?: SessionAssessment["cycle"];
+  /** Shown after "Movement check" in the header: "Task 2 of 5". */
+  stepLabel: string;
+  /** Admin and development testing: the simulated patient instead of the camera. */
+  sim?: boolean;
+  onDone(result: AssessmentTaskResult): void;
+  onExit(): void;
+};
+/** The movement check's beats (the session's beats 1-4, then done). */
+const ASSESS_BEATS = ["Set up", "Show me", "Try it", "Levels", "Done"];
+/** Reach: set-up waits until the top level's circle fits in the picture above the head. */
+const ROOM_HINT = "Move the camera back a little so there is room above your head.";
+const ROOM_CHECK = { id: "room", label: "Room above your head", hint: ROOM_HINT };
+
+export default function ExerciseRunner({ assessment }: { assessment?: AssessmentRunnerProps } = {}) {
   const [, params] = useRoute("/exercise/:id");
   const search = useSearch();
   const [, navigate] = useLocation();
   const openSettings = useSettings();
-  const exerciseId = params?.id ?? "";
+  // The movement check's task, kept in a ref so the frame loop and callbacks always see the latest props.
+  const assessRef = useRef(assessment);
+  assessRef.current = assessment;
+  const exerciseId = assessment?.exerciseId ?? params?.id ?? "";
   const base = EXERCISES[exerciseId];
   // Opened from the Journey's "Start today's session": the score goes to the Journey and so does the way back.
   const fromJourney = new URLSearchParams(search).get("from") === "journey";
@@ -101,6 +137,9 @@ export default function ExerciseRunner() {
     const q = new URLSearchParams(search);
     const saved = readLabOptions();
     const rung = Number(q.get("rung"));
+    // The movement check takes its side and simulator from the Assessment page, never from the test lab's options.
+    const task = assessRef.current;
+    if (task) return { ...saved, rung: 1 as Rung, side: task.side, quick: false, sim: Boolean(task.sim), chairBack: false, assisted: false, armrest: false };
     return {
       ...saved,
       rung: (usesTargetFlow(exerciseId) ? 1 : [1, 2, 3].includes(rung) ? rung : 2) as Rung,
@@ -115,7 +154,8 @@ export default function ExerciseRunner() {
   }, [search, exerciseId]);
 
   const [opts, setOpts] = useState<LabOptions & { rung: Rung }>(initial);
-  const [stage, setStage] = useState<Stage>("intro");
+  // The movement check has no Intro (the Assessment page shows its own task card): it opens the camera at once.
+  const [stage, setStage] = useState<Stage>(assessment ? "loading" : "intro");
   useEffect(() => {
     if (usesTargetFlow(exerciseId) && stage === "intro" && opts.rung !== 1) {
       setOpts(options => ({ ...options, rung: 1 }));
@@ -167,6 +207,11 @@ export default function ExerciseRunner() {
   const slideView = useRef<{ cup: SlideCircle; rest: SlideCircle; hand: { x: number; y: number } | null } | null>(null);
   const slideDone = useRef<{ key: string; circle: SlideCircle; startedAt: number } | null>(null);
   const slideLast = useRef<{ key: string; step: number } | null>(null);
+  // The movement check: hand to mouth's chest point (learned at set-up), and whether the task's result was handed back.
+  const chestRef = useRef<{ x: number; y: number } | null>(null);
+  const assessDone = useRef(false);
+  // The movement check's hand opening: the step whose ring the fingertips are on (they stay on until they close inside it).
+  const handOnRef = useRef<string | null>(null);
   const [said, setSaid] = useState("");
   const [muted, setMuted] = useState(false);
   const [englishAvailable, setEnglishAvailable] = useState(true);
@@ -174,7 +219,8 @@ export default function ExerciseRunner() {
   const [debugDirectory, setDebugDirectory] = useState("");
   const [debugError, setDebugError] = useState("");
   const [redoOpen, setRedoOpen] = useState(false);
-  const [live, setLive] = useState<{ roms: Live; comps: CompLive }>({ roms: [], comps: [] });
+  // progress: the movement check's one movement bar, toward the level's target (the frame's targetProgress).
+  const [live, setLive] = useState<{ roms: Live; comps: CompLive; progress?: number }>({ roms: [], comps: [] });
   const [simLevel, setSimLevel] = useState(0);
   const [simComps, setSimComps] = useState<string[]>([]);
   const [auto, setAuto] = useState<AutoMode>("good");
@@ -195,6 +241,9 @@ export default function ExerciseRunner() {
   const debugSessionRef = useRef<DebugVideoSession | null>(null);
   const debugRecorderRef = useRef<DebugVideoRecorder | null>(null);
   const beginningRef = useRef(false);
+  // Each stop (leaving included) starts a new generation: a begin() still waiting for the model or the camera permission
+  // releases what it opened and does nothing else.
+  const beginGen = useRef(0);
   // Alira's learning: the record (by finished_at) it was last started for, and whether the running session is simulated.
   const learnedFrom = useRef<string | null>(null);
   const sessionSim = useRef(false);
@@ -202,9 +251,10 @@ export default function ExerciseRunner() {
   simRef.current.comps = simComps;
   simRef.current.auto = auto;
 
-  const cfg = useMemo(() => (base ? resolveExercise(base.id, opts.chairBack, opts.armrest) : null), [base, opts.chairBack, opts.armrest]);
+  // The movement check runs the exercise with its task's posture checks and steps, as the session does (withAssessment).
+  const cfg = useMemo(() => (base ? withAssessment(resolveExercise(base.id, opts.chairBack, opts.armrest), assessRef.current) : null), [base, opts.chairBack, opts.armrest, assessment?.taskId]);
   const rungSpec = useMemo(() => (base ? buildRung(base.id, opts.rung) : null), [base, opts.rung]);
-  const previewScreen = usesTargetFlow(exerciseId) ? exercisePreviewScreen(new URLSearchParams(search).get("preview")) : null;
+  const previewScreen = usesTargetFlow(exerciseId) && !assessment ? exercisePreviewScreen(new URLSearchParams(search).get("preview")) : null;
   const preview = useMemo(() => previewScreen ? exerciseScreenPreview(previewScreen, opts.rung, opts.side, exerciseId, opts.armrest) : null, [previewScreen, opts.rung, opts.side, exerciseId, opts.armrest]);
   const snap = preview?.snapshot ?? runSnapshot;
   const viewSaid = preview?.said ?? said;
@@ -219,6 +269,7 @@ export default function ExerciseRunner() {
   }, [exerciseId, navigate, search, opts.rung, opts.side]);
 
   const stopAll = useCallback(() => {
+    beginGen.current += 1;
     clearTimeout(rafRef.current);
     void debugRecorderRef.current?.finish();
     voiceRef.current?.stop();
@@ -234,6 +285,8 @@ export default function ExerciseRunner() {
   // or when the patient leaves the results without answering (Back, Run again or leaving the page).
   // Fire-and-forget; without consent it does nothing.
   const learnFromSession = useCallback(() => {
+    // The movement check is not an exercise session: the Assessment page starts its own learning.
+    if (assessRef.current) return;
     const record = sessionRef.current?.snapshot().record;
     if (!record || record.not_attempted || sessionSim.current || learnedFrom.current === record.finished_at) return;
     learnedFrom.current = record.finished_at;
@@ -301,6 +354,7 @@ export default function ExerciseRunner() {
       } else s.level = s.sliderLevel;
       const comps = s.auto === "leaning" && !s.manual ? (session.cfg.compensations[0] ? [session.cfg.compensations[0].id] : []) : s.comps;
       frame = simFrame(t, session.cfg, session.targets(), { level: s.level, compensations: comps });
+      if (assessRef.current) simTaskComps(frame, session.cfg.compensations, comps);
       if (usesTargetFlow(session.cfg.id) && (session.snapshot().phase === "warm" || session.snapshot().phase === "reps")) {
         const level = Math.min(1, Math.max(0, s.level));
         if (session.cfg.id === "ex_handopen") frame.targetContact = handGhostContact(level, step?.kind === "return");
@@ -315,6 +369,8 @@ export default function ExerciseRunner() {
           frame.targetContact = Math.hypot(hand[0] - target.x, hand[1] - target.y) <= target.radius;
         }
         frame.targetProgress = frame.targetContact ? 1 : s.level;
+        // The movement check's bar follows the way back to rest too (the simulated movement coming back down).
+        if (assessRef.current && step?.kind === "return" && !frame.targetContact) frame.targetProgress = Math.min(0.98, 1 - level);
       }
     } else {
       const video = videoRef.current;
@@ -330,8 +386,11 @@ export default function ExerciseRunner() {
           // Alira's target size scales the mouth circle and its limits (1 leaves them as before).
           const size = session.tuning.targetSizeScale;
           const mouthRadius = lap ? Math.max(0.045 * size, Math.min(0.08 * size, lap.bodyScale * 0.18 * size)) : 0;
+          // The movement check's task; hand to mouth's chest level has its own circle, with no mouth hold.
+          const assess = assessRef.current, aspectNow = video.videoWidth / video.videoHeight;
+          const chestNow = assess?.taskId === "T3" && session.assessmentLevelId === "chest";
           let hold: MouthHoldResult | null = null;
-          if (session.cfg.id === "ex_h2m" && (now.phase === "warm" || now.phase === "reps") && !now.review && lap && mouth) {
+          if (session.cfg.id === "ex_h2m" && (now.phase === "warm" || now.phase === "reps") && !now.review && lap && mouth && !chestNow) {
             const key = `${now.phase}:${now.repIndex}:${now.rung}`;
             if (mouthHoldKey.current !== key) { mouthHold.current.reset(); mouthHoldKey.current = key; }
             hold = mouthHold.current.update(t, tracked.pose, opts.side, { mouth, radius: mouthRadius, aspect: video.videoWidth / video.videoHeight, torso: lap.bodyScale });
@@ -366,6 +425,12 @@ export default function ExerciseRunner() {
           // The toe lift's measure is steadied over a few frames (toe-target.ts).
           frame = toeNow ? toeFrame(detection, opts.side, t, video.videoWidth / video.videoHeight, session.reference, toeFilter.current)
             : buildFrame(session, detection, opts.side, t, video.videoWidth / video.videoHeight, { zone: handZoneRef.current, gripAxis: cupCarry.current.grip, support: opts.armrest ? "armrest" : "table" });
+          // The movement check: the other hand helping (other-hand.ts for the seated arm tasks; for hand opening the pinch's
+          // measure, its nearness to the affected palm). The pinch's own frame measures it already.
+          if (assess?.taskId === "T1" || assess?.taskId === "T3") frame.comps.other_hand_arm = otherHandArm(detection.pose, opts.side, aspectNow);
+          else if (assess?.taskId === "H4") frame.comps.other_hand_near = otherHandNear(detection, affectedHand(detection, opts.side), opts.side, aspectNow);
+          // Hand to mouth's chest point follows the body during set-up and stays where it was learned.
+          if (assess?.taskId === "T3" && now.phase === "setup") chestRef.current = followPoint(chestRef.current, chestFrom(tracked.pose, opts.side), 0.2);
           if ((graspNow || dialEx || slideNow || pinchNow) && now.phase === "setup") {
             const light = lighting.current;
             if (graspNow && !graspLayoutRef.current) { frame.lapRest = undefined; frame.lapMissing = "Sit back so your shoulders and both hips are in view."; }
@@ -374,6 +439,14 @@ export default function ExerciseRunner() {
             // The knee and the slide name a body position to fix first; the light comes once the body is in place.
             else if ((graspNow || frame.lapRest) && light && !light.ok && !lightingProbe.current.waived()) { frame.lapRest = undefined; frame.lapMissing = light.hint; }
           }
+          // The movement check's reach: set-up also waits for room above the head for the top level's circle.
+          const room = assess?.taskId === "T1" && now.phase === "setup" ? reachRoom(detection.pose, opts.side, frame.lapRest?.y, assess.levels, video.videoWidth, video.videoHeight) : null;
+          // The seated arm tasks' other-hand check needs the other hand and the top of the other thigh in view (other-hand.ts):
+          // set-up waits for both first, so the check is not left unmeasured on every attempt.
+          const otherRows = (assess?.taskId === "T1" || assess?.taskId === "T3") && now.phase === "setup" ? otherHandRows(detection.pose, opts.side) : null;
+          const otherMissing = otherRows?.find(row => !row.visible);
+          if (otherMissing && frame.lapRest) { frame.lapRest = undefined; frame.lapMissing = otherMissing.hint; }
+          if (room === false && frame.lapRest) { frame.lapRest = undefined; frame.lapMissing = ROOM_HINT; }
           if (now.phase === "setup") {
             const dt = Math.min(100, Math.max(0, t - (bodyLastT.current || t)));
             bodyLastT.current = t;
@@ -382,6 +455,13 @@ export default function ExerciseRunner() {
               bodyProgress.current[check.id] = progress;
               return { ...check, progress };
             }));
+            // The movement check's own rows after the exercise's: the other hand and thigh, then the room above the head.
+            const taskRows = [...(otherRows ?? []), ...(room !== null ? [{ ...ROOM_CHECK, visible: room }] : [])].map(row => {
+              const progress = Math.max(0, Math.min(1, (bodyProgress.current[row.id] ?? 0) + dt / (row.visible ? 1400 : -550)));
+              bodyProgress.current[row.id] = progress;
+              return { ...row, progress };
+            });
+            if (taskRows.length) setBodyChecks(checks => [...checks.filter(check => !taskRows.some(row => row.id === check.id)), ...taskRows]);
           }
           if (session.cfg.id === "ex_reach" && (now.phase === "warm" || now.phase === "reps") && !now.review && now.kind === "reach" && detection.pose) {
             const j = poseJoints(opts.side);
@@ -402,6 +482,15 @@ export default function ExerciseRunner() {
               const targetTorso = reachTarget.current?.torso ?? torso;
               const rise = now.phase === "reps" ? Math.min(0.32 * height, Math.max(0, now.repIndex - 1) * 0.10 * height) : 0;
               reachTarget.current = { key, baseY, lapX: lap.x, lapY: lap.y, torso: targetTorso, x: Math.max(0.12, Math.min(0.88, shoulder.x + (opts.side === "right" ? -1 : 1) * torso * 0.22)), y: Math.max(0.12, baseY - rise), radius: Math.min(Math.max(0.11 * size, Math.abs(shoulder.x - detection.pose.landmarks[j.shoulderOther].x) * 0.55 * size), 0.18 * size) * Math.min(video.videoWidth, video.videoHeight) / video.videoHeight, startX: lap.x, startY: lap.y };
+              // The movement check's circle sits at its level's height between the lap and the shoulder (set-up made
+              // sure the top one fits); across it is the reach's own circle, and in size too unless that would overlap
+              // the next level's (tasks.ts reachLevelRadius). The lap circle keeps the reach's own size.
+              if (assess && session.assessmentLevelId) {
+                const level = reachTarget.current;
+                level.lapRadius = level.radius;
+                level.y = reachLevelY(session.assessmentLevelId, lap.y, shoulder.y);
+                level.radius = reachLevelRadius(level.radius, lap.y, shoulder.y);
+              }
             }
             const target = reachTarget.current;
             if (target?.key === key && wrist) {
@@ -412,6 +501,13 @@ export default function ExerciseRunner() {
               frame.missing = wristVisible ? undefined : "Bring your affected hand back into view.";
               frame.targetContact = wristVisible && distance <= target.radius;
               frame.targetProgress = frame.targetContact ? 1 : Math.max(0, Math.min(0.98, 1 - (distance - target.radius) / Math.max(0.05, startDistance - target.radius)));
+              if (assess) {
+                // A level counts only with the wrist up at its height too, so a wrist low in the circle is not "above
+                // your shoulder" or "overhead"; the bar measures the same way to it.
+                const gap = reachLevelGap(wrist, target, target.radius, aspectNow);
+                frame.targetContact = wristVisible && gap === 0;
+                frame.targetProgress = towardTarget(frame.targetContact ? 0 : Math.max(gap, 1e-6), reachLevelGap({ x: target.startX, y: target.startY }, target, target.radius, aspectNow));
+              }
             }
           } else if (!usesTargetFlow(session.cfg.id) || now.phase === "setup" || now.phase === "demo") reachTarget.current = null;
           if (session.cfg.id === "ex_h2m" && (now.phase === "warm" || now.phase === "reps") && !now.review) {
@@ -437,6 +533,25 @@ export default function ExerciseRunner() {
               }
             } else { frame.visible = false; frame.missing = "Go back to Set up so I can learn your lap and mouth targets."; }
           }
+          if (chestNow && (now.phase === "warm" || now.phase === "reps") && !now.review && lap && reachTarget.current) {
+            // The movement check's chest level: a circle on the chest learned at set-up, the lap circle's size; any of the
+            // hand's points inside it is on target, as at the mouth. The lap circle it returns to is hand to mouth's own.
+            const chest = chestRef.current;
+            if (chest) {
+              const radius = reachTarget.current.lapRadius ?? reachTarget.current.radius;
+              reachTarget.current = { ...reachTarget.current, x: chest.x, y: chest.y, radius, baseY: chest.y };
+              if (now.kind === "reach") {
+                const points = mouthContactPoints(detection.pose, opts.side);
+                const distance = Math.min(...points.map(point => Math.hypot((point.x - chest.x) * aspectNow, point.y - chest.y)));
+                const startDistance = Math.hypot((lap.x - chest.x) * aspectNow, lap.y - chest.y);
+                frame.visible = points.length > 0;
+                frame.missing = frame.visible ? undefined : "Bring your affected hand back into view.";
+                frame.targetUnsure = undefined;
+                frame.targetContact = frame.visible && distance <= radius;
+                frame.targetProgress = frame.targetContact ? 1 : Math.max(0, Math.min(0.98, 1 - (distance - radius) / Math.max(0.05, startDistance - radius)));
+              }
+            } else { frame.visible = false; frame.missing = "Go back to Set up so I can learn your chest target."; }
+          }
           if (session.cfg.id === "ex_handopen" && (now.phase === "warm" || now.phase === "reps") && !now.review) {
             // Active Hand Opening: a ring around the palm that the fingertips open out to, then a small circle
             // they relax back into. The practice ring sits a little beyond the relaxed hand; scored rings at the
@@ -451,15 +566,27 @@ export default function ExerciseRunner() {
               const last = reachTarget.current?.key === key ? reachTarget.current : null;
               const follow = (from: number | undefined, to: number) => (from === undefined ? to : from + (to - from) * RING_FOLLOW);
               const x = follow(last?.x, palm.x), y = follow(last?.y, palm.y), scale = follow(last?.torso, palm.scale);
-              const target = handRingTarget(openness, rest, now.phase === "reps" ? session.learnedValue("hand_openness") : undefined, now.kind === "return");
+              // The movement check's ring is its level's goal (tasks.ts handLevelGoal): openRing returns goal / share × share.
+              const target = handRingTarget(openness, rest, assess ? handLevelGoal(session.assessmentLevelId ?? "", rest) / LEARNED_RING_SHARE : now.phase === "reps" ? session.learnedValue("hand_openness") : undefined, now.kind === "return");
               reachTarget.current = { key, x, y, radius: target.ring * scale, lapRadius: target.relax * scale, startX: x, startY: y, baseY: y, torso: scale, lapX: x, lapY: y };
               // Opening counts only with the hand in its area (an open hand laid on the lap is not on the ring);
               // closing counts anywhere, the lap included.
               frame.targetContact = frame.visible && target.contact && (now.kind === "return" || frame.placed !== false);
               frame.targetProgress = frame.targetContact ? 1 : Math.min(0.98, target.progress);
+              if (assess) {
+                // The movement check's ring, once reached, stays on until the fingertips close a little inside it (tasks.ts
+                // handLevelContact), so jitter at a full opening cannot keep restarting the hold. Closing, the bar follows
+                // the fingertips back into the relax circle.
+                const stepKey = `${now.phase}:${now.repIndex}:${now.stepIndex}`, returning = now.kind === "return";
+                const on = !returning && frame.visible && frame.placed !== false && handLevelContact(openness, target.ring, handOnRef.current === stepKey);
+                handOnRef.current = on ? stepKey : null;
+                if (!returning) frame.targetContact = on;
+                frame.targetProgress = frame.targetContact ? 1 : returning ? towardTarget(Math.max(1e-6, openness - target.relax), target.ring - target.relax) : Math.min(0.98, target.progress);
+              }
             } else {
               frame.visible = false;
               frame.missing = frame.missing ?? "Bring your affected hand back into view.";
+              if (assess) handOnRef.current = null;
             }
           }
           if (graspNow && (now.phase === "warm" || now.phase === "reps") && !now.review) {
@@ -581,11 +708,13 @@ export default function ExerciseRunner() {
             if (Number.isFinite(rest) && hand) {
               // Practice lets go from the closure just learned (the pinch may have eased), as the knee and slide do.
               const learned = session.learnedValue(metric);
-              const goal = now.phase === "reps" ? Math.min(TOUCH_CLOSURE, session.targets()[metric]) : pinchStep.letGo && learned !== undefined ? learned : pinchPracticeGoal(rest);
+              // The movement check's goal is its level's (the session's targets, tasks.ts pinchLevelGoal), the try-out's
+              // included, and it never eases closer: a level is the same for everyone.
+              const goal = assess || now.phase === "reps" ? Math.min(TOUCH_CLOSURE, session.targets()[metric]) : pinchStep.letGo && learned !== undefined ? learned : pinchPracticeGoal(rest);
               const key = `${now.phase}:${now.repIndex}:${now.stepIndex}`;
               const target = pinchTarget.current.update(key, {
                 closure: frame.values[metric], imageGap: imageGap(hand, finger, aspect), along: tipAlong(hand, finger), rival: frame.values[PINCH_FINGERS[1 - finger].metric],
-                rest, goal, letGo: pinchStep.letGo, armed: now.targetArmed, practice: now.phase === "warm", t,
+                rest, goal, letGo: pinchStep.letGo, armed: now.targetArmed, practice: now.phase === "warm" && !assess, t,
               });
               // A pinch counts only with the hand in its area; letting go counts anywhere.
               frame.targetContact = frame.visible && target.contact && (pinchStep.letGo || frame.placed !== false);
@@ -608,6 +737,7 @@ export default function ExerciseRunner() {
             frame.visible = true;
             frame.missing = undefined;
             frame.targetContact = false;
+            if (assess) frame.targetProgress = 0;
           } else if (usesSeatedTargets(session.cfg.id) && !now.review && reachTarget.current && now.kind === "return" && detection.pose) {
             const wrist = detection.pose.landmarks[poseJoints(opts.side).wrist];
             const target = reachTarget.current;
@@ -615,6 +745,12 @@ export default function ExerciseRunner() {
             frame.visible = visible;
             frame.missing = visible ? undefined : "Bring your affected hand back into view.";
             frame.targetContact = visible && Math.hypot((wrist.x - target.lapX) * video.videoWidth / video.videoHeight, wrist.y - target.lapY) <= (target.lapRadius ?? target.radius);
+            // The movement check's bar follows the hand back to the lap circle, from the target it left.
+            if (assess && visible) {
+              const lapRadius = target.lapRadius ?? target.radius;
+              const fromLap = (x: number, y: number) => Math.hypot((x - target.lapX) * aspectNow, y - target.lapY) - lapRadius;
+              frame.targetProgress = towardTarget(frame.targetContact ? 0 : Math.max(1e-6, fromLap(wrist.x, wrist.y)), fromLap(target.x, target.y));
+            }
           }
           if (session.cfg.id === "ex_h2m") {
             // Hand-to-mouth draws the cup and the affected arm from a steadied track (cup-track.ts): display only.
@@ -796,6 +932,7 @@ export default function ExerciseRunner() {
         setLive({
           roms: session.cfg.romSteps.map(rom => ({ label: rom.label, value: frame!.values[rom.metric], target: targets[rom.id], start: usesTargetFlow(session.cfg.id) ? snapshot.startingAngles[rom.id] ?? NaN : 0, unit: "°", scale: metricUnit(rom.metric), units: metricUnitName(rom.metric) })),
           comps: session.cfg.compensations.map(comp => ({ label: comp.label, value: compensationStatus(frame!.comps, comp).ratio, limit: 1 })),
+          progress: frame!.targetProgress,
         });
         drawGhostFor(ghostRef.current, session, snapshot, opts.sim ? simRef.current.level : snapshot.liveAttainment, opts.side, opts.armrest);
         if (snapshot.phase === "done") {
@@ -821,8 +958,12 @@ export default function ExerciseRunner() {
     setStage("loading");
     try {
     stopAll();
+    // A stop after this point (leaving the page included) makes this begin() give up after its next wait.
+    const gen = beginGen.current, stale = () => gen !== beginGen.current;
     await debugRecorderRef.current?.finish();
-    if (!debugSessionRef.current) {
+    // The movement check records no debug videos and leaves the test lab's options as they were.
+    const task = assessRef.current;
+    if (!task && !debugSessionRef.current) {
       setDebugClips([]);
       setDebugError("");
       setDebugDirectory("");
@@ -831,8 +972,12 @@ export default function ExerciseRunner() {
         setDebugDirectory(debugSessionRef.current.directory);
       } catch (error) { setDebugError(error instanceof Error ? error.message : "Local debug recordings could not start."); }
     }
-    writeLabOptions({ side: opts.side, quick: opts.quick, sim: opts.sim, chairBack: opts.chairBack, assisted: opts.assisted, armrest: opts.armrest });
+    if (stale()) return;
+    if (!task) writeLabOptions({ side: opts.side, quick: opts.quick, sim: opts.sim, chairBack: opts.chairBack, assisted: opts.assisted, armrest: opts.armrest });
     savedRecord.current = null;
+    chestRef.current = null;
+    handOnRef.current = null;
+    assessDone.current = false;
     reachTarget.current = null;
     cupTrack.current.reset();
     handZoneRef.current = null;
@@ -866,8 +1011,12 @@ export default function ExerciseRunner() {
     bodyProgress.current = {};
     bodyLastT.current = 0;
     setBodyChecks(cameraBodyChecks({ cfg }, { pose: null, hands: [] } as unknown as Detection, opts.side).map(check => ({ ...check, progress: 0 })));
-    // The everyday exercise speaks in Alira's voice; the others keep the device voice while in development.
-    const voice = createVoice({ alira: base.id === EVERYDAY_EXERCISE_ID, aliraOnly: base.id === EVERYDAY_EXERCISE_ID });
+    // The movement check's own rows: the other hand and thigh for the seated arm tasks, then the reach's room above the head.
+    if (task?.taskId === "T1" || task?.taskId === "T3") setBodyChecks(checks => [...checks, ...otherHandRows(null, opts.side).map(row => ({ ...row, progress: 0 }))]);
+    if (task?.taskId === "T1") setBodyChecks(checks => [...checks, { ...ROOM_CHECK, visible: false, progress: 0 }]);
+    // The everyday exercise speaks in Alira's voice; the others keep the device voice while in development. The movement
+    // check uses the device's own voice for every task.
+    const voice = task ? createVoice() : createVoice({ alira: base.id === EVERYDAY_EXERCISE_ID, aliraOnly: base.id === EVERYDAY_EXERCISE_ID });
     voice.stop();
     voice.setMuted(muted);
     voice.onSay = setSaid;
@@ -878,7 +1027,9 @@ export default function ExerciseRunner() {
     simRef.current = { ...simRef.current, level: 0, manual: false, sliderLevel: 0, lastT: 0, stepKey: "" };
     setSimLevel(0);
     // Alira's exercise settings are read once here, so nothing changes mid-session.
-    const session = new ExerciseSession({ exerciseId: base.id, rung: opts.rung, side: opts.side, chairBack: opts.chairBack, armrest: opts.armrest, repsOverride: opts.quick ? 3 : undefined, assisted: opts.assisted, reviewBetweenReps: true, tuning: loadExerciseTuning(base.id) }, voice);
+    // The movement check runs the task's levels with the standard targets (no tuning, no quick test).
+    const session = new ExerciseSession(task ? { exerciseId: base.id, rung: 1, side: opts.side, reviewBetweenReps: true, assessment: { taskId: task.taskId, levels: task.levels, startLevel: task.startLevel, compensations: task.compensations, cycle: task.cycle } }
+      : { exerciseId: base.id, rung: opts.rung, side: opts.side, chairBack: opts.chairBack, armrest: opts.armrest, repsOverride: opts.quick ? 3 : undefined, assisted: opts.assisted, reviewBetweenReps: true, tuning: loadExerciseTuning(base.id) }, voice);
     sessionRef.current = session;
     sessionSim.current = opts.sim;
     debugRecorderRef.current = debugSessionRef.current ? new DebugVideoRecorder(debugSessionRef.current, session.cfg.compensations, () => session.reference, clip => setDebugClips(clips => [...clips.filter(item => item.name !== clip.name), clip]), setDebugError) : null;
@@ -889,17 +1040,26 @@ export default function ExerciseRunner() {
         // Hand opening tracks the hand every frame (on the graphics processor when it can) and the body every third.
         // Pinch and Peg tracks as hand opening does: the hand every frame, the body every third.
         const tracker = await createTracker(cfg.tracking, cfg.id === "ex_handopen" || cfg.id === PINCH_ID ? { poseEvery: 3, handGpu: true } : cfg.id === "ex_grasp" ? { poseEvery: 2, handGpu: true } : undefined);
+        if (stale()) { tracker.close(); return; }
         trackerRef.current = tracker;
         // The run view (and its <video>) only renders once there is a snapshot, so set both, then wait for the element.
         setSnap(session.snapshot());
         setStage("run");
         for (let i = 0; i < 50 && !videoRef.current; i++) await new Promise(resolve => setTimeout(resolve, 20));
+        // Stopped meanwhile: the stop already closed the tracker.
+        if (stale()) return;
         if (!videoRef.current) throw new Error("The camera view did not open.");
-        streamRef.current = await openCamera(videoRef.current);
+        const video = videoRef.current;
+        // A picture that fails to play still holds the camera: its stream is stopped before the error is shown.
+        const stream = await openCamera(video).catch(err => { releaseVideo(video); throw err; });
+        // Left while the camera permission was being asked: the camera goes off again at once.
+        if (stale()) { stream.getTracks().forEach(track => track.stop()); releaseVideo(video); return; }
+        streamRef.current = stream;
       } catch (err) {
+        if (stale()) return;
         stopAll();
         const message = err instanceof Error ? err.message : String(err);
-        setError(/denied|permission|NotAllowed/i.test(message) ? "Camera permission was blocked. Allow the camera for this site, then choose Try again, or use the no-camera simulation below." : `Could not start the camera or movement model: ${message}`);
+        setError(/denied|permission|NotAllowed/i.test(message) ? `Camera permission was blocked. Allow the camera for this site, then choose Try again${task ? "." : ", or use the no-camera simulation below."}` : `Could not start the camera or movement model: ${message}`);
         setStage("error");
         return;
       }
@@ -907,11 +1067,51 @@ export default function ExerciseRunner() {
       setSnap(session.snapshot());
       setStage("run");
     }
+    if (stale()) return;
     session.start(performance.now());
     setSnap(session.snapshot());
     rafRef.current = window.setTimeout(loop, 16);
     } finally { beginningRef.current = false; }
   }, [base, cfg, loop, muted, opts, stopAll, previewScreen, selectPreview]);
+
+  // The movement check begins as soon as it is shown: once, just after mounting, so a mount React undoes at once (in
+  // development) cannot leave behind a begin() that its own clean-up has already stopped.
+  const autoBegun = useRef(false);
+  useEffect(() => {
+    if (!assessRef.current || autoBegun.current) return;
+    const timer = window.setTimeout(() => { autoBegun.current = true; void begin(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [begin]);
+  // Back in the movement check only asks: the voice stops and the page asks whether to leave. "Keep going" carries on
+  // where the task was (the camera, the frame loop and a finished task's hand-back keep running); leaving unmounts the
+  // runner, whose clean-up releases the camera, the model and the voice.
+  const exitAssessment = () => {
+    voiceRef.current?.stop();
+    assessRef.current?.onExit();
+  };
+  // "Skip this task", always there in the movement check: the task ends now. With no attempt yet it is not measured
+  // (stopped as skipped); attempts already made are kept. Its card then hands the result back as a finished task's does.
+  const skipTask = () => {
+    const session = sessionRef.current;
+    if (!session || assessDone.current || session.snapshot().phase === "done") return;
+    session.skip(performance.now());
+    setSnap(session.snapshot());
+  };
+  // The task done: a brief "Task complete" card while the closing line is said, then its result goes to the page.
+  const assessResult = assessment && runSnapshot?.phase === "done" ? runSnapshot.record?.assessment : undefined;
+  useEffect(() => {
+    if (!assessResult || assessDone.current) return;
+    const shownAt = performance.now();
+    const timer = window.setInterval(() => {
+      const elapsed = performance.now() - shownAt;
+      if (assessDone.current || elapsed < 1500 || (elapsed < 6000 && voiceRef.current?.busy(performance.now()))) return;
+      window.clearInterval(timer);
+      assessDone.current = true;
+      stopAll();
+      assessRef.current?.onDone(assessResult);
+    }, 200);
+    return () => window.clearInterval(timer);
+  }, [assessResult, stopAll]);
 
   const reset = useCallback(() => {
     learnFromSession();
@@ -930,6 +1130,8 @@ export default function ExerciseRunner() {
   };
 
   useEffect(() => {
+    // A movement check task is not an exercise result: the Assessment page stores the whole check.
+    if (assessRef.current) return;
     if (runSnapshot?.record && runSnapshot.record.finished_at !== savedRecord.current) {
       savedRecord.current = runSnapshot.record.finished_at;
       saveLabSession(runSnapshot.record, { side: opts.side, sim: opts.sim });
@@ -983,12 +1185,12 @@ export default function ExerciseRunner() {
   return (
     <div className="xe-page">
       <header className="xe-top">
-        <button className="xe-back" onClick={backToSettings}><ArrowLeft size={18} aria-hidden="true" /> {fromJourney ? "Journey" : "Settings"}</button>
+        <button className="xe-back" onClick={assessment ? exitAssessment : backToSettings}><ArrowLeft size={18} aria-hidden="true" /> {assessment ? "Back" : fromJourney ? "Journey" : "Settings"}</button>
         <div className="xe-title">
-          <span className="xe-domain">{DOMAIN_LABEL[base.domain]}</span>
-          <h1>{base.name}</h1>
+          <span className="xe-domain">{assessment ? `Movement check · ${assessment.stepLabel}` : DOMAIN_LABEL[base.domain]}</span>
+          <h1>{assessment ? CAMERA_TASKS[assessment.taskId]?.name ?? base.name : base.name}</h1>
         </div>
-        <span className="xe-badge">{LEVEL_LABEL[snap?.rung ?? opts.rung]}</span>
+        {!assessment && <span className="xe-badge">{LEVEL_LABEL[snap?.rung ?? opts.rung]}</span>}
         {stage === "run" && !preview && (
           <button className="xe-icon" onClick={() => { const next = !muted; setMuted(next); voiceRef.current?.setMuted(next); }} aria-label={muted ? "Turn voice on" : "Turn voice off"} title={muted ? "Voice off" : "Voice on"}>
             {muted ? <MicOff size={18} /> : <Mic size={18} />}
@@ -1004,9 +1206,18 @@ export default function ExerciseRunner() {
           <button className="xe-back" onClick={() => selectPreview(null)}>Exit preview</button>
         </div>
       </nav>}
-      {!preview && !englishAvailable && !muted && <p className="xe-note" role="status">{base.id === EVERYDAY_EXERCISE_ID ? "Alira’s audio could not play. Follow the instructions below." : "An English voice is unavailable in this browser. Instructions are shown in English below."}</p>}
+      {!preview && !englishAvailable && !muted && <p className="xe-note" role="status">{base.id === EVERYDAY_EXERCISE_ID && !assessment ? "Alira’s audio could not play. Follow the instructions below." : "An English voice is unavailable in this browser. Instructions are shown in English below."}</p>}
 
-      {runView && snap && !done && (
+      {/* The movement check's beats: no going back (the levels ladder is under way), and no rescue beat. */}
+      {assessment && runView && snap && !done && (
+        <ol className="xe-beats" aria-label="Movement check steps">
+          {ASSESS_BEATS.map((label, i) => {
+            const active = snap.beat === 6 ? 5 : snap.beat;
+            return <li key={label} className={i + 1 === active ? "is-on" : i + 1 < active ? "is-past" : ""} aria-current={i + 1 === active ? "step" : undefined}><span>{i + 1}</span>{label}</li>;
+          })}
+        </ol>
+      )}
+      {!assessment && runView && snap && !done && (
         <ol className="xe-beats" aria-label="Session beats">
           {BEATS.map((label, i) => (
             <li key={label} className={i + 1 === beatActive ? "is-on" : i + 1 < beatActive || (i + 1 === 5 ? snap.rescued : false) ? "is-past" : ""}>
@@ -1041,8 +1252,10 @@ export default function ExerciseRunner() {
           <h2>Couldn't start</h2><p>{preview ? "Camera permission was blocked. Allow the camera for this site, then try again." : error}</p>
           <div className="xe-actions">
             <button className="xe-primary" onClick={begin}><RotateCcw size={16} aria-hidden="true" /> Try again</button>
-            <button className="xe-secondary" onClick={() => { if (preview) { selectPreview("setup"); return; } setOpts(o => ({ ...o, sim: true })); reset(); }}>Use no-camera simulation</button>
-            <button className="xe-secondary" onClick={() => preview ? selectPreview("intro") : reset()}>Back</button>
+            {!assessment && <button className="xe-secondary" onClick={() => { if (preview) { selectPreview("setup"); return; } setOpts(o => ({ ...o, sim: true })); reset(); }}>Use no-camera simulation</button>}
+            {/* The movement check can go on without this task (it is then not measured), rather than only leaving. */}
+            {assessment && <button className="xe-secondary" onClick={skipTask}><SkipForward size={16} aria-hidden="true" /> Skip this task</button>}
+            <button className="xe-secondary" onClick={() => preview ? selectPreview("intro") : assessment ? exitAssessment() : reset()}>Back</button>
           </div>
         </div>
       )}
@@ -1075,7 +1288,7 @@ export default function ExerciseRunner() {
                   {cfg.id === KNEE_ID && !snap.review && <HandSteps steps={KNEE_STEPS} current={snap.stepIndex} label="Steps of this repetition" />}
                   {cfg.id === TOE_ID && !snap.review && <HandSteps steps={TOE_STEPS} current={snap.stepIndex} label="Steps of this repetition" />}
                   {cfg.id === SLIDE_ID && !snap.review && <HandSteps steps={SLIDE_STEPS} current={snap.stepIndex} label="Steps of this repetition" />}
-                  {cfg.id === PINCH_ID && !snap.review && <HandSteps steps={PINCH_STEPS} current={snap.awaitingReady ? 0 : snap.stepIndex + 1} label="Steps of this repetition" />}
+                  {cfg.id === PINCH_ID && !snap.review && <HandSteps steps={PINCH_STEPS.slice(0, cfg.cycle.length + 1)} current={snap.awaitingReady ? 0 : snap.stepIndex + 1} label="Steps of this repetition" />}
                   <div className={`xe-gauge ${snap.inZone ? "is-zone" : ""}`} aria-label="Hold on target" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(snap.holdProgress * 100)}>
                     <i className="fill" style={{ width: `${snap.holdProgress * 100}%` }} />
 
@@ -1085,7 +1298,7 @@ export default function ExerciseRunner() {
                     : cfg.id === KNEE_ID ? snap.kind === "return" ? "Lower your foot slowly to the floor and pause" : snap.inZone ? "Hold it there..." : "Straighten your knee, swinging your foot out along the arrow, until the knee dial reaches its circle"
                     : cfg.id === PINCH_ID ? snap.kind === "return" ? "Open your thumb and finger to let the peg drop into the tray" : snap.inZone ? "Hold the peg..." : `Bring your thumb to your ${PINCH_FINGERS[pinchStepOf(cfg.cycle, snap.stepIndex).finger].name}, tip to tip, in the circle`
                     : cfg.id === SLIDE_ID ? snap.kind === "return" ? "Bring your hand back to rest where it started and pause" : snap.inZone ? "Hold it there..." : "Follow the arrow: move your hand out to the cup"
-                    : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Close your hand into the small circle and pause" : snap.inZone ? "Hold it there..." : "Open your fingers out to the ring, keeping your wrist straight" : snap.kind === "return" || snap.kind === "close" ? "Return your hand to the lap circle and pause" : snap.inZone ? "Hold it there..." : cfg.id === "ex_h2m" ? "Bring your hand to the mouth circle, keeping your head up" : "Reach your hand into the target ring"}</p>
+                    : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Close your hand into the small circle and pause" : snap.inZone ? "Hold it there..." : "Open your fingers out to the ring, keeping your wrist straight" : snap.kind === "return" || snap.kind === "close" ? "Return your hand to the lap circle and pause" : snap.inZone ? "Hold it there..." : cfg.id === "ex_h2m" ? assessment?.levels[snap.assessmentLevel ?? -1]?.id === "chest" ? "Bring your hand to the circle on your chest, keeping your head up" : "Bring your hand to the mouth circle, keeping your head up" : "Reach your hand into the target ring"}</p>
                 </>
               )}
               {snap.feedback && <p className="xe-feedback" role="status">{snap.feedback}</p>}
@@ -1096,9 +1309,12 @@ export default function ExerciseRunner() {
                   <button className="xe-primary" onClick={() => preview ? selectPreview("results") : sessionRef.current?.skip(performance.now())}><SkipForward size={16} aria-hidden="true" /> Skip</button>
                 </div>
               )}
+              {/* The movement check: a task the patient cannot or would rather not do can always be skipped on its own. */}
+              {assessment && !preview && !snap.idlePrompt && <button className="xe-link" onClick={skipTask}>Skip this task</button>}
             </div>
 
-            {snap.phase === "reps" || snap.reps.length > 0 ? (
+            {assessment ? snap.phase === "reps" && <LevelsCard levels={assessment.levels} attempts={snap.assessmentAttempts ?? []} current={snap.assessmentLevel ?? -1} />
+            : snap.phase === "reps" || snap.reps.length > 0 ? (
               <div className="xe-card">
                 <p className="xe-eyebrow">Reps</p>
                 <div className="xe-dots">
@@ -1126,9 +1342,10 @@ export default function ExerciseRunner() {
               </div>
             ) : snap.phase !== "demo" ? <div className="xe-card xe-live">
               <h3>Movement</h3>
-              {!snap.targetsReady && <p className="xe-note">{cfg.id === "ex_handopen" ? "Hold your hand open at the practice ring so I can learn your movement goals." : cfg.id === KNEE_ID ? "Straighten your knee out along the arrow until the knee dial reaches its practice circle, and hold so I can learn your movement goal." : cfg.id === TOE_ID ? "Keeping your heel down, lift your toes until the ankle dial reaches its practice circle, and hold so I can learn your movement goal." : cfg.id === SLIDE_ID ? "Move your hand out to the practice cup and hold so I can learn your movement goals." : cfg.id === PINCH_ID ? "Bring your thumb to the practice circle and hold so I can learn your pinch for each finger." : usesTargetFlow(cfg.id) ? "Hold at the practice circle so I can learn your movement goals." : "Learning your starting position. Your movement goals will appear after practice."}</p>}
-              {viewLive.roms.map(r => <MetricBar key={r.label} label={r.label} value={r.value} threshold={r.target} start={r.start} scale={r.scale} units={r.units} ready={snap.targetsReady} personalized={usesTargetFlow(cfg.id)} pending={cfg.id === "ex_handopen" ? "Keep opening" : cfg.id === KNEE_ID ? "Keep straightening" : cfg.id === TOE_ID ? "Keep lifting" : cfg.id === SLIDE_ID ? "Keep moving out" :cfg.id === PINCH_ID ? "Keep closing" : undefined} />)}
-              {viewLive.comps.map(c => <MetricBar key={c.label} label={c.label} value={c.value} threshold={c.limit} ready={snap.targetsReady} limit />)}
+              {assessment && <LevelBar label={levelBarLabel(snap, assessment)} progress={live.progress} />}
+              {!assessment && !snap.targetsReady && <p className="xe-note">{cfg.id === "ex_handopen" ? "Hold your hand open at the practice ring so I can learn your movement goals." : cfg.id === KNEE_ID ? "Straighten your knee out along the arrow until the knee dial reaches its practice circle, and hold so I can learn your movement goal." : cfg.id === TOE_ID ? "Keeping your heel down, lift your toes until the ankle dial reaches its practice circle, and hold so I can learn your movement goal." : cfg.id === SLIDE_ID ? "Move your hand out to the practice cup and hold so I can learn your movement goals." : cfg.id === PINCH_ID ? "Bring your thumb to the practice circle and hold so I can learn your pinch for each finger." : usesTargetFlow(cfg.id) ? "Hold at the practice circle so I can learn your movement goals." : "Learning your starting position. Your movement goals will appear after practice."}</p>}
+              {!assessment && viewLive.roms.map(r => <MetricBar key={r.label} label={r.label} value={r.value} threshold={r.target} start={r.start} scale={r.scale} units={r.units} ready={snap.targetsReady} personalized={usesTargetFlow(cfg.id)} pending={cfg.id === "ex_handopen" ? "Keep opening" : cfg.id === KNEE_ID ? "Keep straightening" : cfg.id === TOE_ID ? "Keep lifting" : cfg.id === SLIDE_ID ? "Keep moving out" :cfg.id === PINCH_ID ? "Keep closing" : undefined} />)}
+              {viewLive.comps.map(c => <MetricBar key={c.label} label={c.label} value={c.value} threshold={c.limit} ready={Boolean(assessment) || snap.targetsReady} limit />)}
             </div> : null}
 
             {!preview && opts.sim && (
@@ -1156,7 +1373,9 @@ export default function ExerciseRunner() {
         </div>
       )}
 
-      {snap?.review === "complete" && <div className="xe-review-backdrop" key="completion">
+      {assessment && snap && <AssessmentCards snap={snap} levels={assessment.levels} exerciseId={cfg.id} onHelp={yes => { const session = sessionRef.current; if (!session) return; session.answerHelp(yes, performance.now()); setSnap(session.snapshot()); }} />}
+
+      {!assessment && snap?.review === "complete" && <div className="xe-review-backdrop" key="completion">
         <div className="xe-review-card" role="dialog" aria-modal={!preview} aria-labelledby="xe-review-title">
           <span className="xe-review-check" aria-hidden="true">✓</span>
           <h2 id="xe-review-title">Repetition {snap.reps.length} complete</h2>
@@ -1165,7 +1384,7 @@ export default function ExerciseRunner() {
         </div>
       </div>}
 
-      {snap?.review === "countdown" && <div className="xe-review-backdrop" key="countdown">
+      {!assessment && snap?.review === "countdown" && <div className="xe-review-backdrop" key="countdown">
         <div className="xe-review-card xe-countdown-card" role="dialog" aria-modal={!preview} aria-labelledby="xe-countdown-title">
           <h2 id="xe-countdown-title">Get ready for repetition {snap.reps.length + 1}</h2>
           <div className="xe-countdown" role="timer" aria-label="Next repetition starts in three seconds">
@@ -1182,7 +1401,7 @@ export default function ExerciseRunner() {
         </div>
       </div>}
 
-      {done && snap && snap.record && <Results snap={snap} base={base} cfg={cfg} clips={preview ? [] : debugClips} debugDirectory={preview ? "" : debugDirectory} onAgain={() => preview ? selectPreview("redo") : changeRedoOpen(true)} onBack={() => preview ? selectPreview("intro") : completeExercise()} onFelt={saveFelt} />}
+      {!assessment && done && snap && snap.record && <Results snap={snap} base={base} cfg={cfg} clips={preview ? [] : debugClips} debugDirectory={preview ? "" : debugDirectory} onAgain={() => preview ? selectPreview("redo") : changeRedoOpen(true)} onBack={() => preview ? selectPreview("intro") : completeExercise()} onFelt={saveFelt} />}
       {previewScreen === "redo" && <div className="fixed inset-0 z-50 bg-black/50" aria-hidden="true" />}
       <Dialog open={preview ? previewScreen === "redo" : redoOpen} onOpenChange={open => preview ? !open && selectPreview("results") : changeRedoOpen(open)} modal={!preview}>
         <DialogContent className="xe-redo-dialog" showCloseButton={false} onInteractOutside={event => { if (preview) event.preventDefault(); }} onOpenAutoFocus={event => { if (preview) event.preventDefault(); }}>
@@ -1372,13 +1591,15 @@ function buildFrame(session: ExerciseSession, det: Detection, side: Side, t: num
     // finger's goal, so a pinch never starts already on target (pinch-target.ts).
     const rest = session.restValues().pinch_index;
     if (!Number.isFinite(rest)) return pinchFrame(det, side, t, aspect, session.reference, { zone: extra.zone ?? null });
-    const goal = session.snapshot().phase === "reps" ? Math.min(TOUCH_CLOSURE, session.targets().pinch_index) : pinchPracticeGoal(rest);
+    // The movement check's goal is its level's in the try-out too (the session's targets).
+    const goal = session.assessing || session.snapshot().phase === "reps" ? Math.min(TOUCH_CLOSURE, session.targets().pinch_index) : pinchPracticeGoal(rest);
     return pinchFrame(det, side, t, aspect, session.reference, { zone: extra.zone ?? null, startGap: Math.max(startGap(rest), gapOf(rest + 0.5 * (goal - rest))) });
   }
   if (cfg.id === "ex_handopen") {
     // Each repetition starts from a relaxed hand, at most as open as the close circle (hand-target.ts).
     const rest = session.restValues().hand_openness;
-    const learned = session.learnedValue("hand_openness");
+    // The movement check's ring is its level's goal, so the start limit sits inside that ring (as the loop draws it).
+    const learned = session.assessing && Number.isFinite(rest) ? handLevelGoal(session.assessmentLevelId ?? "", rest) / LEARNED_RING_SHARE : session.learnedValue("hand_openness");
     return handOpenFrame(det, side, t, aspect, session.reference, Number.isFinite(rest) ? { zone, startLimit: startLimit(rest, learned), waiveLimit: waiveLimit(rest, learned) } : { zone });
   }
   const usesPose = cfg.tracking !== "hand";
@@ -1679,4 +1900,146 @@ function MetricBar({ label, value, threshold, start = 0, scale = 1, units, ready
     <div className="xe-metric-label"><b>{label}</b><span>{value === undefined ? "Finding you…" : !ready ? learning : crossed ? limit ? "Ease back" : "Target reached" : limit ? "Within limit" : pending}</span></div>
     <div className="xe-metric-track" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percent)} aria-valuetext={value === undefined ? "Tracking unavailable" : !ready ? learning : limit ? crossed ? "Above posture limit" : "Within posture limit" : rise ? `Estimated lift ${say(lifted ?? 0)}; goal ${say(Math.max(0, threshold - start))}${personalized ? "; learned at the practice target" : ""}` : `Estimated ${angle ? "angle" : closure ? "closure" : "distance"} ${say(value)}; resting ${angle ? "angle" : closure ? "closure" : "position"} ${say(start)}; goal ${say(threshold)}${personalized ? "; learned at the practice target" : ""}`}><i style={{ width: `${percent}%` }} />{ready && <em style={{ left: `${100 / 1.4}%` }} />}</div>
   </section>;
+}
+
+// ---------- the movement check (assessment mode) ----------
+
+/** The no-camera simulator's measures for a task's own checks that simFrame leaves out (hand to mouth's other hand). */
+function simTaskComps(frame: Frame, compensations: ExerciseSession["cfg"]["compensations"], using: string[]) {
+  for (const comp of compensations) if (frame.comps[comp.metric] === undefined) frame.comps[comp.metric] = using.includes(comp.id) ? comp.thresholdDeg + 6 : Math.min(1, comp.thresholdDeg / 4);
+}
+
+/**
+ * Reach set-up: whether the top level's circle, placed as the attempts place it (tasks.ts reachLevelY, the reach's own
+ * size rule kept clear of the next level's, reachLevelRadius), fits inside the picture above the head. The lap is the
+ * resting hand once found, else the hip.
+ */
+function reachRoom(pose: PoseInput | null, side: Side, lapY: number | undefined, levels: LevelSpec[], width: number, height: number): boolean {
+  const j = poseJoints(side), lm = pose?.landmarks;
+  const shoulder = lm?.[j.shoulder], other = lm?.[j.shoulderOther], hip = lm?.[j.hip], top = levels[levels.length - 1];
+  if (!top || !inView(shoulder) || !inView(other)) return false;
+  const lap = lapY ?? (inView(hip) ? hip!.y : undefined);
+  if (lap === undefined) return false;
+  const radius = reachLevelRadius(Math.min(Math.max(0.11, Math.abs(shoulder!.x - other!.x) * 0.55), 0.18) * Math.min(width, height) / height, lap, shoulder!.y);
+  return reachLevelY(top.id, lap, shoulder!.y) - radius >= 0.02;
+}
+
+/** The seated arm tasks' set-up rows for the other-hand check (other-hand.ts): the other hand and the top of the other thigh. */
+function otherHandRows(pose: PoseInput | null, side: Side): Omit<BodyCheck, "progress">[] {
+  const j = poseJoints(side), lm = pose?.landmarks;
+  return [
+    { id: "otherHand", label: "Other hand", visible: inView(lm?.[j.wristOther]), hint: OTHER_HAND_IN_VIEW },
+    { id: "hipOther", label: "Top of other thigh", visible: inView(lm?.[j.hipOther]), hint: OTHER_THIGH_IN_VIEW },
+  ];
+}
+
+/** Stops whatever camera stream a video element still holds (one whose picture failed to play, or was left behind). */
+function releaseVideo(video: HTMLVideoElement) {
+  const stream = video.srcObject;
+  if (stream instanceof MediaStream) stream.getTracks().forEach(track => track.stop());
+  video.srcObject = null;
+}
+
+/** Hand to mouth's chest level: the chest point (tasks.ts chestPoint) from both shoulders and the hips in view. */
+function chestFrom(pose: PoseInput | null, side: Side): { x: number; y: number } | null {
+  const j = poseJoints(side), lm = pose?.landmarks;
+  const shoulder = lm?.[j.shoulder], other = lm?.[j.shoulderOther], hip = lm?.[j.hip], hipOther = lm?.[j.hipOther];
+  if (!inView(shoulder) || !inView(other) || !inView(hip)) return null;
+  // The other hip out of the picture: the affected side's stands in for both.
+  return chestPoint(shoulder!, other!, hip!, inView(hipOther) ? hipOther! : hip!);
+}
+/** A point that follows the body at set-up, steadied as the knee dial and the cup's circles are. */
+const followPoint = (from: { x: number; y: number } | null, to: { x: number; y: number } | null, share: number) => (!to ? from : !from ? to : { x: from.x + (to.x - from.x) * share, y: from.y + (to.y - from.y) * share });
+
+/**
+ * The movement bar's label: the level being tried (on its review card the one just tried, and once the levels are over
+ * the last one, never falling back to the first), or, between tries, the way back to rest that the bar then follows.
+ */
+function levelBarLabel(snap: Snapshot, task: AssessmentRunnerProps): string {
+  if (snap.kind === "return" && !snap.review) return CAMERA_TASKS[task.taskId]?.back ?? "Back to rest";
+  const now = snap.assessmentLevel ?? -1, last = snap.assessmentAttempts?.at(-1)?.level;
+  return `Toward the target · ${task.levels[snap.review === "complete" || now < 0 ? last ?? Math.max(0, now) : now]?.label ?? ""}`;
+}
+
+/** The movement check's one movement bar: how far toward this level's target, from the page's own measure (targetProgress). */
+function LevelBar({ label, progress }: { label: string; progress: number | undefined }) {
+  const share = progress === undefined || !Number.isFinite(progress) ? undefined : Math.max(0, Math.min(1, progress));
+  const met = share !== undefined && share >= 1;
+  // As MetricBar draws a goal: the target mark at 1 / 1.4 of the track.
+  return <section className={`xe-metric ${met ? "is-met" : ""}`}>
+    <div className="xe-metric-label"><b>{label}</b><span>{share === undefined ? "Finding you…" : met ? "Target reached" : "Keep going"}</span></div>
+    <div className="xe-metric-track" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((share ?? 0) * 100)} aria-valuetext={share === undefined ? "Tracking unavailable" : met ? "On the target" : `${Math.round(share * 100)} percent of the way to the target`}><i style={{ width: `${(share ?? 0) / 1.4 * 100}%` }} /><em style={{ left: `${100 / 1.4}%` }} /></div>
+  </section>;
+}
+
+/** The task's levels, easiest first: ✓ reached, ✗ not this time, ● now, ○ ahead. */
+function LevelsCard({ levels, attempts, current }: { levels: LevelSpec[]; attempts: AttemptRecord[]; current: number }) {
+  return <div className="xe-card">
+    <p className="xe-eyebrow">Levels</p>
+    <ol className="xe-hand-steps" aria-label="Levels of this task">
+      {levels.map((level, i) => {
+        const tries = attempts.filter(attempt => attempt.level === i), reached = tries.find(attempt => attempt.completed);
+        const state = i === current ? "now" : reached ? "reached" : tries.length ? "missed" : "ahead";
+        const words = state === "now" ? "now" : state === "reached" ? reached!.assist ? "reached with help" : "reached" : state === "missed" ? "not this time" : "ahead";
+        return <li key={level.id} className={state === "reached" ? "is-done" : state === "now" ? "is-on" : ""} aria-current={state === "now" ? "step" : undefined} aria-label={`${level.label}: ${words}`}>
+          <span aria-hidden="true">{state === "now" ? "●" : state === "reached" ? "✓" : state === "missed" ? "✗" : "○"}</span>{level.label}{state === "reached" && reached!.assist ? " (with help)" : ""}
+        </li>;
+      })}
+    </ol>
+  </div>;
+}
+
+/**
+ * The movement check's cards over the camera view: each attempt's review (the level reached or not and the posture
+ * notes, never a score), the offer of help, the countdown to the next level, and "Task complete".
+ */
+function AssessmentCards({ snap, levels, exerciseId, onHelp }: { snap: Snapshot; levels: LevelSpec[]; exerciseId: string; onHelp: (yes: boolean) => void }) {
+  const hand = exerciseId === "ex_handopen" || exerciseId === PINCH_ID;
+  if (snap.phase === "done" && snap.record?.assessment) {
+    const measured = snap.record.assessment.measured;
+    return <div className="xe-review-backdrop">
+      <div className="xe-review-card" role="status" aria-labelledby="xe-task-done-title">
+        {measured && <span className="xe-review-check" aria-hidden="true">✓</span>}
+        <h2 id="xe-task-done-title">{measured ? "Task complete" : "Skipped for today"}</h2>
+        <p>{snap.record.wrap}</p>
+      </div>
+    </div>;
+  }
+  if (snap.review === "complete" && snap.assessmentOffer === "help") {
+    return <div className="xe-review-backdrop">
+      <div className="xe-review-card" role="dialog" aria-modal aria-labelledby="xe-help-title" aria-describedby="xe-help-text">
+        <h2 id="xe-help-title">Try once more with help?</h2>
+        <p id="xe-help-text">{ASSESSMENT_LINES.offerHelp} They can gently support your {hand ? "hand" : "arm"}.</p>
+        <div className="xe-actions">
+          <button className="xe-primary" onClick={() => onHelp(true)}>Try with help</button>
+          <button className="xe-secondary" onClick={() => onHelp(false)}>Skip</button>
+        </div>
+      </div>
+    </div>;
+  }
+  if (snap.review === "complete") {
+    const [headline, ...notes] = snap.reviewAdvice;
+    return <div className="xe-review-backdrop">
+      <div className="xe-review-card" role="dialog" aria-modal aria-labelledby="xe-attempt-title">
+        {snap.assessmentAttempts?.at(-1)?.completed && <span className="xe-review-check" aria-hidden="true">✓</span>}
+        <h2 id="xe-attempt-title">{headline}</h2>
+        {notes.length > 0 && <ul>{notes.map(note => <li key={note}>{note}</li>)}</ul>}
+      </div>
+    </div>;
+  }
+  if (snap.review === "countdown") {
+    const seconds = Math.max(1, Math.ceil(3 * (1 - snap.countdownProgress)));
+    return <div className="xe-review-backdrop">
+      <div className="xe-review-card xe-countdown-card" role="dialog" aria-modal aria-labelledby="xe-countdown-title">
+        <h2 id="xe-countdown-title">Get ready: {levels[snap.assessmentLevel ?? -1]?.label ?? "the next level"}</h2>
+        <div className="xe-countdown" role="timer" aria-label="The next try starts in three seconds">
+          <svg viewBox="0 0 80 80" aria-hidden="true"><circle className="track" cx="40" cy="40" r="33" /><circle className="progress" cx="40" cy="40" r="33" pathLength="1" strokeDasharray="1" strokeDashoffset={1 - snap.countdownProgress} /></svg>
+          <b>{seconds}</b>
+          <p>Starts in {seconds} {seconds === 1 ? "second" : "seconds"}</p>
+        </div>
+        <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> {exerciseId === "ex_handopen" ? "Hand up in the shaded area, fingers relaxed." : exerciseId === PINCH_ID ? "Hand up in the shaded area, thumb apart from your finger." : "Hand resting on your lap."}</p>
+      </div>
+    </div>;
+  }
+  return null;
 }

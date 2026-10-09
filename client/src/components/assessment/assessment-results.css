@@ -1,0 +1,203 @@
+/* The movement check's results (ar-*): the exercise pages' palette, cards and type (Manrope, Newsreader headings). */
+/* Small text is at least 4.5:1 on its background (--muted on the page, --soft-ink on the cards and stat tiles). */
+.ar-page { --green:#3c8255; --amber:#d49b35; --coral:#e18e6d; --grey:#bcc5b9; --ink:#293f34; --muted:#56705d; --soft-ink:#5a6b5d;
+  min-height:100dvh; padding:20px 16px 44px; color:var(--ink); background:#f4f5ee; font:500 14px/1.55 "Manrope",sans-serif; }
+/* Hosted inside the full-window check page (fixed, dark): this page scrolls on its own, on its own background. */
+.assessment-page .ar-page { position:absolute; inset:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.ar-page * { box-sizing:border-box; }
+.ar-wrap { display:grid; gap:14px; max-width:1080px; margin:0 auto; }
+.ar-sr { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+.ar-page .is-strong { --band:var(--green); --band-ink:#1f5a36; --band-soft:#e4f0e3; }
+.ar-page .is-building { --band:var(--amber); --band-ink:#6e4e0f; --band-soft:#f7ecd2; }
+.ar-page .is-starting { --band:var(--coral); --band-ink:#8a4329; --band-soft:#fdeee6; }
+.ar-page .is-unmeasured { --band:var(--grey); --band-ink:#5d685f; --band-soft:#eef1e8; }
+
+.ar-head { padding:4px 2px 0; }
+.ar-eyebrow { margin:0 0 4px; color:var(--muted); font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+.ar-head h1 { margin:0; color:#20392f; font:600 34px/1.08 "Newsreader",Georgia,serif; letter-spacing:-.6px; }
+.ar-lead { margin:8px 0 0; color:#4a6553; font-size:15px; }
+.ar-test { display:inline-block; margin:10px 0 0; padding:6px 12px; border-radius:12px; color:#5a3324; background:#fdeee6; font-size:13px; font-weight:700; }
+
+.ar-card { padding:20px 22px; border:1px solid #e1e7da; border-radius:18px; background:#fffefa; box-shadow:0 2px 10px #24493308; }
+.ar-card h2 { margin:0; font:600 25px/1.2 "Newsreader",Georgia,serif; letter-spacing:-.3px; }
+.ar-muted { margin:8px 0 0; color:#617661; font-size:13px; }
+
+/* hero: the movement map and the daily function score */
+.ar-hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); align-items:center; gap:18px;
+  background:radial-gradient(circle at 26% 46%,#eaf3e6 0,#fffefa 62%); }
+.ar-map { display:block; width:100%; max-width:250px; height:auto; margin:0 auto; overflow:visible; }
+.ar-map-body circle,.ar-map-body rect,.ar-map-body ellipse { fill:#e6eee1; stroke:#b9d3c2; stroke-width:1.5; }
+.ar-map-body .ar-limb { fill:none; stroke:#e6eee1; stroke-width:20; }
+.ar-map-body .ar-limb.is-leg { stroke-width:22; }
+.ar-limb { fill:none; stroke-linecap:round; stroke-linejoin:round; }
+.ar-glow { stroke:var(--band); fill:none; stroke-width:30; opacity:.55; animation:ar-breathe 4.2s ease-in-out infinite; }
+.ar-glow.is-leg { stroke-width:32; animation-delay:1.4s; }
+.ar-glow.is-hand { fill:var(--band); stroke:none; animation-delay:.7s; }
+.ar-glow.is-unmeasured { opacity:.18; animation:none; }
+.ar-lit { stroke:var(--band); stroke-width:13; }
+.ar-lit.is-leg { stroke-width:15; }
+.ar-lit.is-hand { fill:var(--band); stroke:#fffefa; stroke-width:2; }
+.ar-map-labels text { fill:#4a6553; font:800 12px "Manrope",sans-serif; letter-spacing:.02em; }
+@keyframes ar-breathe { 0%,100% { opacity:.3; } 50% { opacity:.85; } }
+
+.ar-hero-score { display:grid; justify-items:center; gap:4px; text-align:center; }
+.ar-ring { position:relative; width:84px; height:84px; flex-shrink:0; }
+.ar-ring.is-large { width:148px; height:148px; }
+.ar-ring svg { display:block; width:100%; height:100%; transform:rotate(-90deg); }
+.ar-ring circle { fill:none; stroke-width:10; }
+.ar-ring-track { stroke:#e4eadc; }
+.ar-ring-fill { stroke:var(--band); stroke-linecap:round; filter:drop-shadow(0 0 4px color-mix(in srgb,var(--band) 45%,transparent)); }
+.ar-ring-num { position:absolute; inset:0; display:grid; place-items:center; color:#20392f; font:600 28px/1 "Newsreader",Georgia,serif; font-variant-numeric:tabular-nums; }
+.ar-ring.is-large .ar-ring-num { font-size:50px; }
+.ar-ring-caption { margin:2px 0 6px; color:var(--muted); font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+.ar-legend { display:grid; gap:6px; width:100%; max-width:280px; margin:0; padding:0; list-style:none; text-align:left; }
+.ar-legend li { display:flex; align-items:center; gap:9px; padding:7px 12px; border-radius:12px; background:var(--band-soft); }
+.ar-legend i { width:12px; height:12px; flex-shrink:0; border-radius:50%; background:var(--band); box-shadow:0 0 0 3px #fffefa; }
+.ar-legend b { flex:1; font-weight:800; }
+.ar-legend span { color:var(--band-ink); font-size:13px; font-weight:750; }
+
+/* area cards */
+.ar-areas { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr)); gap:14px; align-items:start; }
+.ar-area { display:grid; gap:12px; border-top:4px solid var(--band); }
+.ar-area-head { display:flex; align-items:center; gap:14px; }
+.ar-band { display:inline-block; margin:4px 0 0; padding:2px 10px; border-radius:20px; color:var(--band-ink); background:var(--band-soft); font-size:12px; font-weight:800; }
+.ar-ladders { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; }
+/* Side by side, the ladders stand on the same ground: each fills its column and stacks from the bottom. */
+.ar-task { display:grid; grid-template-rows:auto auto 1fr; }
+.ar-task h3 { margin:0; color:#244c3c; font-size:14px; font-weight:800; }
+.ar-task-level { margin:1px 0 6px; color:#617661; font-size:12px; font-weight:650; }
+/* The ladder reads easiest first; it is drawn easiest at the bottom. */
+.ar-ladder { display:flex; flex-direction:column-reverse; justify-content:flex-start; gap:5px; margin:0; padding:0; list-style:none; }
+.ar-rung { position:relative; display:flex; align-items:center; gap:7px; min-height:34px; padding:5px 10px 5px 6px; border:1px solid #dde5d6; border-radius:11px; color:var(--soft-ink); background:#fff; font-size:12px; font-weight:700; line-height:1.25; }
+.ar-rung-mark { display:grid; place-items:center; width:20px; height:20px; flex-shrink:0; border-radius:50%; background:#eef1e8; font-size:11px; font-weight:800; }
+.ar-rung-label { flex:1; min-width:0; }
+.ar-rung small { display:block; margin-top:1px; color:inherit; font-size:10px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; opacity:.85; }
+.ar-rung.is-held { color:#fffefa; border-color:#285b49; background:#285b49; animation:ar-rung-light .55s cubic-bezier(.2,.7,.2,1) both; animation-delay:calc(var(--i,0) * 260ms + 700ms); }
+.ar-rung.is-held .ar-rung-mark { color:#285b49; background:#e6eee1; }
+.ar-rung.is-below { color:#2f5b45; border-color:#b9d3c2; background:#e6eee1; animation:ar-rung-light .55s cubic-bezier(.2,.7,.2,1) both; animation-delay:calc(var(--i,0) * 260ms + 700ms); }
+.ar-rung.is-below .ar-rung-mark { color:#fffefa; background:#3c8255; }
+.ar-rung.is-helped { color:#2f5b45; border-color:#3c8255; border-style:dashed; background:#f1f7ee; animation:ar-rung-light .55s cubic-bezier(.2,.7,.2,1) both; animation-delay:calc(var(--i,0) * 260ms + 700ms); }
+.ar-rung.is-helped .ar-rung-mark { color:#fffefa; background:#3c8255; }
+.ar-rung.is-tried { color:#8a4329; border-color:#efc3ae; border-style:dashed; background:#fffaf6; }
+.ar-rung.is-next { color:#285b49; box-shadow:inset 0 0 0 1px #285b49; }
+@keyframes ar-rung-light { from { color:var(--soft-ink); border-color:#dde5d6; background:#fff; transform:scale(.94); } 60% { transform:scale(1.03); } }
+
+.ar-insight,.ar-curious { margin:0; padding:11px 13px; border-radius:13px; line-height:1.5; }
+.ar-insight { background:#eef3e8; }
+.ar-curious { color:#4d2e21; background:#fdf1ea; }
+.ar-insight b,.ar-curious b { display:block; margin-bottom:2px; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+.ar-insight b { color:#285b49; }
+.ar-curious b { color:#a04a2e; }
+.ar-next { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0; padding:8px 12px 8px 8px; border:1px solid #cfdcc8; border-radius:22px; background:#fff; font-weight:700; color:#34553f; }
+.ar-next span { padding:3px 10px; border-radius:16px; color:#fffefa; background:#285b49; font-size:11px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+.ar-help-tag { margin:0; padding:9px 12px; border-radius:12px; color:#6e4e0f; background:#f7ecd2; font-size:13px; font-weight:650; }
+
+/* walking */
+.ar-walk { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr)); gap:10px; }
+.ar-stat { display:grid; align-content:start; gap:3px; padding:12px 13px; border-radius:14px; background:#f6f8f1; }
+.ar-stat-name { color:var(--muted); font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+.ar-stat b { font:600 19px/1.2 "Newsreader",Georgia,serif; }
+.ar-stat-note { color:var(--soft-ink); font-size:11px; font-weight:700; }
+.ar-pace-tag { justify-self:start; padding:2px 10px; border-radius:20px; color:#285b49; background:#e4f0e3; font-size:12px; font-weight:800; }
+.ar-pace { margin-top:6px; }
+.ar-pace-track { position:relative; display:flex; height:8px; border-radius:6px; overflow:visible; }
+.ar-pace-track span { width:var(--w); height:100%; }
+.ar-pace-track .ar-pace-household { border-radius:6px 0 0 6px; background:#f3d6c8; }
+.ar-pace-track .ar-pace-indoor { background:#f1e3bd; }
+.ar-pace-track .ar-pace-community { border-radius:0 6px 6px 0; background:#cfe3d3; }
+.ar-pace-track i { position:absolute; top:50%; left:var(--at); width:16px; height:16px; margin:-8px 0 0 -8px; border:3px solid #fffefa; border-radius:50%; background:#285b49; box-shadow:0 1px 5px #13261d40; animation:ar-slide 1.2s cubic-bezier(.33,1,.68,1) .5s both; }
+.ar-pace-words { display:flex; margin-top:4px; color:var(--soft-ink); font-size:10px; font-weight:700; line-height:1.2; }
+.ar-pace-words span { width:var(--w); text-align:center; }
+@keyframes ar-slide { from { left:0; } }
+.ar-metro { position:relative; display:block; width:22px; height:22px; margin-top:6px; }
+.ar-metro i { position:absolute; inset:5px; border-radius:50%; background:#3c8255; animation:ar-beat var(--beat,1s) ease-out infinite; }
+.ar-metro::after { content:""; position:absolute; inset:0; border:2px solid #b9d3c2; border-radius:50%; }
+@keyframes ar-beat { 0% { transform:scale(1.45); opacity:1; } 55%,100% { transform:scale(.85); opacity:.55; } }
+.ar-feet { display:block; width:100%; max-width:200px; height:auto; margin-top:6px; }
+.ar-foot { fill:#3c8255; transform-box:fill-box; transform-origin:left center; animation:ar-grow .8s cubic-bezier(.2,.7,.2,1) both; animation-delay:calc(var(--i,0) * 220ms + 600ms); }
+.ar-foot + .ar-foot { fill:#285b49; }
+@keyframes ar-grow { from { transform:scaleX(.15); opacity:0; } }
+.ar-knee { display:block; width:100%; max-width:150px; height:auto; margin-top:4px; }
+.ar-knee path { fill:none; stroke-width:9; stroke-linecap:round; }
+.ar-knee-track { stroke:#e4eadc; }
+.ar-knee-fill { stroke:#3c8255; stroke-dasharray:100; animation:ar-draw 1.2s cubic-bezier(.33,1,.68,1) .6s both; }
+.ar-knee-dot { fill:#e18e6d; stroke:#fffefa; stroke-width:2; }
+.ar-knee text { fill:var(--soft-ink); font:700 9px "Manrope",sans-serif; }
+@keyframes ar-draw { from { stroke-dashoffset:100; } to { stroke-dashoffset:0; } }
+
+/* since last time */
+.ar-deltas { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 0; padding:0; list-style:none; }
+.ar-delta { display:flex; align-items:center; gap:8px; padding:6px 8px 6px 12px; border:1px solid #dde5d6; border-radius:20px; background:#fff; font-size:13px; font-weight:700; }
+.ar-delta b { padding:2px 9px; border-radius:14px; font-size:12px; font-weight:800; white-space:nowrap; }
+.ar-delta.is-up b { color:#fffefa; background:#3c8255; }
+.ar-delta.is-down b { color:#fffefa; background:#a9553c; }
+.ar-delta.is-same b,.ar-delta.is-new b { color:#4a6553; background:#eef1e8; }
+.ar-delta small { color:var(--soft-ink); font-size:11px; font-weight:700; white-space:nowrap; }
+.ar-spark { margin:12px 0 0; }
+.ar-spark svg { display:block; width:220px; max-width:100%; height:auto; overflow:visible; }
+.ar-spark polyline { fill:none; stroke:#3c8255; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:100; animation:ar-draw 1.2s cubic-bezier(.33,1,.68,1) .7s both; }
+.ar-spark circle { fill:#b9d3c2; }
+.ar-spark circle.is-now { fill:#285b49; stroke:#fffefa; stroke-width:2; }
+.ar-spark text { fill:var(--soft-ink); font:700 11px "Manrope",sans-serif; }
+.ar-spark text.is-now { fill:#285b49; font-weight:800; }
+.ar-spark figcaption { margin-top:4px; color:var(--soft-ink); font-size:11px; font-weight:700; }
+
+/* the next check-up */
+.ar-checkup h2 { display:flex; align-items:center; gap:9px; }
+.ar-checkup h2 svg { color:#3c8255; }
+.ar-date { margin:10px 0 0; color:#285b49; font:600 24px/1.2 "Newsreader",Georgia,serif; }
+.ar-until { margin:14px 0 6px; font-weight:800; }
+.ar-challenges { display:grid; gap:6px; margin:0; padding:0; list-style:none; }
+.ar-challenges li { position:relative; padding:9px 12px 9px 32px; border-radius:12px; background:#eef3e8; font-weight:700; }
+.ar-challenges li::before { content:""; position:absolute; left:13px; top:50%; width:8px; height:8px; margin-top:-4px; border-radius:50%; background:#3c8255; box-shadow:0 0 0 4px #d5e6d6; }
+.ar-comeback { margin:14px 0 0; color:#285b49; font-weight:800; }
+
+/* how we scored this */
+.ar-how summary { color:#285b49; font-weight:800; cursor:pointer; }
+.ar-how h3 { margin:16px 0 4px; color:#244c3c; font-size:15px; font-weight:800; }
+.ar-how p { margin:6px 0; color:#4a6553; }
+.ar-rules { display:grid; gap:6px; margin:8px 0; padding:0; list-style:none; }
+.ar-rules li { display:flex; gap:10px; align-items:baseline; font-size:13px; }
+.ar-rules li > b { min-width:42px; color:#285b49; font-weight:800; text-align:right; font-variant-numeric:tabular-nums; }
+.ar-rules strong { font-weight:800; }
+.ar-disclaimer { padding:9px 12px; border-radius:12px; background:#f6f8f1; font-size:13px; font-weight:700; }
+
+/* actions */
+.ar-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:4px; }
+.ar-primary,.ar-secondary { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:50px; padding:0 22px; border-radius:14px; font:700 15px "Manrope",sans-serif; cursor:pointer; }
+.ar-primary { border:1px solid #285b49; color:#fffefa; background:#285b49; }
+.ar-primary:hover { background:#224d3d; }
+.ar-secondary { border:1px solid #cfdcc8; color:#34553f; background:#fff; }
+.ar-secondary:hover { background:#eaf0e3; }
+.ar-page button:focus-visible,.ar-page summary:focus-visible { outline:2px solid #32765a; outline-offset:2px; }
+
+/* entrance: each card rises in turn */
+.ar-rise { animation:ar-rise .6s cubic-bezier(.2,.7,.2,1) both; animation-delay:var(--d,0ms); }
+@keyframes ar-rise { from { opacity:0; transform:translateY(14px); } }
+
+@media (min-width:760px) {
+  .ar-page { padding:28px 24px 56px; }
+  .ar-head h1 { font-size:42px; }
+  .ar-hero { padding:24px 28px; }
+}
+/* A phone sees the map and the score together: the map beside the ring, the areas below both. */
+@media (max-width:640px) {
+  .ar-hero { grid-template-columns:minmax(0,132px) minmax(0,1fr); grid-template-areas:"map ring" "map caption" "legend legend"; gap:4px 12px; }
+  .ar-map { grid-area:map; max-width:132px; }
+  .ar-map-labels text { font-size:19px; }
+  .ar-hero-score { display:contents; }
+  .ar-hero .ar-ring { grid-area:ring; align-self:end; justify-self:center; width:124px; height:124px; }
+  .ar-hero .ar-ring.is-large .ar-ring-num { font-size:42px; }
+  .ar-ring-caption { grid-area:caption; align-self:start; justify-self:center; text-align:center; }
+  .ar-legend { grid-area:legend; max-width:none; margin-top:10px; }
+  .ar-card { padding:16px; }
+  .ar-head h1 { font-size:30px; }
+  .ar-actions > button { flex:1 1 100%; }
+}
+/* Less motion: every piece shows its final state at once (the numbers do too, from the script). */
+@media (prefers-reduced-motion:reduce) {
+  .ar-page *,.ar-page *::before,.ar-page *::after { animation:none !important; transition:none !important; }
+  .ar-glow:not(.is-unmeasured) { opacity:.6; }
+}
+.ar-page.is-still *,.ar-page.is-still *::before,.ar-page.is-still *::after { animation:none !important; transition:none !important; }
+.ar-page.is-still .ar-glow:not(.is-unmeasured) { opacity:.6; }

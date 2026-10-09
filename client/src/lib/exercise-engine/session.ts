@@ -19,6 +19,9 @@ import { slideDemoDuration, slideRestPrompt, type SlideGeo } from "./slide-targe
 import { MouthCalibration, simulatedMouthComps, type MouthPoint } from "./mouth-target";
 // Relative on purpose: engine files must also build where the @shared alias is not available.
 import { ADAPTATION_VERSION, DEFAULT_EXERCISE_TUNING, tunedReps, type ExerciseTuning } from "../../../../shared/alira-adaptation";
+import { Ladder } from "../assessment-engine/ladder";
+import { OTHER_HAND_ARM, OTHER_HAND_IN_VIEW, pinchLevelGoal } from "../assessment-engine/tasks";
+import type { AssessmentTaskResult, AttemptRecord, CameraTaskId, CompStatus, LevelSpec } from "../assessment-engine/types";
 
 export type Voice = { say(text: string): void; busy(t: number): boolean; stop(): void };
 export type Phase = "setup" | "demo" | "warm" | "reps" | "done";
@@ -36,7 +39,15 @@ export type SessionOptions = {
   reviewBetweenReps?: boolean;
   /** Settings from Alira's learning, read once when the session starts. Omitted = the defaults. */
   tuning?: ExerciseTuning;
+  /** The movement check: run one task's levels (a try-out, then ladder attempts) instead of scored repetitions. */
+  assessment?: SessionAssessment;
 };
+
+/**
+ * A movement check task on this exercise (assessment-engine/tasks.ts): its levels, easiest first, where its ladder
+ * starts, its posture checks (they replace the exercise's own) and, when given, its repetition's steps.
+ */
+export type SessionAssessment = { taskId: CameraTaskId; levels: LevelSpec[]; startLevel: number; compensations: ExerciseConfig["compensations"]; cycle?: CycleStep[] };
 
 export type RepResult = {
   index: number;
@@ -73,6 +84,8 @@ export type SessionRecord = {
   finished_at: string;
   /** The tuning this session ran with: whether any setting differed from its default, and which. */
   adaptation?: { version: string; adapted: boolean; changed: Partial<Record<string, number>> };
+  /** The movement check: the task's result (no scores, no repetitions). */
+  assessment?: AssessmentTaskResult;
 };
 
 export type Snapshot = {
@@ -111,6 +124,14 @@ export type Snapshot = {
   countdownProgress: number;
   /** Hand opening: the step waits for the palm to face the camera in the shaded area. */
   awaitingReady: boolean;
+  // The movement check only (absent otherwise):
+  /** The level being tried, as an index into the task's levels (the try-out is the easiest), or -1 between levels. */
+  assessmentLevel?: number;
+  /** Every measured attempt so far (the try-out is not one). */
+  assessmentAttempts?: AttemptRecord[];
+  /** The offer of one more try with someone helping, awaiting the patient's answer (answerHelp). */
+  assessmentOffer?: "help" | null;
+  assessmentLevelIds?: string[];
 };
 
 // engineering default, needs clinician review
@@ -131,6 +152,36 @@ export const TIMING = {
 
 /** Smallest movement away from the resting value that counts as "moved", per metric, in degrees. */
 const MIN_EXCURSION: Record<string, number> = { shoulder_flexion: 15, elbow_extension: 20, elbow_flexion: 20, finger_extension: 20, knee_extension: 20, shoulder_abduction: 10, ankle_dorsiflexion: 3, toe_lift: 2, pinch_flexion: 0 };
+
+// ---------- the movement check (assessment mode), engineering defaults to be reviewed by a clinician ----------
+
+/** An attempt whose target is not on 20 s after it armed moves on to the return as a failure; one encouragement at 10 s. */
+export const ATTEMPT_TIMEOUT_MS = 20000, ATTEMPT_ENCOURAGE_MS = 10000;
+/** Movement counts as seen once any try got this far toward its target (the try-out included). */
+export const MOVEMENT_SEEN_PROGRESS = 0.3;
+/** What the movement check says, as short fixed lines: never a score, never a count of good repetitions. */
+export const ASSESSMENT_LINES = {
+  tryOut: "Now try it once. It is not scored.",
+  levels: "Now the levels. Each try starts after a short countdown.",
+  reached: "Level reached.",
+  hard: "That one was hard.",
+  another: "That one was hard. Let's try another level.",
+  encourage: "Give it your best try, as far as is comfortable.",
+  offerHelp: "Would you like to try once more with someone helping you?",
+  withHelp: "Ask your helper to support you gently. Let's try once more.",
+  done: "That's this task done. Well done.",
+  skipped: "No problem, we will skip this one for today.",
+} as const;
+/** How each task asks for a level ("Next, reach to the circle overhead."), and how its try-out ends. */
+const LEVEL_ASK: Record<string, string> = { ex_reach: "reach to", ex_h2m: "bring your hand to", ex_handopen: "open your fingers out to", ex_pinch: "bring your thumb" };
+const TRY_OUT_THEN: Record<string, string> = { ex_reach: "and hold, then return your hand to your lap.", ex_h2m: "and hold, then return your hand to your lap.", ex_handopen: "and hold, then close your hand gently.", ex_pinch: "and hold, then let go." };
+/** Hand to mouth's chest level: the movement step worded for the chest (the exercise's own words are for the mouth). */
+const CHEST_STEP = { caption: "Bring your hand to your chest and hold", voice: "Bend your elbow and bring your hand up to the circle on your chest. Hold it there. Head up, shoulder relaxed." };
+
+/** The exercise as the movement check runs it: the task's posture checks, and its own repetition steps when it has them. */
+export function withAssessment(cfg: ExerciseConfig, assessment?: { compensations: ExerciseConfig["compensations"]; cycle?: CycleStep[] } | null): ExerciseConfig {
+  return assessment ? { ...cfg, compensations: assessment.compensations, ...(assessment.cycle ? { cycle: assessment.cycle } : {}) } : cfg;
+}
 
 
 type RepRun = {
@@ -278,21 +329,39 @@ export class ExerciseSession {
   private cycleCache: CycleStep[];
   private demoProgress = 0;
   private readonly tuned: ExerciseTuning;
+  // The movement check (assessment mode): the task, its levels ladder, the attempts and the try-out so far.
+  private readonly assess: SessionAssessment | null;
+  private readonly ladder: Ladder | null;
+  private attempts: AttemptRecord[] = [];
+  private tryOut: { completed: boolean; peakProgress: number } | null = null;
+  /** This attempt's peak progress toward its target, and its measures' peaks (for the results' insights). */
+  private attemptPeak = 0;
+  private attemptValues: Record<string, number> = {};
+  /** The measures' peaks of the try-out and each unassisted attempt. */
+  private insightPeaks: Record<string, number>[] = [];
+  /** When the movement step's target first armed (re-arming after speech keeps it), and how long the movement took. */
+  private assessArmedAt: number | null = null;
+  private attemptMs = 0;
+  private encouraged = false;
+  private offer: "help" | null = null;
 
   constructor(opts: SessionOptions, voice: Voice) {
     this.opts = opts;
     this.voice = voice;
-    this.cfg = resolveExercise(opts.exerciseId, Boolean(opts.chairBack), Boolean(opts.armrest));
+    this.cfg = withAssessment(resolveExercise(opts.exerciseId, Boolean(opts.chairBack), Boolean(opts.armrest)), opts.assessment);
     this.reachRestCalibration = restCalibrationFor(this.cfg.id);
     this.reachTargetCalibration = targetCalibrationFor(this.cfg.id);
     // A frozen copy taken once: nothing changes mid-repetition, and later edits to the caller's object do not reach it.
     const everyday = this.cfg.id === EVERYDAY_EXERCISE_ID;
-    const tuning = everyday ? DEFAULT_EXERCISE_TUNING : opts.tuning ?? DEFAULT_EXERCISE_TUNING;
+    // The movement check always holds its targets for the standard time: its levels are not Alira's to adjust.
+    const tuning = everyday || opts.assessment ? DEFAULT_EXERCISE_TUNING : opts.tuning ?? DEFAULT_EXERCISE_TUNING;
     this.tuned = Object.freeze({ ...tuning, changed: Object.freeze({ ...tuning.changed }) });
     this.rung = this.rungStart = everyday ? 1 : opts.rung;
     // The planned count is fixed here; a rescue lowers the rung but never the number of repetitions.
     this.plannedReps = opts.repsOverride ?? tunedReps(REPS_BY_RUNG[this.rung], this.tuned);
     this.cycleCache = cycleFor(opts.exerciseId, this.rung);
+    this.assess = opts.assessment ?? null;
+    this.ladder = opts.assessment ? new Ladder(opts.assessment.levels.length, opts.assessment.startLevel) : null;
   }
 
   // ---------- public surface ----------
@@ -309,7 +378,10 @@ export class ExerciseSession {
   /** Forward reach uses the measured practice hold directly, with no angle increment. */
   targets(): Record<string, number> {
     const level = LEVEL_BY_RUNG[this.phase === "warm" ? 1 : this.rung];
+    // The movement check's pinch closes to its level's goal (assessment-engine/tasks.ts), once set-up knows the resting thumb.
+    const pinchGoal = this.assess && this.cfg.id === PINCH_ID && Number.isFinite(this.rest.pinch_index) ? pinchLevelGoal(this.assessmentLevelId ?? "", this.rest.pinch_index) : undefined;
     return Object.fromEntries(this.cfg.romSteps.map(rom => {
+      if (pinchGoal !== undefined && rom.id === "pinch_index") return [rom.id, pinchGoal];
       return [rom.id, usesTargetFlow(this.cfg.id) ? this.learnedReach?.[rom.id] ?? rom.targets.easy : rom.targets[level]];
     }));
   }
@@ -332,6 +404,28 @@ export class ExerciseSession {
   get mouthPoint(): MouthPoint | null { return this.learnedMouth ? { ...this.learnedMouth } : null; }
   /** A measure learned at the practice hold (hand opening: how open the hand was, for its ring), once learned. */
   learnedValue(metric: string): number | undefined { return this.learnedReach?.[metric]; }
+
+  /** The movement check: whether this session runs a task's levels (assessment mode). */
+  get assessing(): boolean { return this.assess !== null; }
+  /** The movement check: the id of the level whose target is live, or the try-out's (the easiest) between attempts. */
+  get assessmentLevelId(): string | null { return this.assess ? this.assess.levels[Math.max(0, this.levelNow())]?.id ?? null : null; }
+
+  /**
+   * The movement check: the patient's answer to the offer of one more try with someone helping (after the easiest
+   * level was not reached). Yes: one assisted attempt at the easiest level, after the countdown. No: the task ends.
+   */
+  answerHelp(yes: boolean, t: number) {
+    if (!this.ladder || this.offer !== "help") return;
+    this.offer = null;
+    this.voice.stop();
+    const next = this.ladder.answerHelp(yes);
+    if (next.type !== "attempt") return this.finish(t, false);
+    this.voice.say(ASSESSMENT_LINES.withHelp);
+    // The countdown's ring and line wait for the helper line, as the first attempt's wait for the levels line.
+    this.review = "countdown";
+    this.reviewStarted = t;
+    this.countdownQueued = true;
+  }
 
   /** Begin: speak the setup voice, then the calibration line. */
   start(t: number) {
@@ -404,7 +498,7 @@ export class ExerciseSession {
       repsPlanned: this.plannedReps,
       stepIndex: this.stepIdx,
       stepCount: cycleLen,
-      caption: this.phase === "demo" && this.demoStepIndex >= 0 ? this.cycle()[this.demoStepIndex]?.caption ?? "" : step?.caption ?? "",
+      caption: this.phase === "demo" && this.demoStepIndex >= 0 ? this.cycle()[this.demoStepIndex]?.caption ?? "" : step ? this.chestStep(step) ? CHEST_STEP.caption : step.caption : "",
       kind: step?.kind ?? null,
       liveAttainment: this.liveA,
       inZone: this.inZone,
@@ -430,6 +524,7 @@ export class ExerciseSession {
       countdownProgress: this.review === "countdown" && !this.countdownQueued ? Math.min(1, (this.lastT - this.reviewStarted) / 3000) : 0,
       // Only when the camera reports readiness (the no-camera simulator has no shaded area to wait for).
       awaitingReady: (this.phase === "warm" || this.phase === "reps") && !this.review && Boolean(step?.readyGate) && !this.started && this.recent[this.recent.length - 1]?.ready !== undefined,
+      ...(this.assess ? { assessmentLevel: this.levelNow(), assessmentAttempts: [...this.attempts], assessmentOffer: this.offer, assessmentLevelIds: this.assess.levels.map(level => level.id) } : {}),
     };
   }
 
@@ -441,6 +536,7 @@ export class ExerciseSession {
     this.lastT = t;
     if (this.review) {
       if (this.review === "complete" && t - this.reviewStarted >= 1200 && !this.voice.busy(t)) {
+        if (this.assess) return this.afterAttemptReview(t);
         if (this.reps.length >= this.plannedReps) {
           this.review = null;
           return this.finish(t, false);
@@ -614,6 +710,8 @@ export class ExerciseSession {
   // ---------- beat 3: warm rep, beat 4: scored reps ----------
 
   private cycle(): CycleStep[] {
+    // The movement check's steps are its task's (withAssessment) in the demonstration, the try-out and every attempt.
+    if (this.assess) return this.cfg.cycle;
     // Supported Arm Elevation's steps are the same at every rung, worded for the table or the armrest (resolveExercise).
     if (this.cfg.id === SLIDE_ID) return this.cfg.cycle;
     if (this.phase === "warm") return cycleFor(this.opts.exerciseId, 1);
@@ -641,7 +739,8 @@ export class ExerciseSession {
     this.learnedReach = null;
     this.reachTargetCalibration.reset();
     this.prompt = "";
-    this.voice.say(this.cfg.id === "ex_reach" ? "Now one practice repetition. It is not scored. Reach to the circle and hold while I learn your movement, then return to your lap."
+    // The movement check's try-out is one unscored try at the easiest level: it learns no goal, so it is never repeated.
+    this.voice.say(this.assess ? this.tryOutLine() : this.cfg.id === "ex_reach" ? "Now one practice repetition. It is not scored. Reach to the circle and hold while I learn your movement, then return to your lap."
       : this.cfg.id === "ex_h2m" ? "Now one practice repetition. It is not scored. Bring your hand to the mouth circle and hold while I learn your movement, then return to your lap."
       : this.cfg.id === "ex_handopen" ? "Now one practice repetition. It is not scored. Show me your palm in the shaded area. Then open your fingers out to the ring and hold while I learn your movement, and then close your hand gently."
       : this.cfg.id === "ex_grasp" ? "Now one practice repetition. It is not scored. Reach for the cup and open your hand, close it around the cup, carry it across, let it go, then return to your lap. I will learn your movement as you go."
@@ -657,9 +756,11 @@ export class ExerciseSession {
     this.calibratedStart = { ...this.startingAngles() };
     const targets = this.targets();
     this.targetsReady = this.cfg.romSteps.every(rom => Number.isFinite(this.calibratedStart![rom.id]) && (!usesTargetFlow(this.cfg.id) || (this.learnedReach !== null && Number.isFinite(targets[rom.id]))));
+    // The movement check's targets are its levels' (drawn by the page from set-up), with nothing to learn first.
+    if (this.assess) this.targetsReady = true;
     this.repNumber = this.reps.length;
     this.prompt = "";
-    this.voice.say(repsAheadLine(this.plannedReps));
+    this.voice.say(this.assess ? ASSESSMENT_LINES.levels : repsAheadLine(this.plannedReps));
     this.resetRep(t);
     if (this.countdownReps()) {
       // The first scored repetition gets the same 3-2-1 countdown as the others; its end numbers the repetition.
@@ -676,14 +777,16 @@ export class ExerciseSession {
    * countdown and is not instructed again. The demonstration and the practice repetition say each step.
    */
   private countdownReps(): boolean {
-    return usesTargetFlow(this.cfg.id) && Boolean(this.opts.reviewBetweenReps);
+    // The movement check always reviews each attempt and counts down to the next.
+    return usesTargetFlow(this.cfg.id) && (Boolean(this.opts.reviewBetweenReps) || Boolean(this.assess));
   }
 
   private startCountdown(t: number) {
     this.review = "countdown";
     this.reviewStarted = t;
     this.countdownQueued = false;
-    this.voice.say(NEXT_REP_COUNTDOWN_LINE);
+    // The movement check names the level coming up instead ("Next, reach to the circle overhead.").
+    this.voice.say(this.assess ? this.levelLine() : NEXT_REP_COUNTDOWN_LINE);
   }
 
   private nextRepNumber() {
@@ -716,6 +819,12 @@ export class ExerciseSession {
     this.pauseUntil = t + pause;
     this.lastMoveT = t;
     this.idleAsked = false;
+    // The movement check: each step's target arms afresh; an attempt's first step (or one restarted) starts its peaks afresh.
+    if (this.assess) {
+      this.assessArmedAt = null;
+      this.encouraged = false;
+      if (this.stepIdx === 0) { this.attemptPeak = 0; this.attemptValues = {}; }
+    }
     // A scored seated step that starts at once is not instructed: its target is live in this very frame, so
     // the inactive circle and "Listen to the instruction" never flash between the countdown and the movement.
     const step = this.cycle()[this.stepIdx];
@@ -836,7 +945,7 @@ export class ExerciseSession {
       const stepKey = `${this.phase}:${this.repNumber}:${this.stepIdx}`;
       if ((this.phase !== "reps" || !this.countdownReps()) && !(step.readyGate && this.instructedKey === stepKey)) {
         if (step.readyGate) this.instructedKey = stepKey;
-        this.voice.say(step.voice);
+        this.voice.say(this.chestStep(step) ? CHEST_STEP.voice : step.voice);
         return;
       }
       // The short cue, unless this same step said it moments ago (the hand dipped out of place and came back).
@@ -853,6 +962,8 @@ export class ExerciseSession {
       this.stepStart = t;
       this.lastMoveT = t;
     }
+    // The movement check times each attempt from its target first arming (speech pausing it does not restart the time).
+    if (this.assess) this.assessArmedAt ??= t;
     this.watchSpeed(step, t);
 
     // A close step the camera decides (the grasp around the drawn cup) is held like a movement step.
@@ -878,6 +989,7 @@ export class ExerciseSession {
     }
     const a = sumW ? sum / sumW : 0;
     this.liveA = frame.targetProgress ?? a;
+    if (this.assess) this.trackAttempt(frame, a);
     // A hand out of its shaded area (hand opening) is never on target, however open it is: it cannot hold the ring.
     // With no camera target and nothing to measure (the grasp and let-go in the no-camera simulator), a step passes.
     const zone = frame.placed === false ? false : frame.targetContact === undefined ? (gate.length ? a >= this.tuned.targetZone && moved : true) : frame.targetContact;
@@ -906,18 +1018,19 @@ export class ExerciseSession {
     if (frame.placed === false) { this.run.consec = {}; this.run.consecMs = {}; }
     else if (progress > 0.25 || frame.targetContact === true || this.cfg.id === "ex_handopen") this.recordFrame(frame, step, dt);
 
-    // idle prompt: 20 s without movement
-    if (!this.idleAsked && t - this.lastMoveT > TIMING.idleMs) {
+    // idle prompt: 20 s without movement (the movement check's attempts end on their own time instead)
+    if (!this.assess && !this.idleAsked && t - this.lastMoveT > TIMING.idleMs) {
       this.idleAsked = true;
       this.voice.say("Do you want to skip this one for today?");
     } else if (this.idleAsked && t - this.lastMoveT < 1000) {
       this.idleAsked = false;
     }
+    if (this.assess) this.encourage(t, zone || unsure);
     // A prompt can start in this very frame; it also disarms before any hold is counted.
     if (this.waitForSpeech(t)) return;
 
     const holdMs = this.holdMsFor(step, frame.targetContact !== undefined);
-    const learningReach = this.phase === "warm" && usesTargetFlow(this.cfg.id);
+    const learningReach = this.phase === "warm" && usesTargetFlow(this.cfg.id) && !this.assess;
     if (learningReach && !unsure) {
       if (zone) this.reachTargetCalibration.observe(frame);
       else this.reachTargetCalibration.reset();
@@ -951,13 +1064,17 @@ export class ExerciseSession {
       // short grace for a closed hand the tracker loses for a moment.
       if (t - this.lastContactT > CONTACT_GRACE_MS) this.holdAcc = 0;
     } else if (frame.targetContact !== undefined || a < TIMING.zoneExit || !moved) {
-      // Touched, then the arm came most of the way back: the movement ends as touched (not held).
-      if (!learningReach && this.touched && this.holdAcc < holdMs && a < 0.55) return this.completeMovement(t, "touched");
+      // Touched, then the arm came most of the way back: the movement ends as touched (not held). The movement check
+      // judges "back" against its level's target (the circle, ring or pinch drawn), not the exercise's angle goals.
+      if (!learningReach && this.touched && this.holdAcc < holdMs && (this.assess ? frame.targetProgress ?? a : a) < 0.55) return this.completeMovement(t, "touched");
       this.holdAcc = 0;
     }
     // A step with its own time limit (the grasp and the let-go) moves on with partial credit instead of a miss,
     // touched or not, unless a hold is under way.
     if (step.timeoutMs !== undefined && t - this.stepStart > step.timeoutMs && this.holdAcc === 0) return this.completeMovement(t, "touched");
+    // The movement check: not on target 20 s after the target armed, the attempt moves on to the return as a failure;
+    // a hold under way (or paused while tracking catches up) is never cut.
+    if (this.assess && this.assessArmedAt !== null && t - this.assessArmedAt >= ATTEMPT_TIMEOUT_MS && this.holdAcc === 0 && !zone && !unsure) return this.completeMovement(t, this.touched ? "touched" : "none");
     if (!this.touched && t - this.stepStart > TIMING.maxWaitMs) this.completeMovement(t, "none");
   }
 
@@ -1006,7 +1123,10 @@ export class ExerciseSession {
 
   private completeMovement(t: number, outcome: HoldOutcome) {
     this.run.holds.push(outcome);
-    if (outcome === "none") {
+    // The movement check: how long the movement took from its target arming. A missed attempt still goes back to
+    // rest (the lap, the relax circle, letting go), so the next level never starts from a raised hand.
+    if (this.assess) this.attemptMs = t - (this.assessArmedAt ?? t);
+    if (outcome === "none" && !this.assess) {
       // Never reached: the rep ends here as a miss.
       this.run.ended = true;
       return this.finishRep(t);
@@ -1077,6 +1197,7 @@ export class ExerciseSession {
     const score = repScore(att, hold, compsHit.length, this.tuned.oneCompensationPoints);
 
     if (this.phase === "warm") {
+      if (this.assess) return this.endTryOut(t);
       if (usesTargetFlow(this.cfg.id) && !this.learnedReach) return this.beginWarm(t);
       // Pinch and Peg learns a goal for each finger: practice again until both are learned, rather than scoring a
       // finger on a goal it never showed (the practice pinch eases closer each time it is not reached).
@@ -1094,6 +1215,7 @@ export class ExerciseSession {
       // Fingers that rested already curled at set-up cannot show curling in: skipped, not a tracking gap.
       && !(this.cfg.id === PINCH_ID && comp.id === "mass_flexion" && !curlJudged(this.ref))).map(comp => comp.id);
     if (usesTargetFlow(this.cfg.id)) unmeasured.push(...roms.filter(rom => !Number.isFinite(rom.start) || !Number.isFinite(rom.target)).map(rom => rom.id));
+    if (this.assess) return this.endAttempt(t, compsHit, unmeasured);
     const result: RepResult = { index: this.repNumber, rung: this.rung, attainment: att, hold, compensations: compsHit, score, good: !unmeasured.length && isGoodRep(att, hold, compsHit.length, this.tuned.goodRepShare), peaks: { ...run.peaks }, unmeasured, startingAngles: { ...starts }, targets: { ...targets } };
     this.reps = [...this.reps, result];
     if (!this.opts.reviewBetweenReps) this.sayFeedback(result);
@@ -1204,6 +1326,7 @@ export class ExerciseSession {
   // ---------- beat 6: wrap ----------
 
   private finish(t: number, early: boolean) {
+    if (this.assess) return this.finishAssessment(early);
     this.review = null;
     const scores = this.reps.map(r => r.score);
     const notAttempted = this.reps.length === 0;
@@ -1249,6 +1372,172 @@ export class ExerciseSession {
       for (const line of spokenWrap) this.voice.say(line);
     }
     void t;
+  }
+
+  // ---------- the movement check (assessment mode) ----------
+
+  /** The level being tried: the try-out's (the easiest) in the warm, the ladder's attempt in the levels, else -1. */
+  private levelNow(): number {
+    if (!this.ladder) return -1;
+    if (this.phase === "warm") return 0;
+    const step = this.ladder.step;
+    return this.phase === "reps" && step.type === "attempt" ? step.level : -1;
+  }
+
+  /** Hand to mouth's chest level: its movement step is worded for the chest, not the cup at the mouth. */
+  private chestStep(step: CycleStep): boolean {
+    return this.assess !== null && this.cfg.id === "ex_h2m" && step.kind !== "return" && this.assessmentLevelId === "chest";
+  }
+
+  /** "Now try it once. It is not scored. Reach to the circle at chest height and hold, then return your hand to your lap." */
+  private tryOutLine(): string {
+    const ask = LEVEL_ASK[this.cfg.id] ?? "move to", say = this.assess?.levels[0]?.say ?? "the target";
+    const palm = this.cfg.id === "ex_handopen" || this.cfg.id === PINCH_ID;
+    return `${ASSESSMENT_LINES.tryOut} ${palm ? `Show me your palm in the shaded area. Then ${ask}` : cap(ask)} ${say} ${TRY_OUT_THEN[this.cfg.id] ?? "and hold."}`;
+  }
+
+  /** The countdown's line, naming the level coming up: "Next, reach to the circle overhead." */
+  private levelLine(): string {
+    const level = this.assess?.levels[Math.max(0, this.levelNow())];
+    return `Next, ${LEVEL_ASK[this.cfg.id] ?? "move to"} ${level?.say ?? "the target"}.`;
+  }
+
+  /** The attempt's peak progress toward its target, and its measures' peaks, from the armed movement step's frames. */
+  private trackAttempt(frame: Frame, a: number) {
+    const progress = frame.targetProgress ?? a;
+    if (Number.isFinite(progress)) this.attemptPeak = Math.max(this.attemptPeak, Math.max(0, Math.min(1, progress)));
+    const measures = this.cfg.romSteps.filter(rom => !rom.steps || rom.steps.includes(this.stepIdx)).map(rom => [rom.id, rom.metric]);
+    // Hand opening's rings are drawn in its openness (palm lengths), so that is its insight too.
+    if (this.cfg.id === "ex_handopen") measures.push(["hand_openness", "hand_openness"]);
+    for (const [id, metric] of measures) {
+      const value = frame.values[metric];
+      if (typeof value === "number" && Number.isFinite(value)) this.attemptValues[id] = Math.max(this.attemptValues[id] ?? -Infinity, value);
+    }
+  }
+
+  /** Halfway through an attempt's time, one encouraging line: never over a hold under way (speech pauses the target). */
+  private encourage(t: number, onTarget: boolean) {
+    if (this.encouraged || this.assessArmedAt === null || t - this.assessArmedAt < ATTEMPT_ENCOURAGE_MS || this.holdAcc > 0 || onTarget) return;
+    this.encouraged = true;
+    this.voice.say(ASSESSMENT_LINES.encourage);
+  }
+
+  /** The try-out at the easiest level has ended, held or not: it learns no goal, so the levels follow at once. */
+  private endTryOut(t: number) {
+    this.tryOut = { completed: (this.run.holds.length ? worst(this.run.holds) : "none") === "full", peakProgress: this.attemptPeak };
+    this.insightPeaks.push({ ...this.attemptValues });
+    this.beginReps(t);
+  }
+
+  /**
+   * One attempt at a level has ended. It is recorded with each posture check's status (detected as a repetition
+   * confirms it, not measured where the camera could not judge it), the ladder decides what comes next, and the
+   * review card says whether the level was reached, with the posture notes: never a score.
+   */
+  private endAttempt(t: number, compsHit: string[], unmeasured: string[]) {
+    const now = this.ladder!.step;
+    if (now.type !== "attempt") return;
+    const hold: HoldOutcome = this.run.holds.length ? worst(this.run.holds) : "none";
+    const level = this.assess!.levels[now.level];
+    // A helper's supporting hand is a second hand at the arm or palm: on a helped attempt the other-hand check cannot tell
+    // it from the patient's own, so there it is not measured and says nothing.
+    const helperHand = (id: string) => now.assisted && id === OTHER_HAND_ARM.id;
+    const hit = compsHit.filter(id => !helperHand(id));
+    const compensations: Record<string, CompStatus> = Object.fromEntries(this.cfg.compensations.map(comp => [comp.id, helperHand(comp.id) ? "not_measured" : hit.includes(comp.id) ? "detected" : unmeasured.includes(comp.id) ? "not_measured" : "not_detected"]));
+    const attempt: AttemptRecord = { level: now.level, levelId: level?.id ?? String(now.level), assist: now.assisted ? "helper" : null, completed: hold === "full", touched: hold === "touched", peakProgress: this.attemptPeak, compensations, durationMs: this.attemptMs };
+    this.attempts = [...this.attempts, attempt];
+    // The results' insights are the patient's own movement: a helped attempt's peaks are not theirs alone.
+    if (!now.assisted) this.insightPeaks.push({ ...this.attemptValues });
+    const next = this.ladder!.record(attempt.completed);
+    const last = next.type === "done";
+    // Each confirmed check's note in the exercise's words; a task's own check (the other hand) says its correction.
+    const notes = hit.map(id => {
+      const rule = this.cfg.compensations.find(comp => comp.id === id);
+      const say = this.cfg.feedback.find(feedback => feedback.comp === id)?.say ?? `I noticed your ${rule?.label ?? "posture change"}. ${rule?.correction ?? ""}`.trim();
+      return last ? finalRepAdvice(say) : say;
+    });
+    // Posture the camera could not judge during a real movement: how to stay in view (a hand that hardly moved has none).
+    // The seated arm tasks' other-hand check needs the other hand and thigh, not the face and shoulders: its own line.
+    const unseen = this.cfg.compensations.filter(comp => compensations[comp.id] === "not_measured" && !helperHand(comp.id));
+    const otherArmUnseen = unseen.some(comp => comp.metric === OTHER_HAND_ARM.metric);
+    if (attempt.peakProgress >= MOVEMENT_SEEN_PROGRESS && unseen.length > (otherArmUnseen ? 1 : 0)) notes.push(this.cfg.id === "ex_handopen" || this.cfg.id === PINCH_ID ? handInViewLine(last) : keepInViewLine(last));
+    if (attempt.peakProgress >= MOVEMENT_SEEN_PROGRESS && otherArmUnseen) notes.push(OTHER_HAND_IN_VIEW);
+    this.review = "complete";
+    this.reviewStarted = t;
+    this.voice.stop();
+    this.reviewAdvice = [attempt.completed ? `${level?.label ?? "Level"} reached` : "Not this time", ...notes];
+    this.feedback = notes.join(" ");
+    this.voice.say(attempt.completed ? ASSESSMENT_LINES.reached : next.type === "attempt" ? ASSESSMENT_LINES.another : ASSESSMENT_LINES.hard);
+    for (const note of notes) this.voice.say(note);
+  }
+
+  /** After an attempt's review: the next level's countdown, the offer of help (once), or the end of the task. */
+  private afterAttemptReview(t: number) {
+    const next = this.ladder!.step;
+    if (next.type === "attempt") return this.startCountdown(t);
+    if (next.type === "offer_help") {
+      if (this.offer !== "help") { this.offer = "help"; this.voice.say(ASSESSMENT_LINES.offerHelp); }
+      return;
+    }
+    this.finish(t, false);
+  }
+
+  /** The task's result for the movement check's scoring and results dashboard (assessment-engine/types.ts). */
+  private assessmentResult(early: boolean): AssessmentTaskResult {
+    const task = this.assess!, step = this.ladder!.step;
+    const tryOut = this.tryOut ?? { completed: false, peakProgress: 0 };
+    const insights: Record<string, number> = {};
+    for (const peaks of this.insightPeaks) for (const [id, value] of Object.entries(peaks)) insights[id] = Math.max(insights[id] ?? -Infinity, value);
+    return {
+      taskId: task.taskId,
+      exerciseId: this.cfg.id,
+      levelIds: task.levels.map(level => level.id),
+      startLevel: Math.max(0, Math.min(task.levels.length - 1, Math.round(task.startLevel))),
+      tryOut: { ...tryOut },
+      attempts: this.attempts.map(attempt => ({ ...attempt, compensations: { ...attempt.compensations } })),
+      movementSeen: [tryOut.peakProgress, ...this.attempts.map(attempt => attempt.peakProgress)].some(peak => peak >= MOVEMENT_SEEN_PROGRESS),
+      // Ended early (the patient chose to skip) with the ladder still going.
+      stoppedBy: step.type === "done" ? step.stoppedBy : early ? "skipped" : "not_measured",
+      measured: this.attempts.length > 0,
+      side: this.opts.side,
+      insights,
+    };
+  }
+
+  /** The task's end: its result in the record (no score, no repetitions) and the closing line. */
+  private finishAssessment(early: boolean) {
+    this.review = null;
+    this.offer = null;
+    const result = this.assessmentResult(early);
+    const counts: Record<string, number> = {};
+    this.attempts.forEach(attempt => Object.entries(attempt.compensations).forEach(([id, status]) => { if (status === "detected") counts[id] = (counts[id] ?? 0) + 1; }));
+    const skipped = early && !result.measured;
+    this.record = {
+      engine: EXERCISE_SCORE_VERSION,
+      exercise_id: this.cfg.id,
+      rung_start: this.rungStart,
+      rung_end: this.rung,
+      reps_planned: this.attempts.length,
+      repetition_scores: [],
+      quality_reps: 0,
+      best_attainment: this.attempts.reduce((best, attempt) => Math.max(best, attempt.peakProgress), 0),
+      best_value: null,
+      best_label: this.cfg.bestLabel,
+      compensation_counts: counts,
+      hold_pass_count: this.attempts.filter(attempt => attempt.completed).length,
+      not_attempted: !result.measured,
+      assisted: this.attempts.some(attempt => attempt.assist !== null),
+      chair_back: Boolean(this.opts.chairBack),
+      score: null,
+      wrap: skipped ? ASSESSMENT_LINES.skipped : ASSESSMENT_LINES.done,
+      finished_at: new Date().toISOString(),
+      assessment: result,
+    };
+    this.phase = "done";
+    this.prompt = "";
+    this.idleAsked = false;
+    // Skipped before any attempt, nothing is said (as an exercise skipped before its first repetition).
+    if (!skipped) this.voice.say(ASSESSMENT_LINES.done);
   }
 }
 
