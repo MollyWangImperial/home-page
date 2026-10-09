@@ -10,7 +10,7 @@ const DOMAINS: Domain[] = ["upper_limb", "hand", "lower_limb"];
 /** A level target in its own unit: degrees for angles, shoulder widths for the slide and carry. */
 const targetText = (value: number, metric: string) => {
   const unit = metricUnitName(metric);
-  return unit === "degrees" ? `${value}°` : unit === "percent" ? `${value}%` : `${value} ${unit}`;
+  return unit === "degrees" ? `${value}°` : unit.startsWith("percent") ? `${value}%` : `${value} ${unit}`;
 };
 
 /** Settings panel: open each launch exercise on its own, at any rung, to test it one by one. */
