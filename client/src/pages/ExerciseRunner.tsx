@@ -16,7 +16,7 @@ import { MouthHold, type MouthHoldResult } from "@/lib/exercise-engine/mouth-hol
 import { CupTrack } from "@/lib/exercise-engine/cup-track";
 import { affectedHand, drawHandDemo, drawHandZone, drawRingLabel, followZone, handCovers, handDemoState, handGhostContact, handGhostTarget, handOpenFrame, handOpenness, handRingTarget, handZone, inHandZone, palmFacing, palmRing, REST_OPEN_MAX, startLimit, waiveLimit, type HandZone } from "@/lib/exercise-engine/hand-target";
 import { CupCarry, drawCup, drawGraspDemo, drawGraspGhost, followLayout, graspDemoState, GRASP_STEP, graspFrame, graspGhostContact, graspGhostTarget, graspHand, graspLapRadius, graspLayout, graspPoint, graspRings, graspTarget, type GraspLayout } from "@/lib/exercise-engine/grasp-target";
-import { dialCircle, drawKneeDemo, drawKneeDial, followDial, KNEE_STEP, kneeDemoState, kneeDial, kneeFrame, kneeGhostContact, kneeGhostTarget, kneePracticeGoal, kneeRestCheck, KneeTarget, type KneeDial } from "@/lib/exercise-engine/knee-target";
+import { dialCircle, drawKneeDemo, drawKneeDial, drawKneeGuide, drawKneeScene, followDial, KNEE_STEP, kneeDemoState, kneeDial, kneeFrame, kneeGhostContact, kneeGhostTarget, kneeGuide, kneePracticeGoal, kneeRestCheck, KneeTarget, type KneeDial } from "@/lib/exercise-engine/knee-target";
 import { drawSlideDemo, drawSlideDial, drawSlideGhost, followSlideDial, slideDemoState, slideDial, slideDialCircle, slideFrame, slideGhostContact, slideGhostTarget, slidePracticeGoal, slideRestCheck, SLIDE_STEP, SlideTarget, type SlideDial } from "@/lib/exercise-engine/slide-target";
 import { drawPeg, drawPegTray, drawPinchDemo, drawPinchGhost, gapOf, imageGap, pegsDropped, pinchCircle, pinchDemoState, PINCH_FINGERS, pinchFinger, pinchFrame, pinchGap, pinchGhostContact, pinchGhostTarget, pinchHand, pinchPracticeGoal, PinchTarget, startGap, tipAlong, TOUCH_CLOSURE, trayPoint, type PinchStep } from "@/lib/exercise-engine/pinch-target";
 import { LightingProbe, type Lighting } from "@/lib/exercise-engine/lighting";
@@ -63,7 +63,8 @@ const GRASP_HAND_HINT = "Rest your hand on your thigh where the camera can see y
 const KNEE_ID = "ex_lower_selective";
 const KNEE_LABELS = ["Straighten", "Foot down"];
 const KNEE_STEPS = ["Straighten", "Lower"];
-const KNEE_DIAL_HINT = "Move the camera so you are in the middle of the picture, with space beside your knees.";
+/** The knee dial sits beside the affected shoulder: set-up waits for room for it there. */
+const KNEE_DIAL_HINT = "Move the camera back a little, or sit nearer the middle of the picture, so there is space beside your shoulder.";
 /** Supported Arm Elevation (a table slide): the slide dial's circle labels and the step names in the coach card. */
 const SLIDE_ID = "ex_wallslide";
 const SLIDE_LABELS = ["Slide", "Back"];
@@ -242,8 +243,10 @@ export default function ExerciseRunner() {
       if (grasp) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawGraspGhost(ctx, state.stepIndex, pose, canvas.width, canvas.height); }
       else if (pinch) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawPinchGhost(ctx, pinchStepOf(cfg.cycle, state.stepIndex), pose, canvas.width, canvas.height); }
       else if (cfg.id === SLIDE_ID) drawSlideGhost(ctx, pose, canvas.width, canvas.height);
+      // Seated Knee Extension: the front view, its arrow and its knee dial (the circle is the dial's).
+      else if (cfg.id === KNEE_ID) drawKneeScene(ctx, canvas.width, canvas.height, { progress: pose, lowering: state.kind === "return", side: opts.side, arrow: (state.phase === "warm" || state.phase === "reps") && !state.review, armed: state.targetArmed, now: performance.now(), reducedMotion: true });
       else drawGhost(ctx, cfg.ghost, pose, canvas.width, canvas.height);
-      const target = grasp ? graspGhostTarget(canvas.width, canvas.height, state.stepIndex) : pinch ? pinchGhostTarget(canvas.width, canvas.height, pinchStepOf(cfg.cycle, state.stepIndex)) : ghostTargetFor(cfg.id)(canvas.width, canvas.height, state.kind === "return");
+      const target = grasp ? graspGhostTarget(canvas.width, canvas.height, state.stepIndex) : pinch ? pinchGhostTarget(canvas.width, canvas.height, pinchStepOf(cfg.cycle, state.stepIndex)) : cfg.id === KNEE_ID ? kneeGhostTarget(canvas.width, canvas.height, state.kind === "return", opts.side) : ghostTargetFor(cfg.id)(canvas.width, canvas.height, state.kind === "return");
       if ((state.phase === "warm" || state.phase === "reps") && !state.review && !state.awaitingReady) drawTestingTarget(ctx, { ...target, armed: state.targetArmed, contact: state.inZone && state.targetArmed, progress: state.holdProgress, now: performance.now(), reducedMotion: true });
     }
     const demo = ghostRef.current;
@@ -251,9 +254,10 @@ export default function ExerciseRunner() {
     if (state.phase === "demo" && demo && demoContext) {
       if (grasp) drawGraspDemo(demoContext, state.demoStepElapsedMs, Math.max(0, state.demoStepIndex), demo.width, demo.height, performance.now(), true, state.targetArmed);
       else if (pinch) drawPinchDemo(demoContext, state.demoStepElapsedMs, pinchStepOf(cfg.cycle, state.demoStepIndex), demo.width, demo.height, performance.now(), true, state.targetArmed);
+      else if (cfg.id === KNEE_ID) drawKneeDemo(demoContext, state.demoStepElapsedMs, state.kind === "return", demo.width, demo.height, performance.now(), true, state.targetArmed, opts.side);
       else drawDemoFor(cfg.id)(demoContext, state.demoStepElapsedMs, state.kind === "return", demo.width, demo.height, performance.now(), true, state.targetArmed);
     }
-  }, [preview, cfg]);
+  }, [preview, cfg, opts.side]);
 
   // ---------- the frame loop ----------
 
@@ -329,7 +333,7 @@ export default function ExerciseRunner() {
           const graspNow = session.cfg.id === "ex_grasp", kneeNow = session.cfg.id === KNEE_ID;
           // Seated Knee Extension: the knee dial follows the leg during set-up and stays where it was learned; the
           // lighting is checked there too, as for grasp and transport.
-          // The dial as this frame places it: set-up waits until it fits beside the knee now, not only once before.
+          // The dial as this frame places it: set-up waits until it fits beside the shoulder now, not only once before.
           const dialNow = kneeNow && now.phase === "setup" ? kneeDial(tracked.pose, opts.side, video.videoWidth / video.videoHeight) : null;
           // Supported Arm Elevation: the slide dial follows the shoulder during set-up in the same way, with the lighting.
           const slideNow = session.cfg.id === SLIDE_ID;
@@ -666,6 +670,9 @@ export default function ExerciseRunner() {
             const repKey = `${currentSnapshot.phase}:${currentSnapshot.repIndex}`;
             if (kneeLast.current?.key === repKey && kneeLast.current.step !== step) kneeDone.current = { key: repKey, step: kneeLast.current.step, startedAt: t };
             kneeLast.current = { key: repKey, step };
+            // The arrow at the foot: which way to straighten (out to the side, where the camera sees the knee move).
+            const guide = kneeGuide(session.reference, dial, canvas.width / canvas.height);
+            if (guide) drawKneeGuide(ctx, guide, canvas.width, canvas.height, { lowering: currentSnapshot.kind === "return", emphasis: currentSnapshot.targetArmed && frame.targetContact !== true, now: t, reducedMotion: reduced });
             drawKneeDial(ctx, dial, canvas.width, canvas.height, { progress: kneeShown.current?.progress ?? 0, lowering: currentSnapshot.kind === "return", armed: currentSnapshot.targetArmed, contact: frame.targetContact === true, hold: currentSnapshot.holdProgress, label: KNEE_LABELS[step] ?? "", now: t, reducedMotion: reduced });
             const done = kneeDone.current;
             if (done?.key === repKey && t - done.startedAt < TARGET_COMPLETION_MS) drawTargetCompletion(ctx, { ...dialCircle(dial, done.step === KNEE_STEP.lower, canvas.width, canvas.height), elapsed: t - done.startedAt, reducedMotion: reduced });
@@ -720,7 +727,7 @@ export default function ExerciseRunner() {
           roms: session.cfg.romSteps.map(rom => ({ label: rom.label, value: frame!.values[rom.metric], target: targets[rom.id], start: usesTargetFlow(session.cfg.id) ? snapshot.startingAngles[rom.id] ?? NaN : 0, unit: "°", scale: metricUnit(rom.metric), units: metricUnitName(rom.metric) })),
           comps: session.cfg.compensations.map(comp => ({ label: comp.label, value: compensationStatus(frame!.comps, comp).ratio, limit: 1 })),
         });
-        drawGhostFor(ghostRef.current, session, snapshot, opts.sim ? simRef.current.level : snapshot.liveAttainment);
+        drawGhostFor(ghostRef.current, session, snapshot, opts.sim ? simRef.current.level : snapshot.liveAttainment, opts.side);
         if (snapshot.phase === "done") {
           void debugRecorderRef.current?.finish();
           // Release the camera but let the wrap-up sentence finish speaking.
@@ -998,7 +1005,7 @@ export default function ExerciseRunner() {
 
                   </div>
                   <p className="xe-hint">{snap.awaitingReady ? "Show me your palm in the shaded area to begin" : !snap.targetArmed ? "Listen to the instruction. Wait for the circle to become active." : cfg.id === "ex_grasp" ? snap.inZone ? "Hold it there..." : GRASP_HINTS[snap.stepIndex] ?? ""
-                    : cfg.id === KNEE_ID ? snap.kind === "return" ? "Lower your foot slowly to the floor and pause" : snap.inZone ? "Hold it there..." : "Straighten your knee until the foot on the knee dial reaches the circle"
+                    : cfg.id === KNEE_ID ? snap.kind === "return" ? "Lower your foot slowly to the floor and pause" : snap.inZone ? "Hold it there..." : "Straighten your knee, swinging your foot out along the arrow, until the knee dial reaches its circle"
                     : cfg.id === PINCH_ID ? snap.kind === "return" ? "Open your thumb and finger to let the peg drop into the tray" : snap.inZone ? "Hold the peg..." : `Bring your thumb to your ${PINCH_FINGERS[pinchStepOf(cfg.cycle, snap.stepIndex).finger].name}, tip to tip, in the circle`
                     : cfg.id === SLIDE_ID ? snap.kind === "return" ? "Slide your hand back to where it started and pause" : snap.inZone ? "Hold it there..." : "Slide your hand forward until the hand on the slide dial reaches the circle"
                     : cfg.id === "ex_handopen" ? snap.kind === "return" ? "Close your hand into the small circle and pause" : snap.inZone ? "Hold it there..." : "Open your fingers out to the ring, keeping your wrist straight" : snap.kind === "return" || snap.kind === "close" ? "Return your hand to the lap circle and pause" : snap.inZone ? "Hold it there..." : cfg.id === "ex_h2m" ? "Bring your hand to the mouth circle, keeping your head up" : "Reach your hand into the target ring"}</p>
@@ -1042,7 +1049,7 @@ export default function ExerciseRunner() {
               </div>
             ) : snap.phase !== "demo" ? <div className="xe-card xe-live">
               <h3>Movement</h3>
-              {!snap.targetsReady && <p className="xe-note">{cfg.id === "ex_handopen" ? "Hold your hand open at the practice ring so I can learn your movement goals." : cfg.id === KNEE_ID ? "Straighten your knee to the practice circle and hold so I can learn your movement goal." : cfg.id === SLIDE_ID ? "Slide your hand to the practice circle and hold so I can learn your movement goals." : cfg.id === PINCH_ID ? "Bring your thumb to the practice circle and hold so I can learn your pinch for each finger." : usesTargetFlow(cfg.id) ? "Hold at the practice circle so I can learn your movement goals." : "Learning your starting position. Your movement goals will appear after practice."}</p>}
+              {!snap.targetsReady && <p className="xe-note">{cfg.id === "ex_handopen" ? "Hold your hand open at the practice ring so I can learn your movement goals." : cfg.id === KNEE_ID ? "Straighten your knee out along the arrow until the knee dial reaches its practice circle, and hold so I can learn your movement goal." : cfg.id === SLIDE_ID ? "Slide your hand to the practice circle and hold so I can learn your movement goals." : cfg.id === PINCH_ID ? "Bring your thumb to the practice circle and hold so I can learn your pinch for each finger." : usesTargetFlow(cfg.id) ? "Hold at the practice circle so I can learn your movement goals." : "Learning your starting position. Your movement goals will appear after practice."}</p>}
               {viewLive.roms.map(r => <MetricBar key={r.label} label={r.label} value={r.value} threshold={r.target} start={r.start} scale={r.scale} units={r.units} ready={snap.targetsReady} personalized={usesTargetFlow(cfg.id)} pending={cfg.id === "ex_handopen" ? "Keep opening" : cfg.id === KNEE_ID ? "Keep straightening" : cfg.id === SLIDE_ID ? "Keep sliding" : cfg.id === PINCH_ID ? "Keep closing" : undefined} />)}
               {viewLive.comps.map(c => <MetricBar key={c.label} label={c.label} value={c.value} threshold={c.limit} ready={snap.targetsReady} limit />)}
             </div> : null}
@@ -1165,7 +1172,7 @@ function Intro(props: { base: (typeof EXERCISES)[string]; cfg: ReturnType<typeof
         : base.id === PINCH_ID ? "Rest your elbow on an armrest or table and hold your hand up in the shaded area beside your body, at chest height, palm to the camera. The peg and tray are drawn on screen. Have good light in front of you."
         : "Hold the hand close to the camera with every fingertip in view."}</p>}
       {base.id === SLIDE_ID && !opts.sim && <p className="xe-note"><Hand size={14} aria-hidden="true" /> Sit at the corner of a table so it is beside your affected side, forearm resting on a towel and your other hand on your thigh. Place the camera in front of you at chest height, above the table, so you are in view from your head to your thighs, with good light in front of you.</p>}
-      {base.id === KNEE_ID && !opts.sim && <p className="xe-note"><Footprints size={14} aria-hidden="true" /> Place the camera about 2 metres in front of you at knee to hip height, so you are in view from your head to your feet while you sit. Use a stable chair with a back, keep a carer nearby, and have good light in front of you.</p>}
+      {base.id === KNEE_ID && !opts.sim && <p className="xe-note"><Footprints size={14} aria-hidden="true" /> Place the camera about 2 metres in front of you at knee to hip height, so you are in view from your head to your feet while you sit. Use a stable chair with a back, keep a carer nearby, and have good light in front of you. When you straighten your knee, swing your foot a little out to the side, as the arrow shows: straight toward the camera, it can hardly see your knee move.</p>}
       {base.domain === "lower_limb" && base.id !== KNEE_ID && !opts.sim && <p className="xe-note">Lower-limb tracking seated and front-on is unverified. If the angles look unstable, try the simulator or a side-on phone position.</p>}
       <div className="xe-actions">
         <button className="xe-primary" onClick={onStart}>{opts.sim ? <Play size={16} aria-hidden="true" /> : <Camera size={16} aria-hidden="true" />} Start · {reps} reps · {LEVEL_LABEL[opts.rung]}</button>
@@ -1387,12 +1394,18 @@ function drawOverlay(canvas: HTMLCanvasElement | null, video: HTMLVideoElement, 
   }
 }
 
-function drawGhostFor(canvas: HTMLCanvasElement | null, session: ExerciseSession, snap: Snapshot, level: number) {
+function drawGhostFor(canvas: HTMLCanvasElement | null, session: ExerciseSession, snap: Snapshot, level: number, side: Side = "right") {
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   let p = Math.min(1, Math.max(0, level));
+  const knee = session.cfg.id === KNEE_ID;
   if (snap.phase === "demo") {
+    if (knee) {
+      // The knee's front-view demonstration shows the patient's own affected side, as the mirror does.
+      drawKneeDemo(ctx, snap.demoStepElapsedMs, session.cfg.cycle[snap.demoStepIndex]?.kind === "return", canvas.width, canvas.height, performance.now(), window.matchMedia("(prefers-reduced-motion: reduce)").matches, snap.targetArmed, side);
+      return;
+    }
     if (session.cfg.id === "ex_grasp") {
       drawGraspDemo(ctx, snap.demoStepElapsedMs, Math.max(0, snap.demoStepIndex), canvas.width, canvas.height, performance.now(), window.matchMedia("(prefers-reduced-motion: reduce)").matches, snap.targetArmed);
       return;
@@ -1419,9 +1432,10 @@ function drawGhostFor(canvas: HTMLCanvasElement | null, session: ExerciseSession
   if (grasp) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawGraspGhost(ctx, snap.stepIndex, p, canvas.width, canvas.height); }
   else if (pinch) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawPinchGhost(ctx, pinchStepOf(session.cfg.cycle, snap.stepIndex), p, canvas.width, canvas.height); }
   else if (session.cfg.id === SLIDE_ID) drawSlideGhost(ctx, p, canvas.width, canvas.height);
+  else if (knee) drawKneeScene(ctx, canvas.width, canvas.height, { progress: p, lowering: snap.kind === "return", side, arrow: (snap.phase === "warm" || snap.phase === "reps") && !snap.review, armed: snap.targetArmed, now: performance.now(), reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
   else drawGhost(ctx, session.cfg.ghost, p, canvas.width, canvas.height);
   if (usesTargetFlow(session.cfg.id) && (snap.phase === "warm" || snap.phase === "reps") && !snap.review) {
-    drawTestingTarget(ctx, { ...(grasp ? graspGhostTarget(canvas.width, canvas.height, snap.stepIndex) : pinch ? pinchGhostTarget(canvas.width, canvas.height, pinchStepOf(session.cfg.cycle, snap.stepIndex)) : ghostTargetFor(session.cfg.id)(canvas.width, canvas.height, snap.kind === "return")), armed: snap.targetArmed, contact: snap.targetArmed && snap.inZone, progress: snap.holdProgress, now: performance.now(), reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
+    drawTestingTarget(ctx, { ...(grasp ? graspGhostTarget(canvas.width, canvas.height, snap.stepIndex) : pinch ? pinchGhostTarget(canvas.width, canvas.height, pinchStepOf(session.cfg.cycle, snap.stepIndex)) : knee ? kneeGhostTarget(canvas.width, canvas.height, snap.kind === "return", side) : ghostTargetFor(session.cfg.id)(canvas.width, canvas.height, snap.kind === "return")), armed: snap.targetArmed, contact: snap.targetArmed && snap.inZone, progress: snap.holdProgress, now: performance.now(), reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
   }
 }
 
@@ -1484,7 +1498,7 @@ function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Dete
       { id: "hips", label: "Both hips", visible: both(joints.hip, joints.hipOther), hint: "Sit facing the camera so I can see both hips." },
       { id: "knees", label: "Both knees", visible: both(joints.knee, joints.kneeOther), hint: "Move the camera back so I can see both knees." },
       { id: "feet", label: "Both feet", visible: both(joints.ankle, joints.ankleOther), hint: "Move the camera back, or tilt it down, so I can see both feet." },
-      // Set-up also waits for room beside the knee for the knee dial: the row says so rather than showing green.
+      // Set-up also waits for room beside the shoulder for the knee dial: the row says so rather than showing green.
       { id: "position", label: "Feet flat, space around you", visible: Boolean(position.lapRest) && lightingInfo?.dialFits !== false, hint: position.lapMissing ?? (lightingInfo?.dialFits === false ? KNEE_DIAL_HINT : "Sit tall with both feet flat on the floor.") },
       { id: "lighting", label: lightingInfo?.waived && light && !light.ok ? "Lighting (could be better)" : "Lighting", visible: Boolean(light?.ok || lightingInfo?.waived), hint: light?.hint ?? "Checking the light..." },
     ];

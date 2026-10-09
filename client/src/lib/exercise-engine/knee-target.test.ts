@@ -5,7 +5,7 @@ import { reachDemoState } from "./reach-demo";
 import { exerciseScreenPreview } from "./screen-preview";
 import { ExerciseSession, simFrame, type Snapshot } from "./session";
 import {
-  DIAL_GOAL_DEG, dialPoint, kneeDemoDuration, kneeDemoState, kneeDial, kneeFrame, kneeGhostContact, kneeGhostTarget,
+  DIAL_GOAL_DEG, dialPoint, kneeDemoDuration, kneeDemoState, kneeDial, kneeFrame, kneeGhostContact, kneeGhostTarget, kneeGuide,
   kneePracticeGoal, kneeRestCheck, KneeTarget, KNEE_EASE_MS, KNEE_EASED_DEG, KNEE_HYSTERESIS_DEG,
 } from "./knee-target";
 
@@ -110,19 +110,42 @@ describe("Seated Knee Extension on the shared target flow", () => {
     expect(kneeRestCheck(kneeBody(side, { knee: 178, otherKnee: 178 }), side, ASPECT).lapMissing).toBe("Sit down on a chair facing the camera, with your knees bent and both feet flat on the floor.");
     expect(kneeRestCheck(null, side, ASPECT).lapMissing).toBeDefined();
   });
-  it.each(SIDES)("puts the knee dial beside the affected knee, outside the legs and inside the picture (%s side)", side => {
+  it.each(SIDES)("puts the knee dial beside the affected shoulder at chest height, out from the body and inside the picture (%s side)", side => {
     const pose = kneeBody(side), j = poseJoints(side);
     const dial = kneeDial(pose, side, ASPECT)!;
-    const knee = at(pose, j.knee), other = at(pose, j.kneeOther);
-    // Outside the affected knee (away from the other knee).
-    expect((dial.pivot.x - knee.x) * Math.sign(knee.x - other.x)).toBeGreaterThan(0);
-    expect(dial.pivot.y).toBeCloseTo(knee.y);
+    const shoulder = at(pose, j.shoulder), other = at(pose, j.shoulderOther), hip = at(pose, j.hip);
+    const out = Math.sign(shoulder.x - other.x);
+    expect(dial.out).toBe(out);
+    // Out past the affected shoulder (away from the other one), between the shoulders and the hips.
+    expect((dial.pivot.x - shoulder.x) * out).toBeGreaterThan(0);
+    expect(dial.pivot.y).toBeGreaterThan(shoulder.y);
+    expect(dial.pivot.y).toBeLessThan(hip.y);
     // Resting: the dial's foot straight below its knee; at the goal, out to the side, still in the picture.
     const down = dialPoint(dial, 0, ASPECT), goal = dialPoint(dial, DIAL_GOAL_DEG, ASPECT);
     expect(down.x).toBeCloseTo(dial.pivot.x);
     expect(down.y).toBeGreaterThan(dial.pivot.y);
     expect((goal.x - dial.pivot.x) * dial.out).toBeGreaterThan(0);
     for (const p of [down, goal]) { expect(p.x).toBeGreaterThan(0); expect(p.x).toBeLessThan(1); expect(p.y).toBeLessThan(1); }
+    // Clear of the leg: the whole dial sits above the knee.
+    expect(down.y + 0.3 * dial.radius).toBeLessThan(at(pose, j.knee).y + 0.02);
+  });
+  it.each(SIDES)("points the arrow from the resting foot out to the affected side and up, toward beside the knee (%s side)", side => {
+    const pose = kneeBody(side), j = poseJoints(side);
+    const geo = kneeFrame({ pose }, side, 0, ASPECT, null).geo!;
+    const dial = kneeDial(pose, side, ASPECT)!;
+    const guide = kneeGuide(geo, dial, ASPECT)!;
+    const ankle = at(pose, j.ankle), knee = at(pose, j.knee);
+    expect(Math.hypot((guide.start.x - ankle.x) * ASPECT, guide.start.y - ankle.y)).toBeLessThan(0.2 * guide.shin);
+    // Out to the same side as the dial, and higher than the resting foot, below the knee.
+    expect((guide.end.x - ankle.x) * dial.out).toBeGreaterThan(0.5 * guide.shin / ASPECT);
+    expect(guide.end.y).toBeLessThan(ankle.y);
+    expect(guide.end.y).toBeGreaterThan(knee.y);
+    expect(kneeGuide(null, dial, ASPECT)).toBeNull();
+    // Near the edge of the picture the arrow reaches less far out, so it stays in view.
+    const nearEdge = { ...geo, kneeImgX: dial.out > 0 ? 0.9 : 0.1, ankleImgX: dial.out > 0 ? 0.9 : 0.1 };
+    const short = kneeGuide(nearEdge, dial, ASPECT)!;
+    expect(short.end.x).toBeGreaterThan(0.03);
+    expect(short.end.x).toBeLessThan(0.97);
   });
   it("sets a modest practice goal from the resting knee", () => {
     expect(kneePracticeGoal(90)).toBe(118);
@@ -239,6 +262,20 @@ describe("Seated Knee Extension demonstration, simulator and previews", () => {
     expect(kneeGhostTarget(300, 270, returning).radius).toBeGreaterThan(0);
     expect(kneeGhostContact(returning ? 0 : 1, returning)).toBe(true);
     expect(kneeGhostContact(0.5, returning)).toBe(false);
+  });
+  it("shows the circle on the demonstration's knee dial beside the shoulder, on the affected side, not at the foot", () => {
+    const right = kneeGhostTarget(300, 270, false, "right"), left = kneeGhostTarget(300, 270, false, "left");
+    // Mirrored for the other side, up by the shoulder (the figure's feet are near the bottom).
+    expect(left.x).toBeCloseTo(300 - right.x);
+    expect(right.x).toBeGreaterThan(200);
+    expect(right.y).toBeLessThan(150);
+    // The goal circle is out to the side of the resting one, which is below the dial's knee.
+    const rest = kneeGhostTarget(300, 270, true, "right");
+    expect(right.x).toBeGreaterThan(rest.x);
+    expect(rest.y).toBeGreaterThan(right.y);
+    // The circle is reached as the demonstration's dial foot gets there, before the hold.
+    const at = kneeDemoState(kneeDemoDuration(false) - 1, false);
+    expect(at.target[0]).toBeCloseTo(right.x);
   });
   it("previews its two steps, the set-up checks with the lighting, and the results", () => {
     expect(exerciseScreenPreview("warm-reach", 1, "right", ID).snapshot).toMatchObject({ kind: "reach", stepIndex: 0, stepCount: 2 });
