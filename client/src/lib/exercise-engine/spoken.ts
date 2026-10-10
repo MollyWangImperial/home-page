@@ -36,7 +36,7 @@ export const bodyInViewLine = (finalRep: boolean) =>
   `Keep your whole body, from your head to your feet, in view so I can check your posture${finalRep ? "." : " on the next repetition."}`;
 /** Supported Arm Elevation's version when only its hand checks were missed (the body was in view). */
 export const slideHandsInViewLine = (finalRep: boolean) =>
-  `Keep both hands in view, one resting beside you and one on your thigh, so I can check them${finalRep ? "." : " on the next repetition."}`;
+  `Keep both hands in view, one resting beside you and the other on your thigh or armrest, so I can check them${finalRep ? "." : " on the next repetition."}`;
 export const reachedTargetsLine = (finalRep: boolean) =>
   finalRep ? "You reached the movement targets with a smooth movement." : "You reached the movement targets. Keep the same smooth movement on your next repetition.";
 export const finalRepAdvice = (say: string) => say.replace("On the next repetition, try", "Try").replace(" on the next try", "");

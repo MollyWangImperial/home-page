@@ -5,8 +5,8 @@ import { reachDemoState } from "./reach-demo";
 import { ExerciseSession, simFrame, type Snapshot } from "./session";
 import { exerciseScreenPreview } from "./screen-preview";
 import {
-  restCircle, slideCircle, slideDemoDuration, slideDemoState, slideFrame, slideGhostContact, slideGhostPose, slideGhostTarget,
-  slideOutward, slideRestCheck, SlideTarget, SLIDE_EASE_MS, SLIDE_EASED_SPANS, SLIDE_PRACTICE_SPANS, SLIDE_RISE, type SlideGeo,
+  OTHER_REST_HINT, restCircle, slideCircle, slideDemoDuration, slideDemoState, slideFrame, slideGhostArm, slideGhostContact, slideGhostPose,
+  slideGhostTarget, slideOutward, slideRestCheck, slideRestPrompt, SlideTarget, SLIDE_EASE_MS, SLIDE_EASED_SPANS, SLIDE_PRACTICE_SPANS, SLIDE_RISE, type SlideGeo,
 } from "./slide-target";
 
 const ASPECT = 4 / 3;
@@ -122,10 +122,28 @@ describe("Supported Arm Elevation set-up and measures", () => {
     expect(slideRestCheck(slideBody(side, { camera: { y: 0.05, z: 1.6 } }), side, ASPECT).lapMissing).toBe("Raise the camera to chest height, above your forearm.");
     // The forearm not resting beside the body (the hand down by the lap).
     expect(slideRestCheck(slideBody(side, { liftM: -0.2 }), side, ASPECT).lapMissing).toMatch(/table beside you or on the armrest/);
-    // The other hand off its thigh.
-    expect(slideRestCheck(slideBody(side, { otherHand: [0, 0.3, 0] }), side, ASPECT).lapMissing).toBe("Rest your other hand on your thigh.");
+    // The other hand up off its thigh, at the chest.
+    expect(slideRestCheck(slideBody(side, { otherHand: [0, 0.3, 0] }), side, ASPECT).lapMissing).toBe(OTHER_REST_HINT);
     // Sitting too far toward the affected side: no room beside the arm for the cup.
     expect(slideRestCheck(slideBody(side, { shiftM: 0.22 }), side, ASPECT).lapMissing).toMatch(/room beside your arm for the cup/);
+  });
+  it.each(SIDES)("accepts a hand resting at the front end of a low armrest, out beside the thigh, but not one down at the lap (%s side)", side => {
+    expect(slideRestCheck(slideBody(side, { liftM: -0.1, outM: 0.12 }), side, ASPECT).lapRest).toBeDefined();
+    expect(slideRestCheck(slideBody(side, { liftM: -0.1 }), side, ASPECT).lapMissing).toBe(slideRestPrompt(side));
+  });
+  it.each(SIDES)("passes set-up with the other hand on the chair's other armrest (%s side)", side => {
+    // Out to the other side, at the support's height and as far forward (a recorded armrest hand sat a third of the
+    // torso above the hip).
+    expect(slideRestCheck(slideBody(side, { otherHand: [-0.1, 0.14, -0.04] }), side, ASPECT).lapRest).toBeDefined();
+  });
+  it.each(SIDES)("asks for room for the practice cup only, not a whole shoulder width more (%s side)", side => {
+    // Sitting a little toward the affected side still leaves room for the cup at its practice distance.
+    const near = slideBody(side, { shiftM: 0.15 });
+    expect(slideRestCheck(near, side, ASPECT).lapRest).toBeDefined();
+    const rest = slideRestCheck(near, side, ASPECT).lapRest!, out = slideOutward(near, side)!;
+    const cup = slideCircle(rest, out, SLIDE_PRACTICE_SPANS, ASPECT);
+    expect(cup.x - cup.radius * (out < 0 ? 1 : -1) / ASPECT).toBeGreaterThan(0);
+    expect(cup.x + cup.radius / ASPECT).toBeLessThan(1);
   });
   it.each(SIDES)("measures the hand moving out across the picture, in shoulder widths (%s side)", side => {
     expect(measured(side).values.slide_out!).toBeCloseTo(0, 5);
@@ -150,7 +168,12 @@ describe("Supported Arm Elevation set-up and measures", () => {
     expect(measured(side, { outM: 0.15, leanDeg: 12 }).comps.trunk_approach_pct!).toBeGreaterThan(6);
     expect(measured(side, { outM: 0.15, sideDeg: 10 }).comps.trunk_side_lean_delta!).toBeGreaterThan(8);
     expect(measured(side, { outM: 0.15, hikeM: 0.06 }).comps.shoulder_hike_rel_delta!).toBeGreaterThan(7);
-    expect(measured(side, { outM: 0.15, liftM: 0.06 }).comps.hand_lift_pct!).toBeGreaterThan(13);
+    // A clear lift off the table counts; the small lift of a clean reach (a recorded one rose 20 to 23% of the span)
+    // stays under the check's threshold.
+    const lift = rule("hand_lift").thresholdDeg;
+    expect(measured(side, { outM: 0.15, liftM: 0.16 }).comps.hand_lift_pct!).toBeGreaterThan(lift);
+    expect(measured(side, { outM: 0.15, liftM: 0.08 }).comps.hand_lift_pct!).toBeGreaterThan(20);
+    expect(measured(side, { outM: 0.15, liftM: 0.08 }).comps.hand_lift_pct!).toBeLessThan(lift);
     expect(measured(side, { outM: 0.12, otherHand: [0.32, 0.14, 0.1] }).comps.other_hand_pct!).toBeGreaterThan(100);
     expect(measured(side, { otherHand: [0, 0.2, 0] }).comps.other_hand_pct!).toBeGreaterThan(100);
   });
@@ -276,7 +299,7 @@ describe("Supported Arm Elevation session from camera landmarks", () => {
     ["trunk_forward", { leanDeg: 12 }],
     ["shoulder_hike", { hikeM: 0.06 }],
     ["side_lean", { sideDeg: 11 }],
-    ["hand_lift", { liftM: 0.06 }],
+    ["hand_lift", { liftM: 0.16 }],
     ["other_hand", { otherHand: [0.32, 0.14, 0.1] as P3 }],
   ] as const)("flags %s", (id, scored) => {
     for (const side of SIDES) {
@@ -293,9 +316,15 @@ describe("Supported Arm Elevation session from camera landmarks", () => {
     expect(said).toContain(lift.voice);
     expect(said).not.toContain(EXERCISES[ID].cycle[0].voice);
     expect(said.filter(line => /\btable\b/.test(line))).toEqual([]);
-    // The same lift along a table is flagged.
-    const table = cameraPatient(side, { scored: { liftM: 0.08 } }).session.snapshot().reps;
+    // Along a table only a clear lift is flagged.
+    const table = cameraPatient(side, { scored: { liftM: 0.16 } }).session.snapshot().reps;
     for (const rep of table) expect(rep.compensations).toContain("hand_lift");
+  });
+  it.each(SIDES)("along a table, the small lift of a clean reach to the cup is not a compensation (%s side)", side => {
+    // About 20% of the shoulder span, as in a recorded clean reach (which still reached the level cup).
+    expect(measured(side, { outM: 0.18, liftM: 0.065 }).comps.hand_lift_pct!).toBeGreaterThan(18);
+    const { session } = cameraPatient(side, { scored: { liftM: 0.065 } });
+    expect(session.snapshot().record?.repetition_scores).toEqual([100, 100]);
   });
   it("puts the armrest's cup out and a little up, the table's level", () => {
     const rest = restOf("right");
@@ -388,5 +417,23 @@ describe("Supported Arm Elevation demonstration", () => {
     expect(slideDemoState(0, false, true, true).instruction).toMatch(/lift/);
     expect(slideDemoState(0, false, true, false).instruction).toMatch(/slide/);
     expect(slideDemoState(slideDemoDuration(false, true) - 1, false, true, true).phase).toBe("complete");
+  });
+  it.each([false, true])("draws the arm resting down by the side, then reaching out with the elbow bending down and in (armrest=%s)", armrest => {
+    // Signed distance of the elbow from the shoulder-to-hand line: positive below and inside it (toward the body),
+    // negative out to the side, as the old chicken-wing elbow was.
+    const inside = (p: number) => {
+      const { shoulder: [sx, sy], elbow: [ex, ey], hand: [hx, hy] } = slideGhostArm(p, armrest);
+      const vx = hx - sx, vy = hy - sy;
+      return (vx * (ey - sy) - vy * (ex - sx)) / Math.hypot(vx, vy);
+    };
+    const rest = slideGhostArm(0, armrest);
+    // At rest the elbow hangs well below the shoulder, close to the shoulder-to-hand line (the forearm points at the camera).
+    expect(rest.elbow[1] - rest.shoulder[1]).toBeGreaterThan(50);
+    expect(Math.abs(inside(0))).toBeLessThan(12);
+    // Reaching out, it bends down and in, never out to the side.
+    for (const p of [0.5, 0.75, 1]) expect(inside(p), `p=${p}`).toBeGreaterThan(0);
+    // At the cup the arm is nearly straight.
+    const at = slideGhostArm(1, armrest), upper = Math.hypot(at.elbow[0] - at.shoulder[0], at.elbow[1] - at.shoulder[1]), fore = Math.hypot(at.hand[0] - at.elbow[0], at.hand[1] - at.elbow[1]);
+    expect(upper + fore).toBeLessThan(1.03 * Math.hypot(at.hand[0] - at.shoulder[0], at.hand[1] - at.shoulder[1]));
   });
 });

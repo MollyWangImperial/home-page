@@ -6,11 +6,12 @@ import { TARGET_COMPLETION_MS, TARGET_HOLD_MS } from "./target-timing";
 import { drawTargetCompletion, drawTestingTarget } from "./target-visual";
 
 // Supported Arm Elevation on the shared target flow. The forearm rests on a table beside the affected side (a
-// supported slide along it) or on the chair's armrest (lifted from it), the other hand on its thigh, a front camera
-// at chest height seeing the head to the thighs. The hand moves out to the side and a little forward (the scapular
-// plane, the usual safe plane for shoulder elevation after stroke) toward a cup drawn in a target circle, with an
-// arrow showing the way. Most of that movement is across the picture, so the hand's place on screen measures it and
-// decides the circle, as for Graded Forward Reach; a hand moving toward the camera would only change its depth.
+// supported slide along it) or on the chair's armrest (lifted from it), the other hand on its thigh or the other
+// armrest, a front camera at chest height seeing the head to the thighs. The hand moves out to the side and a little
+// forward (the scapular plane, the usual safe plane for shoulder elevation after stroke) toward a cup drawn in a
+// target circle, with an arrow showing the way. Most of that movement is across the picture, so the hand's place on
+// screen measures it and decides the circle, as for Graded Forward Reach; a hand moving toward the camera would only
+// change its depth.
 // Positions are raw (unmirrored) image coordinates: x in frame widths, y in frame heights; lengths in frame heights.
 
 type P2 = { x: number; y: number };
@@ -34,8 +35,12 @@ const CIRCLE_SPAN = 0.22, CIRCLE_MIN = 0.045, CIRCLE_MAX = 0.1;
 const CIRCLE_APART = 0.4;
 /** Once in a circle, the hand stays in it until it is this much further out (a hold is not lost to a flicker). */
 const CIRCLE_STAY = 1.2;
-/** Set-up needs room beside the arm for a cup this far out (shoulder spans), with its circle. */
-const ROOM_SPANS = 0.95;
+/**
+ * Set-up needs room beside the arm for the practice cup and its circle, plus this margin (shoulder spans) for a hand
+ * that goes a little past it. The cup never sits further out than the practice distance, so asking for more room
+ * would only make people sit further back than they need to.
+ */
+const ROOM_MARGIN_SPANS = 0.1;
 
 /**
  * How far the cup sits above the resting hand for each shoulder span out: level along a table (the hand slides on
@@ -120,11 +125,11 @@ export function slideOut(pose: PoseInput, ref: SlideGeo | null, side: Side, aspe
 /**
  * The slide's own compensation measures against the set-up reference:
  * - hand_lift_pct (table only): the affected hand higher in the picture than where it rested, in % of the shoulder
- *   span. Sliding along the table never raises the hand in the picture from a camera above the table (out to the
- *   side it stays level; the forward part brings it nearer the camera, which only lowers it), so a rise is the hand
- *   lifting off the support. The elbow rising is normal in a slide and is not counted.
+ *   span. A clean reach out to the cup lifts the hand a little (the arm straightens and the hand leaves the edge of
+ *   the support), so the check's threshold (config.ts) only counts a clear lift. The elbow rising is normal in a
+ *   slide and is not counted.
  * - other_hand_pct: the other hand helping, in % of its limit (100 at the limit): it travelled half a shoulder span
- *   from where it rested, or came within 0.4 of a span of the affected forearm.
+ *   from where it rested (its thigh or the other armrest), or came within 0.4 of a span of the affected forearm.
  */
 export function slideComps(pose: PoseInput, ref: SlideGeo | null, side: Side, aspect: number): Frame["comps"] {
   const out: Frame["comps"] = {};
@@ -148,11 +153,17 @@ export const slideRestOn = (support?: SlideSupport) =>
 /** The set-up instruction for the resting forearm. */
 export const slideRestPrompt = (side: Side, support?: SlideSupport) => `Rest your ${side === "left" ? "left" : "right"} forearm ${slideRestOn(support)}, with your elbow bent.`;
 
+/** How far above its hip (in torso lengths) the other hand may rest: on its thigh or on the chair's other armrest. */
+const OTHER_REST_ABOVE_HIP = 0.55;
+export const OTHER_REST_HINT = "Rest your other hand on your thigh or on the chair's other armrest.";
+export const OTHER_IN_VIEW_HINT = "Rest your other hand on your thigh or the other armrest, where the camera can see it.";
+
 /**
  * What set-up waits for, in the patient's words: head to thighs in view with room round the body and beside the arm
  * for the cup, the affected forearm resting beside the body (on a table or the armrest, above the lap), the other
- * hand on its thigh, and the camera above the support (seen from above, the resting hand sits no higher in the
- * picture than the elbow). `support` words the hints for the patient's choice (both when it is not known).
+ * hand resting on its thigh or the other armrest, and the camera above the support (seen from above, the resting
+ * hand sits no higher in the picture than the elbow). `support` words the hints for the patient's choice (both when
+ * it is not known).
  */
 export function slideRestCheck(pose: PoseInput | null, side: Side, aspect: number, support?: SlideSupport): { lapRest?: LapRest; lapMissing?: string } {
   if (!pose) return { lapMissing: "Sit in front of the camera so I can see you." };
@@ -164,7 +175,7 @@ export function slideRestCheck(pose: PoseInput | null, side: Side, aspect: numbe
   if (!seen(j.shoulder, j.shoulderOther)) return { lapMissing: "Move the camera back so I can see both shoulders." };
   if (!seen(j.hip, j.hipOther)) return { lapMissing: "Move the camera back so I can see both hips." };
   if (!seen(j.elbow, j.wrist)) return { lapMissing: `Rest your ${name} forearm ${on}, where the camera can see your elbow and hand.` };
-  if (!seen(j.wristOther)) return { lapMissing: "Rest your other hand on your thigh where the camera can see it." };
+  if (!seen(j.wristOther)) return { lapMissing: OTHER_IN_VIEW_HINT };
   if (lm[j.nose].y < 0.05) return { lapMissing: "Tilt the camera up a little so there is space above your head." };
   if ([j.shoulder, j.shoulderOther, j.elbow, j.wrist, j.wristOther].some(index => lm[index].x < 0.04 || lm[index].x > 0.96)) {
     return { lapMissing: "Move the camera so you are in the middle of the picture." };
@@ -175,16 +186,20 @@ export function slideRestCheck(pose: PoseInput | null, side: Side, aspect: numbe
   if (span < 0.08 || torso < 0.1) return { lapMissing: "Move the camera a little closer." };
   const wrist = lm[j.wrist], elbow = lm[j.elbow], otherWrist = lm[j.wristOther];
   const out = Math.sign(shoulder.x - other.x) || 1;
-  // The forearm resting beside the body: the hand above the lap, on the affected side of the body.
-  if (wrist.y > hip.y - 0.2 * torso || (wrist.x - (shoulder.x + other.x) / 2) * out <= 0) {
+  // The forearm resting beside the body, on the affected side: the hand well above the lap, or (resting at the front
+  // end of a low armrest) a little above the hip but clearly out beside the thigh, where a hand on the lap never is.
+  // A recorded armrest hand drooping at the armrest's end sat 0.13 of the torso above the hip, 0.9 of a span out.
+  const above = (hip.y - wrist.y) / torso, beside = (wrist.x - hip.x) * out * aspect / span;
+  if (!(above >= 0.2 || (above >= 0.05 && beside >= 0.6)) || (wrist.x - (shoulder.x + other.x) / 2) * out <= 0) {
     return { lapMissing: slideRestPrompt(side, support) };
   }
   // From a camera above the support the forearm, pointing toward it, has the hand no higher than the elbow.
   if (wrist.y < elbow.y - 0.05 * span) return { lapMissing: "Raise the camera to chest height, above your forearm." };
-  // The other hand resting on its thigh.
-  if (otherWrist.y < hipOther.y - 0.3 * torso || otherWrist.y > hipOther.y + 0.6 * torso) return { lapMissing: "Rest your other hand on your thigh." };
+  // The other hand resting on its thigh or on the chair's other armrest (a recorded armrest hand sat a third of the
+  // torso above the hip), not up at the chest.
+  if (otherWrist.y < hipOther.y - OTHER_REST_ABOVE_HIP * torso || otherWrist.y > hipOther.y + 0.6 * torso) return { lapMissing: OTHER_REST_HINT };
   // Room beside the arm for the cup and its circle.
-  const far = wrist.x + out * (ROOM_SPANS * span + slideRadius(span, SLIDE_PRACTICE_SPANS)) / aspect;
+  const far = wrist.x + out * ((SLIDE_PRACTICE_SPANS + ROOM_MARGIN_SPANS) * span + slideRadius(span, SLIDE_PRACTICE_SPANS)) / aspect;
   if (far < 0.02 || far > 0.98) return { lapMissing: "Move the camera back a little, or sit a little toward your other side, so there is room beside your arm for the cup." };
   return { lapRest: { x: wrist.x, y: wrist.y, bodyScale: span } };
 }
@@ -345,7 +360,7 @@ export type SlideVariant = { side?: Side; armrest?: boolean };
 const MOVE_MS = 1400;
 const FIG = { head: [120, 48], shoulderA: [166, 96], shoulderO: [74, 96], hipA: [152, 196], hipO: [88, 196] } as const;
 /** The affected hand resting beside the thigh (on the table or armrest), and the cup out to the side: level along a table, a little up from the armrest. */
-const SPOT = { rest: [184, 190] as [number, number], cup: [258, 190] as [number, number], raised: [258, 170] as [number, number] };
+const SPOT = { rest: [182, 190] as [number, number], cup: [258, 190] as [number, number], raised: [258, 170] as [number, number] };
 const GHOST_RADIUS = 18;
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const smooth = (k: number) => k * k * (3 - 2 * k);
@@ -355,10 +370,34 @@ const poseAt = (fraction: number, returning: boolean) => (returning ? 1 - smooth
 const sideX = (x: number, side: Side = "right") => (side === "left" ? 300 - x : x);
 const cupSpot = (armrest = false) => (armrest ? SPOT.raised : SPOT.cup);
 
+/**
+ * The resting elbow: down by the side, on the support behind the hand. Seen from the front, the forearm resting on
+ * the table or armrest points toward the camera, so it looks short; the elbow sits low, close to the body and a little
+ * inside the shoulder-to-hand line (bent inward), never out to the side.
+ */
+const REST_ELBOW: [number, number] = [170, 158];
+/** How far the elbow sits below the straight line from the shoulder to the cup (a soft bend, not a locked arm). */
+const REACH_BEND = 10;
+
+/** The elbow with the hand at the cup: halfway out, just below the shoulder-to-cup line (bending down and in). */
+function reachElbow(cup: readonly [number, number]): [number, number] {
+  const [sx, sy] = FIG.shoulderA, dx = cup[0] - sx, dy = cup[1] - sy, d = Math.hypot(dx, dy) || 1;
+  return [sx + dx / 2 - (REACH_BEND * dy) / d, sy + dy / 2 + (REACH_BEND * dx) / d];
+}
+
 /** The ghost's hand at progress p (0 resting, 1 at the cup), drawn for the right side. */
 export function slideGhostPose(p: number, armrest = false): { hand: [number, number] } {
   const k = clamp(p, 0, 1.1), cup = cupSpot(armrest);
   return { hand: [lerp(SPOT.rest[0], cup[0], k), lerp(SPOT.rest[1], cup[1], k)] };
+}
+
+/**
+ * The ghost's affected arm at progress p, drawn for the right side: from the forearm resting on its support (elbow
+ * down by the side) the arm reaches out, the elbow rising and moving out until the arm is nearly straight at the cup.
+ */
+export function slideGhostArm(p: number, armrest = false): { shoulder: [number, number]; elbow: [number, number]; hand: [number, number] } {
+  const k = clamp(p, 0, 1.1), out = reachElbow(cupSpot(armrest));
+  return { shoulder: [FIG.shoulderA[0], FIG.shoulderA[1]], elbow: [lerp(REST_ELBOW[0], out[0], k), lerp(REST_ELBOW[1], out[1], k)], hand: slideGhostPose(p, armrest).hand };
 }
 
 function ghostPoint(returning: boolean, armrest = false): [number, number] { return returning ? SPOT.rest : cupSpot(armrest); }
@@ -402,10 +441,11 @@ export function drawSlideGhost(ctx: CanvasRenderingContext2D, p: number, width: 
   ctx.scale(s, s);
   ctx.lineCap = "round"; ctx.lineJoin = "round";
   const line = (pts: readonly (readonly [number, number])[]) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(sideX(x, side), y) : ctx.moveTo(sideX(x, side), y))); ctx.stroke(); };
-  // The seat, and the support beside the affected thigh (a table or the armrest).
+  // The seat, and the support beside the affected thigh: a table out to the side, or the chair's short armrest.
   ctx.strokeStyle = colors.soft; ctx.lineWidth = 6;
   line([[66, 236], [174, 236]]);
-  line([[170, 200], [288, 200]]);
+  if (variant.armrest) { line([[164, 200], [204, 200]]); line([[198, 200], [198, 236]]); }
+  else line([[170, 200], [288, 200]]);
   // Body: head, trunk, thighs, the other hand resting on its thigh.
   ctx.strokeStyle = colors.line; ctx.lineWidth = 9;
   ctx.beginPath(); ctx.arc(sideX(FIG.head[0], side), FIG.head[1], 20, 0, Math.PI * 2); ctx.stroke();
@@ -413,13 +453,8 @@ export function drawSlideGhost(ctx: CanvasRenderingContext2D, p: number, width: 
   line([FIG.shoulderO, FIG.hipO, FIG.hipA, FIG.shoulderA]);
   line([FIG.hipO, [82, 226]]); line([FIG.hipA, [158, 226]]);
   line([FIG.shoulderO, [62, 160], [80, 222]]);
-  // The affected arm, the elbow bending outward and down, the hand moving out.
-  const [hx, hy] = slideGhostPose(p, variant.armrest).hand, [sx, sy] = FIG.shoulderA;
-  const dx = hx - sx, dy = hy - sy, d = Math.max(1, Math.hypot(dx, dy));
-  const upper = 64, fore = 58, along = Math.min(d, upper + fore - 1);
-  const a = (upper * upper - fore * fore + along * along) / (2 * along);
-  const h = Math.sqrt(Math.max(0, upper * upper - a * a));
-  const elbow: [number, number] = [sx + (a * dx) / d + (h * dy) / d, sy + (a * dy) / d - (h * dx) / d];
+  // The affected arm: resting with the elbow down by the side, then reaching out to the cup.
+  const { elbow, hand: [hx, hy] } = slideGhostArm(p, variant.armrest);
   ctx.strokeStyle = colors.accent; ctx.lineWidth = 9;
   line([FIG.shoulderA, elbow, [hx, hy]]);
   ctx.beginPath(); ctx.arc(sideX(hx, side), hy, 6, 0, Math.PI * 2); ctx.fillStyle = colors.accent; ctx.fill();
@@ -463,6 +498,7 @@ export function drawSlideDemo(ctx: CanvasRenderingContext2D, elapsedMs: number, 
   ctx.font = "600 12px Manrope, sans-serif";
   ctx.textAlign = "center";
   ctx.fillStyle = state.contact ? "#285b49" : "#a14d32";
-  ctx.fillText(state.phase === "complete" ? "Complete" : state.label, x, y - radius - 10);
+  // The resting circle's label goes below it, clear of the arm coming down to it.
+  ctx.fillText(state.phase === "complete" ? "Complete" : state.label, x, returning ? y + radius + 16 : y - radius - 10);
   ctx.restore();
 }

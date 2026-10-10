@@ -278,7 +278,7 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     tracking: "pose",
     ghost: "raise",
     // Worded for the table; the armrest version swaps in SLIDE_ARMREST (resolveExercise).
-    setupVoice: "Welcome. We are going to practise sliding your arm out to the side toward a cup on your screen. Rest your forearm on a table beside your affected side, with your elbow bent and your other hand on your thigh. Place the camera in front of you at chest height so I can see you from your head to your thighs, with room beside your arm. Move only in a comfortable, pain-free range.",
+    setupVoice: "Welcome. We are going to practise sliding your arm out to the side toward a cup on your screen. Rest your forearm on a table beside your affected side, with your elbow bent, and your other hand on your thigh or the chair's other armrest. Place the camera in front of you at chest height so I can see you from your head to your thighs, with room beside your arm. Move only in a comfortable, pain-free range.",
     calibrationInstruction: "Sit tall with your elbow bent and your forearm resting beside you. Make sure the room is well lit, with the light in front of you. Hold still while I learn your starting position.",
     // How far the hand moves out across the picture (shoulder widths) decides the circle and most of the score; the
     // shoulder's elevation from the pose model's 3D landmarks adds the rest. The live goals are the ones learned in
@@ -293,13 +293,16 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
       cr("shoulder_hike", "shoulder hike", "shoulder_hike_rel_delta", 7, 4, 0, "Keep your shoulder down and relaxed as your arm moves out.", { minConsecutiveMs: 300, alternative: [{ metric: "shoulder_elevation_pct", threshold: 15 }], steps: [0] }),
       // Leaning toward the affected side carries the hand out without the shoulder: important for this movement.
       cr("side_lean", "leaning sideways", "trunk_side_lean_delta", 8, 4, 0, "Stay tall and centred as your arm moves out.", { minConsecutiveMs: 300, steps: [0] }),
-      // Table only (left out with the armrest, resolveExercise): the hand rising in the picture, lifted off the table.
-      cr("hand_lift", "hand lifting off the table", "hand_lift_pct", 13, 4, 0, "Keep your hand and forearm resting on the table as you slide.", { unit: "%", minConsecutiveMs: 300, steps: [0] }),
-      // The other hand off its thigh or at the affected forearm (% of its limit).
-      cr("other_hand", "other hand helping", "other_hand_pct", 100, 4, 0, "Keep your other hand resting on your thigh.", { unit: "%", minConsecutiveMs: 400, steps: [0] }),
+      // Table only (left out with the armrest, resolveExercise): the hand rising in the picture, lifted well off the
+      // table. Reaching the cup lifts the hand a little even in a clean movement (a recorded clean reach rose 20 to 23%
+      // of the shoulder span, held for about 2 s), so only a clear lift above that counts.
+      cr("hand_lift", "hand lifting off the table", "hand_lift_pct", 35, 4, 0, "Keep your hand low, close to the table, as you slide.", { unit: "%", minConsecutiveMs: 300, steps: [0] }),
+      // The other hand moving from where it rested (on its thigh or the chair's other armrest) or at the affected
+      // forearm (% of its limit).
+      cr("other_hand", "other hand helping", "other_hand_pct", 100, 4, 0, "Keep your other hand resting still.", { unit: "%", minConsecutiveMs: 400, steps: [0] }),
     ],
     cycle: [
-      { caption: "Move your hand out to the cup and hold", voice: "Follow the arrow: slowly slide your hand out to the side and a little forward along the table until it reaches the cup, keeping your hand and forearm resting on the table. Keep your shoulder relaxed and your body upright, and stop before pain. Hold it there.", kind: "reach", gate: ["slide_out"], holdMs: 1500, cue: "Out to the cup." },
+      { caption: "Move your hand out to the cup and hold", voice: "Follow the arrow: slowly slide your hand out to the side and a little forward along the table until it reaches the cup, keeping your hand low, close to the table. Keep your shoulder relaxed and your body upright, and stop before pain. Hold it there.", kind: "reach", gate: ["slide_out"], holdMs: 1500, cue: "Out to the cup." },
       { ...ret("Bring your hand back to rest", "Now slowly slide your hand back to rest where it started."), cue: "Back to rest." },
     ],
     feedback: [
@@ -307,8 +310,8 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
       { comp: "trunk_forward", say: "I noticed your body leaned forward to push your hand out. On the next repetition, try sitting tall and let your shoulder move your arm." },
       { comp: "shoulder_hike", say: "I noticed your shoulder lifted toward your ear. On the next repetition, try keeping your shoulder down and relaxed as your arm moves out." },
       { comp: "side_lean", say: "I noticed you leaned to one side to reach the cup. On the next repetition, try staying tall and centred as your arm moves out." },
-      { comp: "hand_lift", say: "I noticed your hand lifted off the table. On the next repetition, try keeping your hand and forearm resting on the table as you slide." },
-      { comp: "other_hand", say: "I noticed your other hand moved to help. On the next repetition, try keeping your other hand resting on your thigh." },
+      { comp: "hand_lift", say: "I noticed your hand lifted well off the table. On the next repetition, try keeping your hand low, close to the table, as you slide." },
+      { comp: "other_hand", say: "I noticed your other hand moved to help. On the next repetition, try keeping your other hand resting still." },
       { attainmentBelow: 0.7, say: "Nearly there. On the next repetition, try moving your hand a little further toward the cup if it feels comfortable." },
     ],
     praise: "Wonderful controlled movement. Keep that same smooth reach to the cup on the next repetition.",
@@ -628,7 +631,7 @@ export const EXERCISE_RUNGS: Record<string, Record<Rung, RungSpec>> = Object.fro
 
 /** Supported Arm Elevation from the chair's armrest: the hand lifts from it toward a raised cup. */
 const SLIDE_ARMREST = {
-  setupVoice: "Welcome. We are going to practise lifting your arm out to the side toward a cup on your screen. Rest your forearm on the armrest of your chair, with your elbow bent and your other hand on your thigh. Place the camera in front of you at chest height so I can see you from your head to your thighs, with room beside your arm. Move only in a comfortable, pain-free range.",
+  setupVoice: "Welcome. We are going to practise lifting your arm out to the side toward a cup on your screen. Rest your forearm on the armrest of your chair, with your elbow bent, and your other hand on your thigh or the other armrest. Place the camera in front of you at chest height so I can see you from your head to your thighs, with room beside your arm. Move only in a comfortable, pain-free range.",
   reach: "Follow the arrow: slowly lift your hand from the armrest, out to the side and a little forward, until it reaches the cup. Keep your shoulder relaxed and your body upright, and stop before pain. Hold it there.",
   back: "Now slowly lower your hand back to rest on the armrest.",
 };
