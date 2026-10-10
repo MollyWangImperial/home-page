@@ -15,7 +15,8 @@ import { mouthContact, mouthContactPoints, observedMouth, mouthCompensations } f
 import { MouthHold, type MouthHoldResult } from "@/lib/exercise-engine/mouth-hold";
 import { CupTrack } from "@/lib/exercise-engine/cup-track";
 import { affectedHand, drawHandDemo, drawHandZone, drawRingLabel, followZone, handCovers, handDemoState, handGhostContact, handGhostTarget, handOpenFrame, handOpenness, handRingTarget, handZone, inHandZone, palmFacing, palmRing, REST_OPEN_MAX, startLimit, waiveLimit, type HandZone } from "@/lib/exercise-engine/hand-target";
-import { CupCarry, drawCup, drawGraspDemo, drawGraspGhost, followLayout, graspDemoState, GRASP_STEP, graspFrame, graspGhostContact, graspGhostTarget, graspHand, graspLapRadius, graspLayout, graspPoint, graspRings, graspTarget, type GraspLayout } from "@/lib/exercise-engine/grasp-target";
+import { CupCarry, GraspWristShown, drawCup, drawGraspDemo, drawGraspGhost, followLayout, graspDemoState, GRASP_STEP, graspFrame, graspGhostContact, graspGhostTarget, graspHand, graspLapRadius, graspLayout, graspPoint, graspRings, graspTarget, type GraspLayout } from "@/lib/exercise-engine/grasp-target";
+import { SteadyPose } from "@/lib/exercise-engine/steady";
 import { dialCircle, drawKneeDemo, drawKneeDial, drawKneeGuide, drawKneeScene, followDial, KNEE_STEP, kneeDemoState, kneeDial, kneeFrame, kneeGhostContact, kneeGhostTarget, kneeGuide, kneePracticeGoal, kneeRestCheck, KneeTarget, type KneeDial } from "@/lib/exercise-engine/knee-target";
 import { drawToeDemo, drawToeDial, drawToeGuide, drawToeScene, TOE_STEP, toeDemoState, toeDialCircle, toeFrame, toeGhostContact, toeGhostTarget, toeGuide, ToeLiftFilter, toePracticeGoal, toeRestCheck, ToeTarget } from "@/lib/exercise-engine/toe-target";
 import { drawSlideDemo, drawSlideGhost, drawSlideTargets, OTHER_IN_VIEW_HINT, restCircle, SLIDE_PRACTICE_SPANS, SLIDE_RISE, SLIDE_STEP, slideCanvasCircle, slideDemoState, slideFrame, slideGhostContact, slideGhostTarget, slideOutward, slideRestCheck, slideRestOn, slideRestPrompt, SlideTarget, type SlideSupport } from "@/lib/exercise-engine/slide-target";
@@ -177,6 +178,10 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
   // the circle that just completed (for its animation), and the lighting check at set-up.
   const graspLayoutRef = useRef<GraspLayout | null>(null);
   const cupCarry = useRef(new CupCarry());
+  // The body as drawn for grasp and transport: steadied, the affected wrist where the hand model puts it (steady.ts),
+  // kept on the hand through the hand model's gaps (GraspWristShown).
+  const graspPoseShown = useRef(new SteadyPose());
+  const graspWristShown = useRef(new GraspWristShown());
   const graspCup = useRef<{ at: { x: number; y: number }; tilt: number; inHand: boolean } | null>(null);
   const graspDone = useRef<{ key: string; step: number; at: { x: number; y: number }; startedAt: number } | null>(null);
   const graspLast = useRef<{ key: string; step: number } | null>(null);
@@ -763,6 +768,16 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
             const torso = lap?.bodyScale ?? (shoulder && hip ? Math.max(0.18, Math.abs(hip.y - shoulder.y)) : 0.4);
             const shown = cupTrack.current.update(t, tracked.pose, opts.side, { torso, aspect: video.videoWidth / video.videoHeight }, { held: hold?.held ? hold.pose : null, lowering: now.kind === "return" });
             drawOverlay(overlayRef.current, video, { ...detection, pose: shown.pose }, session, opts.side, shown.cup);
+          } else if (session.cfg.id === "ex_grasp") {
+            // Grasp and transport draws the body steadied, with the affected wrist on the hand model's wrist (on the real
+            // wrist, read every frame; the body model's sits up the forearm, read every other frame): display only.
+            const aspectShown = video.videoWidth / video.videoHeight, j = poseJoints(opts.side);
+            const hand = graspHand(detection, opts.side);
+            const s = detection.pose?.landmarks[j.shoulder], o = detection.pose?.landmarks[j.shoulderOther];
+            const scale = s && o ? Math.max(0.1, Math.abs(s.x - o.x) * aspectShown) : 0.25;
+            const wrist = graspWristShown.current.at(t, hand, detection.pose, opts.side);
+            const shown = graspPoseShown.current.next(t, detection.pose, aspectShown, scale, wrist ? { [j.wrist]: wrist } : {});
+            drawOverlay(overlayRef.current, video, { ...detection, pose: shown }, session, opts.side);
           } else drawOverlay(overlayRef.current, video, detection, session, opts.side);
         } catch (err) {
           console.warn("Exercise tracking frame failed", err);
@@ -986,6 +1001,8 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
     handZoneRef.current = null;
     graspLayoutRef.current = null;
     cupCarry.current = new CupCarry();
+    graspPoseShown.current.reset();
+    graspWristShown.current.reset();
     graspCup.current = null;
     graspDone.current = null;
     graspLast.current = null;

@@ -5,6 +5,7 @@ import { handOpenness, openRing, palmAxes, palmRing, relaxRing, REST_OPEN_MAX } 
 import { TARGET_COMPLETION_MS, TARGET_HOLD_MS } from "./target-timing";
 import { drawTargetCompletion, drawTestingTarget } from "./target-visual";
 import { chooseHand } from "./tracker";
+import { SteadyPoint, type SteadyOptions } from "./steady";
 
 // Cylindrical Grasp and Transport with a cup drawn on screen, seated without a table, hands resting on the
 // thighs. Five steps on the shared target flow: reach to the cup while opening the hand, close the hand around
@@ -13,7 +14,6 @@ import { chooseHand } from "./tracker";
 
 const DEG = 180 / Math.PI;
 type P2 = { x: number; y: number };
-const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
 
 /** The cycle's steps, by index (config.ts ex_grasp). */
 export const GRASP_STEP = { reach: 0, grasp: 1, carry: 2, release: 3, back: 4 } as const;
@@ -133,10 +133,12 @@ export function upperArmLength(pose: PoseInput | null, side: Side, aspect: numbe
 }
 
 /**
- * Wrist bending: the angle between the forearm (pose elbow to wrist) and the palm (hand wrist to middle knuckle)
- * in the image, as the Rehyn backend measures it (server.py projectedWristBendDegrees): unaffected by carrying
- * the arm across or curling the fingers, and no value when the view cannot support it (a short or
- * foreshortened forearm or palm, a hand that is not the affected one, or either pointing into the camera).
+ * Wrist bending: the angle between the forearm (pose elbow to the wrist) and the palm (hand wrist to middle knuckle)
+ * in the image, as the Rehyn backend measures it (server.py projectedWristBendDegrees), with the forearm ending at the
+ * hand model's wrist: it sits on the real wrist and is read every frame, where the body model's wrist often sits
+ * part-way up the forearm and jitters (and is read only every other frame here). Unaffected by carrying the arm
+ * across or curling the fingers, and no value when the view cannot support it (a short or foreshortened forearm or
+ * palm, a hand that is not the affected one, or either pointing into the camera).
  */
 export function wristBendDeg(pose: PoseInput | null, hand: HandInput | null, side: Side, aspect: number): number | undefined {
   const lm = pose?.landmarks, hl = hand?.landmarks, j = poseJoints(side);
@@ -144,13 +146,14 @@ export function wristBendDeg(pose: PoseInput | null, hand: HandInput | null, sid
   const elbow = lm[j.elbow], wrist = lm[j.wrist], handWrist = hl[0], middleBase = hl[9];
   if (![elbow, wrist, handWrist, middleBase, hl[5], hl[17]].every(p => inView(p))) return undefined;
   const distance = (a: Pt, b: Pt) => Math.hypot((a.x - b.x) * aspect, a.y - b.y);
-  const forearm = { x: (wrist.x - elbow.x) * aspect, y: wrist.y - elbow.y };
+  const forearm = { x: (handWrist.x - elbow.x) * aspect, y: handWrist.y - elbow.y };
   const palm = { x: (middleBase.x - handWrist.x) * aspect, y: middleBase.y - handWrist.y };
   const forearmLength = Math.hypot(forearm.x, forearm.y), palmLength = Math.hypot(palm.x, palm.y);
   const s = lm[j.shoulder], o = lm[j.shoulderOther];
   const shoulderWidth = inView(s) && inView(o) ? distance(s, o) : NaN;
   if (!Number.isFinite(shoulderWidth) || forearmLength < shoulderWidth * 0.4 || palmLength < shoulderWidth * 0.1 || palmLength > forearmLength * 0.85) return undefined;
-  if (distance(wrist, handWrist) > palmLength * 0.6) return undefined;
+  // The hand is this arm's: the body model's wrist near the hand's (it may sit a little way up the forearm).
+  if (distance(wrist, handWrist) > palmLength * WRIST_MATCH_PALMS) return undefined;
   const other = lm[j.wristOther];
   if (inView(other) && distance(other, handWrist) < distance(wrist, handWrist)) return undefined;
   const forearmDepth = (wrist.z - elbow.z) * aspect, palmDepth = (middleBase.z - handWrist.z) * aspect;
@@ -158,6 +161,11 @@ export function wristBendDeg(pose: PoseInput | null, hand: HandInput | null, sid
     || forearmLength < 0.65 * Math.hypot(forearmLength, forearmDepth) || palmLength < 0.65 * Math.hypot(palmLength, palmDepth)) return undefined;
   return Math.acos(Math.max(-1, Math.min(1, dot2(forearm, palm) / (forearmLength * palmLength)))) * DEG;
 }
+/**
+ * How far the body model's wrist may sit from the hand model's and still be the same arm, in palm lengths (a recorded
+ * session had it about three quarters of a palm up the forearm, which the backend's 0.6 left unmeasured).
+ */
+const WRIST_MATCH_PALMS = 1.5;
 
 /**
  * The cup's axis from the 3D hand landmarks: with the thumb up, the cup lies along the knuckle line (little to
@@ -276,51 +284,12 @@ export function graspTarget(step: number, point: P2 | null, openness: number | u
 // ---------- the cup on screen, through a repetition ----------
 
 /**
- * The drawn cup in the hand (display only: contact, holds and scores come from the measured hand). A One Euro filter:
- * still while the hand is still (the hand points' jitter averaged away), following at once as the hand moves, and
- * never faster than a hand carrying a cup, so a one-frame landmark glitch glides instead of jumping.
+ * The drawn cup in the hand (display only: contact, holds and scores come from the measured hand), steadied
+ * (steady.ts): still while the hand is still, following at once as the hand moves, never faster than a hand carrying
+ * a cup. Speeds in cup-circle radii a second.
  */
-export const CUP_STEADY = {
-  /** Cutoff with the hand still (Hz), its rise per cup-circle radius a second of speed, and the speed estimate's cutoff (Hz). */
-  minCutoff: 1, beta: 0.6, speedCutoff: 1,
-  /** The drawn cup's top speed, frame heights a second. */
-  glide: 3,
-};
-
-class CupSteadier {
-  private at: P2 | null = null;
-  private raw: P2 | null = null;
-  private speed = { x: 0, y: 0 };
-  private t = 0;
-
-  /** Start the drawing at `from` (where the cup was), so the cup slides into the hand rather than jumping. */
-  start(from: P2, t: number) { this.at = { ...from }; this.raw = { ...from }; this.speed = { x: 0, y: 0 }; this.t = t; }
-
-  get current(): P2 | null { return this.at ? { ...this.at } : null; }
-
-  /** No reading this frame: the cup stays, and the clock moves on (so the next reading cannot jump it far). */
-  touch(t: number) { if (this.at) this.t = t; }
-
-  /** The drawn point after a reading `p` at `t` ms. scale: the cup circle's radius (frame heights). */
-  next(t: number, p: P2, aspect: number, scale: number): P2 {
-    if (!this.at || !this.raw) { this.start(p, t); return { ...p }; }
-    const dt = clamp((t - this.t) / 1000, 0.001, 0.1);
-    this.t = t;
-    const alpha = (cutoff: number) => 1 / (1 + 1 / (2 * Math.PI * cutoff * dt));
-    // The speed estimate filters the velocity, not its size, so a still hand's noise averages out.
-    const k = alpha(CUP_STEADY.speedCutoff), unit = Math.max(0.01, scale);
-    this.speed = {
-      x: this.speed.x + k * ((p.x - this.raw.x) * aspect / unit / dt - this.speed.x),
-      y: this.speed.y + k * ((p.y - this.raw.y) / unit / dt - this.speed.y),
-    };
-    this.raw = { ...p };
-    let a = alpha(CUP_STEADY.minCutoff + CUP_STEADY.beta * Math.hypot(this.speed.x, this.speed.y));
-    const gap = Math.hypot((p.x - this.at.x) * aspect, p.y - this.at.y);
-    if (gap > 0 && a * gap > CUP_STEADY.glide * dt) a = CUP_STEADY.glide * dt / gap;
-    this.at = { x: this.at.x + a * (p.x - this.at.x), y: this.at.y + a * (p.y - this.at.y) };
-    return { ...this.at };
-  }
-}
+export const CUP_STEADY: SteadyOptions = { minCutoff: 1, beta: 0.6, speedCutoff: 1, glide: 3 };
+const cupSteadier = () => new SteadyPoint(CUP_STEADY);
 
 /**
  * Where to draw the cup and how it is tilted, and the grip tilt the cup-tipping check measures from. The cup sits
@@ -335,7 +304,7 @@ export class CupCarry {
   private placed = false;
   /** Grasped this repetition: the cup is in the hand from the first grasp until let go. */
   private grasped = false;
-  private steady = new CupSteadier();
+  private steady = cupSteadier();
   /** While the hand model does not see the hand: the pose wrist and the cup when it lost the hand. */
   private anchor: { wrist: P2; cup: P2 } | null = null;
 
@@ -344,7 +313,7 @@ export class CupCarry {
    * centre, or the pose wrist when the hand model does not see the hand: `hand` null).
    */
   update(key: string, step: number, contact: boolean, hand: HandInput | null, point: P2 | null, layout: GraspLayout, t: number, aspect: number): { at: P2; tilt: number; inHand: boolean } {
-    if (key !== this.key) { this.key = key; this.gripAxis = undefined; this.tilt = 0; this.placed = false; this.grasped = false; this.steady = new CupSteadier(); this.anchor = null; }
+    if (key !== this.key) { this.key = key; this.gripAxis = undefined; this.tilt = 0; this.placed = false; this.grasped = false; this.steady = cupSteadier(); this.anchor = null; }
     // The grip's own knuckle line: kept up to date (steadied) while the hand is closed around the cup.
     const axis = cupAxis(hand);
     if (step === GRASP_STEP.grasp && contact && axis) {
@@ -383,8 +352,35 @@ export class CupCarry {
   get grip(): [number, number, number] | undefined { return this.gripAxis; }
 
   /** Start again with the cup at the pick-up circle (the practice restarts after going back). */
-  reset() { this.key = ""; this.gripAxis = undefined; this.tilt = 0; this.placed = false; this.grasped = false; this.steady = new CupSteadier(); this.anchor = null; }
+  reset() { this.key = ""; this.gripAxis = undefined; this.tilt = 0; this.placed = false; this.grasped = false; this.steady = cupSteadier(); this.anchor = null; }
 }
+
+/**
+ * Where to draw the affected wrist (display only): the hand model's wrist when it sees the hand (on the real wrist,
+ * read every frame); while it does not, the body model's wrist moved by where the hand's wrist last sat from it (the
+ * body model's sits some way up the forearm), so the drawing stays on the hand rather than hopping up the arm and
+ * back each time the hand model drops out; after WRIST_OFFSET_MS without the hand, the body model's own wrist.
+ */
+export class GraspWristShown {
+  private offset: { x: number; y: number; t: number } | null = null;
+
+  reset() { this.offset = null; }
+
+  at(t: number, hand: HandInput | null, pose: PoseInput | null, side: Side): P2 | null {
+    const wrist = pose?.landmarks[poseJoints(side).wrist];
+    const bodyWrist = wrist && Number.isFinite(wrist.x) && Number.isFinite(wrist.y) ? wrist : null;
+    if (hand) {
+      const h = hand.landmarks[0];
+      if (bodyWrist) this.offset = { x: h.x - bodyWrist.x, y: h.y - bodyWrist.y, t };
+      return { x: h.x, y: h.y };
+    }
+    if (!bodyWrist) return null;
+    if (this.offset && t - this.offset.t <= WRIST_OFFSET_MS) return { x: bodyWrist.x + this.offset.x, y: bodyWrist.y + this.offset.y };
+    return { x: bodyWrist.x, y: bodyWrist.y };
+  }
+}
+/** How long the hand's last place against the body model's wrist is kept while the hand model does not see the hand, ms. */
+const WRIST_OFFSET_MS = 1500;
 
 /** A drawn cup (side view) at a canvas point, tilted by degrees. */
 export function drawCup(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, tilt = 0, colors = { body: "rgba(255,254,250,.92)", line: "#285b49", accent: "#e18e6d" }) {

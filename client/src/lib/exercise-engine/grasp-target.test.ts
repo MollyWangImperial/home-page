@@ -7,7 +7,7 @@ import { exerciseScreenPreview } from "./screen-preview";
 import { ExerciseSession, simFrame, type Snapshot } from "./session";
 import { handOpenness, simulatedHand } from "./hand-target";
 import {
-  carryAcross, CupCarry, cupAxis, cupTipping, elbowOutDeg, graspDemoDuration, graspDemoState, graspFrame, graspGhostContact, graspGhostTarget,
+  carryAcross, CupCarry, cupAxis, cupTipping, elbowOutDeg, graspDemoDuration, GraspWristShown, graspDemoState, graspFrame, graspGhostContact, graspGhostTarget,
   graspLayout, graspRings, GRASP_STEP, graspTarget, wristBendDeg, type GraspLayout,
 } from "./grasp-target";
 import { faceBox, judgeLighting, LightingProbe } from "./lighting";
@@ -117,6 +117,42 @@ describe("Cylindrical Grasp and Transport layout and measures", () => {
     const body = bodyWith(side, {}, hand);
     const elsewhere = handAt(side, { x: point.x, y: point.y - 0.25 }, { fist: true });
     expect(wristBendDeg(body, elsewhere, side, ASPECT)).toBeUndefined();
+  });
+  it.each(SIDES)("measures the wrist bend from the hand model's wrist, though the body model's sits up the forearm and jitters (%s side)", side => {
+    const layout = layoutFor(side), hand = handAt(side, layout.pick, { fist: true });
+    const body = bodyWith(side, {}, hand, { wristBend: 30 });
+    const j = joint(side), elbow = body.landmarks[j.elbow], w0 = hand.landmarks[0];
+    const palm = Math.hypot((hand.landmarks[9].x - w0.x) * ASPECT, hand.landmarks[9].y - w0.y);
+    // As in a recorded session: the body model's wrist three quarters of a palm up the forearm, jittering across it.
+    const up = { x: (elbow.x - w0.x) * ASPECT, y: elbow.y - w0.y }, n = Math.hypot(up.x, up.y);
+    const along = { x: up.x / n, y: up.y / n }, across = { x: -along.y, y: along.x };
+    const readings: number[] = [];
+    for (const wobble of [-0.25, 0, 0.25, -0.15, 0.2]) {
+      const offset = { x: (along.x * 0.75 + across.x * wobble) * palm, y: (along.y * 0.75 + across.y * wobble) * palm };
+      const pose = { ...body, landmarks: body.landmarks.map((p, i) => (i === j.wrist ? { ...p, x: w0.x + offset.x / ASPECT, y: w0.y + offset.y } : p)) };
+      readings.push(wristBendDeg(pose, hand, side, ASPECT)!);
+    }
+    for (const reading of readings) expect(reading).toBeCloseTo(30, 0);
+    // Not when the body model's wrist is nowhere near this hand.
+    const far = { ...body, landmarks: body.landmarks.map((p, i) => (i === j.wrist ? { ...p, x: w0.x + (along.x * 2 * palm) / ASPECT, y: w0.y + along.y * 2 * palm } : p)) };
+    expect(wristBendDeg(far, hand, side, ASPECT)).toBeUndefined();
+  });
+  it.each(SIDES)("draws the wrist on the hand model's wrist, and keeps it on the hand while the hand model drops out (%s side)", side => {
+    const layout = layoutFor(side), hand = handAt(side, layout.pick, { fist: true }), j = joint(side);
+    const body = seatedPose(side);
+    // The body model's wrist a little way up the forearm from the hand's.
+    const w0 = hand.landmarks[0], up = { x: w0.x + 0.02, y: w0.y - 0.04 };
+    const pose = { ...body, landmarks: body.landmarks.map((p, i) => (i === j.wrist ? { ...p, x: up.x, y: up.y } : p)) };
+    const shownWrist = new GraspWristShown();
+    expect(shownWrist.at(0, hand, pose, side)).toEqual({ x: w0.x, y: w0.y });
+    // The hand model drops out and the arm moves a little: the drawing stays on the hand, moving with the arm.
+    const moved = { ...pose, landmarks: pose.landmarks.map((p, i) => (i === j.wrist ? { ...p, x: up.x + 0.01, y: up.y } : p)) };
+    const during = shownWrist.at(500, null, moved, side)!;
+    expect(during.x).toBeCloseTo(w0.x + 0.01, 6);
+    expect(during.y).toBeCloseTo(w0.y, 6);
+    // Gone for longer: the body model's own wrist.
+    expect(shownWrist.at(2500, null, moved, side)).toEqual({ x: up.x + 0.01, y: up.y });
+    expect(shownWrist.at(2600, null, null, side)).toBeNull();
   });
   it("measures the cup tipping from the grip, either way, whatever the hand's opening", () => {
     const point = layoutFor("right").pick;
