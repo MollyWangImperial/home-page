@@ -6,12 +6,12 @@ import { drawTargetCompletion, drawTestingTarget } from "./target-visual";
 // Seated Knee Extension on the shared target flow: a front camera with the patient seated, head to feet in view,
 // feet flat on the floor. From the front the lower leg swings toward the camera, so straightening the knee hardly
 // moves the foot in the picture: the knee angle comes from the pose model's 3D landmarks. Those read a leg pointing
-// straight at the camera poorly, so an arrow at the foot shows the leg swinging a little out to the side, where the
-// camera sees it straighten. A knee dial beside the shoulder shows the knee angle: a side view of a knee whose foot
-// turns into the target circle as the knee straightens, with the same circle activation as the other exercises (a
-// gauge of the knee, not a place for the real foot to go; the demonstration shows the same dial). The patient never
-// has to move out of view: everything is done seated. Positions are raw (unmirrored) image coordinates: x in frame
-// widths, y in frame heights; lengths in frame heights.
+// exactly straight at the camera poorly, so an arrow by the knee shows the foot coming forward toward the camera and a
+// little out to the side, where the camera sees it straighten. A knee dial beside the shoulder shows the knee angle:
+// a side view of a knee whose foot turns into the target circle as the knee straightens, with the same circle
+// activation as the other exercises (a gauge of the knee, not a place for the real foot to go; the demonstration
+// shows the same dial). The patient never has to move out of view: everything is done seated. Positions are raw
+// (unmirrored) image coordinates: x in frame widths, y in frame heights; lengths in frame heights.
 
 const DEG = 180 / Math.PI;
 type P2 = { x: number; y: number };
@@ -389,23 +389,32 @@ export function dialCircle(dial: KneeDial, lowering: boolean, width: number, hei
 // ---------- the arrow at the foot: which way to straighten ----------
 
 /**
- * Which way the foot goes, from the set-up posture: from where the foot rested, swinging out to the side and up,
- * toward a point beside the knee. Straight toward the camera, the camera can hardly see the knee straighten; a
- * little out to the side, it can.
+ * Which way the foot goes, from the set-up posture. Straightening, it comes forward toward the camera and a little out
+ * to the side: an arrow from just below the knee sweeping out and down, then curling back with its head toward the
+ * camera, as a path coming out of the picture is drawn (`lift`, cubic). Lowering: from beside the knee, where the
+ * straightened foot shows, back down to where it rested (`lower`, quadratic). Exactly straight at the camera, the
+ * camera can hardly see the knee straighten; a little out to the side, it can.
  */
-export type KneeGuide = { start: P2; control: P2; end: P2; shin: number; out: number };
+export type KneeGuide = { lift: { start: P2; control: P2; control2: P2; end: P2 }; lower: { start: P2; control: P2; end: P2 }; shin: number; out: number };
+
+/** The lifting arrow's shape: its points out from the knee and down from it, in lower legs (as on the mirrored view, out from the body). */
+const GUIDE_LIFT = { start: [0.09, 0.17], control: [0.75, 0.45], control2: [1.05, 0.95], end: [0.64, 0.88] } as const;
 
 export function kneeGuide(ref: Geo | null, dial: KneeDial | null, aspect: number): KneeGuide | null {
   if (!ref || !dial || ref.kneeImgX === undefined || ref.kneeImgY === undefined || ref.ankleImgX === undefined || ref.ankleImgY === undefined || !ref.kneeShin) return null;
-  const shin = ref.kneeShin, out = dial.out;
-  const across = (share: number) => out * share * shin / aspect;
+  const shin = ref.kneeShin, out = dial.out, kneeX = ref.kneeImgX, kneeY = ref.kneeImgY, ankleX = ref.ankleImgX, ankleY = ref.ankleImgY;
   // As far out as the picture allows (a phone held upright, or a patient off-centre, has less room on that side).
-  const room = (out > 0 ? 0.96 - ref.kneeImgX : ref.kneeImgX - 0.04) * aspect;
-  const reach = clamp((room - 0.04) / shin, 0.3, 0.85);
+  const room = (out > 0 ? 0.96 - kneeX : kneeX - 0.04) * aspect;
+  const reach = clamp((room - 0.02) / (GUIDE_LIFT.control2[0] * shin), 0.3, 1);
+  // Kept inside the picture (a knee low in the picture leaves little room below it for the arrow's curl).
+  const fromKnee = ([across, down]: readonly [number, number]): P2 => ({ x: clamp(kneeX + out * across * reach * shin / aspect, 0.03, 0.97), y: Math.min(kneeY + down * shin, 0.97) });
   return {
-    start: { x: ref.ankleImgX + across(0.12), y: ref.ankleImgY - 0.06 * shin },
-    control: { x: ref.ankleImgX + across(Math.min(0.7, 0.82 * reach)), y: ref.ankleImgY - 0.08 * shin },
-    end: { x: ref.kneeImgX + across(reach), y: ref.kneeImgY + 0.3 * shin },
+    lift: { start: fromKnee(GUIDE_LIFT.start), control: fromKnee(GUIDE_LIFT.control), control2: fromKnee(GUIDE_LIFT.control2), end: fromKnee(GUIDE_LIFT.end) },
+    lower: {
+      start: fromKnee([0.45, 0.32]),
+      control: { x: ankleX + out * 0.6 * reach * shin / aspect, y: ankleY - 0.1 * shin },
+      end: { x: ankleX + out * 0.12 * shin / aspect, y: ankleY - 0.06 * shin },
+    },
     shin, out,
   };
 }
@@ -413,11 +422,16 @@ export function kneeGuide(ref: Geo | null, dial: KneeDial | null, aspect: number
 /** How long the arrow's bright pulse takes to sweep from the foot to the arrowhead, ms. */
 const ARROW_SWEEP_MS = 1300;
 
-/** A point along the arrow's curve (k 0 at its start, 1 at its end). */
-const along = (a: P2, c: P2, b: P2, k: number): P2 => ({ x: (1 - k) ** 2 * a.x + 2 * (1 - k) * k * c.x + k ** 2 * b.x, y: (1 - k) ** 2 * a.y + 2 * (1 - k) * k * c.y + k ** 2 * b.y });
+/** A point along the arrow's curve (k 0 at its start, 1 at its end): quadratic through `c`, or cubic through `c` then `d`. */
+const along = (a: P2, c: P2, b: P2, k: number, d?: P2): P2 => d
+  ? { x: (1 - k) ** 3 * a.x + 3 * (1 - k) ** 2 * k * c.x + 3 * (1 - k) * k ** 2 * d.x + k ** 3 * b.x, y: (1 - k) ** 3 * a.y + 3 * (1 - k) ** 2 * k * c.y + 3 * (1 - k) * k ** 2 * d.y + k ** 3 * b.y }
+  : { x: (1 - k) ** 2 * a.x + 2 * (1 - k) * k * c.x + k ** 2 * b.x, y: (1 - k) ** 2 * a.y + 2 * (1 - k) * k * c.y + k ** 2 * b.y };
 
-/** A curved arrow (canvas pixels) with a label, and a dot running along it unless motion is reduced. */
-export function drawArrow(ctx: CanvasRenderingContext2D, from: P2, control: P2, to: P2, options: { width: number; label: string; emphasis: boolean; now: number; reducedMotion: boolean; labelAt: P2; fontPx: number; light?: boolean; bounds?: { width: number; height: number } }) {
+/**
+ * A curved arrow (canvas pixels) with a label, and a dot running along it unless motion is reduced. With
+ * `control2`, the curve is cubic (through `control`, then `control2`), for a path that curls back on itself.
+ */
+export function drawArrow(ctx: CanvasRenderingContext2D, from: P2, control: P2, to: P2, options: { width: number; label: string; emphasis: boolean; now: number; reducedMotion: boolean; labelAt: P2; fontPx: number; light?: boolean; bounds?: { width: number; height: number }; control2?: P2 }) {
   ctx.save();
   ctx.globalAlpha = options.emphasis ? 1 : 0.5;
   ctx.lineCap = "round"; ctx.lineJoin = "round";
@@ -426,7 +440,12 @@ export function drawArrow(ctx: CanvasRenderingContext2D, from: P2, control: P2, 
   const animate = options.emphasis && !options.reducedMotion;
   const breathe = animate ? 0.5 + 0.5 * Math.sin((options.now / 900) * Math.PI * 2) : 0;
   const sweep = animate ? (options.now % ARROW_SWEEP_MS) / ARROW_SWEEP_MS : 0;
-  const path = () => { ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.quadraticCurveTo(control.x, control.y, to.x, to.y); };
+  const control2 = options.control2;
+  const path = () => {
+    ctx.beginPath(); ctx.moveTo(from.x, from.y);
+    if (control2) ctx.bezierCurveTo(control.x, control.y, control2.x, control2.y, to.x, to.y);
+    else ctx.quadraticCurveTo(control.x, control.y, to.x, to.y);
+  };
   // A soft band under a dashed line, so it shows on any background.
   ctx.strokeStyle = `rgba(255,254,250,${0.4 + 0.25 * breathe})`; ctx.lineWidth = options.width * (2.2 + 0.6 * breathe);
   path(); ctx.stroke();
@@ -440,13 +459,13 @@ export function drawArrow(ctx: CanvasRenderingContext2D, from: P2, control: P2, 
     for (let i = 7; i >= 0; i--) {
       const k = sweep - i * 0.035;
       if (k < 0) continue;
-      const p = along(from, control, to, Math.min(1, k));
+      const p = along(from, control, to, Math.min(1, k), control2);
       ctx.fillStyle = `rgba(255,254,250,${(1 - i / 8) * 0.95})`;
       ctx.beginPath(); ctx.arc(p.x, p.y, options.width * (1.15 - i * 0.1), 0, Math.PI * 2); ctx.fill();
     }
   }
   // The head, along the curve's last direction; it swells as the pulse reaches it.
-  const tail = along(from, control, to, 0.9);
+  const tail = along(from, control, to, 0.9, control2);
   const arrive = animate ? Math.max(0, 1 - Math.abs(sweep - 0.95) / 0.18) : 0;
   const angle = Math.atan2(to.y - tail.y, to.x - tail.x), head = options.width * 3.4 * (1 + 0.15 * breathe + 0.3 * arrive);
   ctx.fillStyle = "#e18e6d"; ctx.strokeStyle = "rgba(255,254,250,.9)"; ctx.lineWidth = Math.max(1.5, options.width * 0.35);
@@ -474,21 +493,35 @@ export function drawArrow(ctx: CanvasRenderingContext2D, from: P2, control: P2, 
 }
 
 /**
- * The arrow on the mirrored camera view: out along the foot's path while straightening ("Swing out this way"),
- * back down to where the foot rested while lowering ("Foot down here"). Bright while the step is active and the
- * knee is not yet at its goal; faint otherwise.
+ * The arrow on the mirrored camera view: forward toward the camera and a little out while straightening ("Straighten
+ * toward the camera"), back down to where the foot rested while lowering ("Foot down here"). Bright while the step is
+ * active and the knee is not yet at its goal; faint otherwise.
  */
 export function drawKneeGuide(ctx: CanvasRenderingContext2D, guide: KneeGuide, width: number, height: number, state: { lowering: boolean; emphasis: boolean; now: number; reducedMotion: boolean }) {
   const px = (p: P2) => ({ x: (1 - p.x) * width, y: p.y * height });
-  const start = px(guide.start), control = px(guide.control), end = px(guide.end);
   const lineWidth = Math.max(4, guide.shin * height * 0.05), fontPx = Math.max(14, Math.round(height / 30));
   const bounds = { width, height };
   if (state.lowering) {
+    const start = px(guide.lower.start), control = px(guide.lower.control), end = px(guide.lower.end);
     // Below the resting foot, or above it when the foot is near the bottom edge.
-    const below = start.y + lineWidth * 5;
-    drawArrow(ctx, end, control, start, { width: lineWidth, label: "Foot down here", emphasis: state.emphasis, now: state.now, reducedMotion: state.reducedMotion, labelAt: { x: start.x, y: below <= height - 8 ? below : start.y - lineWidth * 3 }, fontPx, bounds });
+    const below = end.y + lineWidth * 5;
+    drawArrow(ctx, start, control, end, { width: lineWidth, label: "Foot down here", emphasis: state.emphasis, now: state.now, reducedMotion: state.reducedMotion, labelAt: { x: end.x, y: below <= height - 8 ? below : end.y - lineWidth * 3 }, fontPx, bounds });
   } else {
-    drawArrow(ctx, start, control, end, { width: lineWidth, label: "Swing out this way", emphasis: state.emphasis, now: state.now, reducedMotion: state.reducedMotion, labelAt: { x: end.x, y: end.y - lineWidth * 4 }, fontPx, bounds });
+    const start = px(guide.lift.start), control = px(guide.lift.control), control2 = px(guide.lift.control2), end = px(guide.lift.end);
+    // The label reads outward from the arrow, clear of the leg (out from the body on the mirrored view is -out in the
+    // raw image): under the arrow's curl where the picture has room below it, as the knee dial's practice hint sits
+    // about level with the knee when the camera is at hip height; otherwise (the knee low in the picture, the hint
+    // well above it) just above where the arrow starts. Shortened when the full label has no room outward.
+    const outward = -guide.out, below = Math.max(end.y, control2.y) + lineWidth * 4;
+    const anchor = below <= height - 8 ? { x: end.x, y: below } : { x: start.x, y: start.y - lineWidth * 2.5 };
+    const room = outward > 0 ? width - anchor.x - 8 : anchor.x - 8;
+    ctx.save(); ctx.font = `800 ${fontPx}px Manrope, sans-serif`;
+    const full = "Straighten toward the camera", label = ctx.measureText(full).width - lineWidth <= room ? full : "Toward the camera";
+    // A narrow (portrait) picture: smaller type, down to 12 px, so the label still reads outward of the legs.
+    const width0 = ctx.measureText(label).width, labelPx = width0 - lineWidth <= room ? fontPx : Math.max(12, Math.floor(fontPx * (room + lineWidth) / width0));
+    const half = width0 * labelPx / fontPx / 2;
+    ctx.restore();
+    drawArrow(ctx, start, control, end, { width: lineWidth, label, emphasis: state.emphasis, now: state.now, reducedMotion: state.reducedMotion, labelAt: { x: anchor.x + outward * (half - lineWidth), y: anchor.y }, fontPx: labelPx, bounds, control2 });
   }
 }
 
@@ -504,8 +537,11 @@ const FRONT = {
   head: [150, 40] as const, shoulderA: [182, 82] as const, shoulderO: [118, 82] as const, hipA: [172, 156] as const, hipO: [128, 156] as const,
   kneeA: [178, 182] as const, kneeO: [122, 182] as const, ankleO: [121, 244] as const,
 };
-/** The lower leg's length, how far the demonstration straightens it, and how far out to the side it swings (degrees). */
-const DEMO_SHIN = 62, DEMO_SWING = 70, DEMO_OUT = 42;
+/**
+ * The lower leg's length, how far the demonstration straightens it (degrees), and how far out to the side of straight
+ * at the viewer it points as it does (degrees).
+ */
+const DEMO_SHIN = 62, DEMO_SWING = 70, DEMO_OUT = 22;
 /** The demonstration's dial: beside the affected shoulder, as on the camera view. */
 const DEMO_DIAL = { x: 240, y: 92, r: 46 };
 
@@ -516,12 +552,17 @@ function demoDial(side: Side): DialPx {
   return { x: sideX(DEMO_DIAL.x, side), y: DEMO_DIAL.y, r: DEMO_DIAL.r, dir: side === "left" ? -1 : 1 };
 }
 
-/** The demonstration's affected ankle at progress p: the lower leg straightening and swinging out to the side. */
+/**
+ * The demonstration's affected ankle at progress p, as the front camera sees the lower leg straighten toward it and a
+ * little out to the side: pointing more at the viewer, it shows shorter, so the ankle rises toward the knee.
+ */
 function demoAnkle(p: number, side: Side): [number, number] {
   const a = (p * DEMO_SWING) / DEG, out = Math.sin(DEMO_OUT / DEG);
   const [kx, ky] = FRONT.kneeA;
   return [sideX(kx + DEMO_SHIN * Math.sin(a) * out, side), ky + DEMO_SHIN * Math.cos(a)];
 }
+/** How far toward the viewer the demonstration's foot has come at progress p (0 resting, 1 straightened). */
+const demoForward = (p: number) => Math.sin((clamp(p, 0, 1.2) * DEMO_SWING) / DEG) / Math.sin(DEMO_SWING / DEG);
 
 /**
  * The seated figure seen from the front, in the 300 x 270 drawing space (the caller has scaled to it): chair and
@@ -553,12 +594,14 @@ export const frontHip = (side: Side): [number, number] => [sideX(FRONT.hipA[0], 
 
 /**
  * The front-view scene for the demonstration, the simulator and the screen previews: the seated figure as the
- * camera sees it, its affected lower leg straightening out to the side along the arrow, and the knee dial beside
- * its shoulder filling toward its circle. The circle itself is drawn by the caller (the shared target visuals).
+ * camera sees it, its affected lower leg straightening toward the viewer and a little out to the side (shorter as it
+ * points at the viewer, the foot nearer and larger with its sole turning to face the viewer, its shadow coming
+ * forward), the arrow, and the knee dial beside its shoulder filling toward its circle. The circle itself is drawn by
+ * the caller (the shared target visuals).
  */
 export function drawKneeScene(ctx: CanvasRenderingContext2D, width: number, height: number, state: { progress: number; lowering: boolean; side: Side; arrow: boolean; armed: boolean; now: number; reducedMotion: boolean }) {
   const s = Math.min(width / 300, height / 270);
-  const side = state.side;
+  const side = state.side, dir = side === "left" ? -1 : 1;
   const P = (p: readonly [number, number]): [number, number] => [sideX(p[0], side), p[1]];
   ctx.save();
   ctx.clearRect(0, 0, width, height);
@@ -567,25 +610,37 @@ export function drawKneeScene(ctx: CanvasRenderingContext2D, width: number, heig
   ctx.lineCap = "round"; ctx.lineJoin = "round";
   const line = (points: [number, number][]) => { ctx.beginPath(); points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); };
   drawSeatedFront(ctx, side);
-  // The arrow: which way the foot goes.
-  const rest = demoAnkle(0, side), end = demoAnkle(1, side);
+  const [kx, ky] = P(FRONT.kneeA);
+  // The arrow: forward toward the viewer and a little out while straightening (as on the camera view, a sweep out and
+  // down from below the knee curling back toward the viewer); back down to the floor while lowering.
   if (state.arrow) {
-    // Out along the foot's path while straightening; back down to the floor while lowering.
-    const low = { x: rest[0] + (side === "left" ? -6 : 6), y: rest[1] - 4 };
-    const control = { x: sideX(212, side), y: 244 };
-    const high = { x: end[0] + (side === "left" ? -10 : 10), y: end[1] + 2 };
-    const [from, to] = state.lowering ? [high, low] : [low, high];
-    drawArrow(ctx, from, control, to, {
-      width: 3.4, label: state.lowering ? "Foot down" : "Out this way", emphasis: state.armed, now: state.now, reducedMotion: state.reducedMotion,
-      labelAt: state.lowering ? { x: low.x + (side === "left" ? -40 : 40), y: low.y + 14 } : { x: high.x + (side === "left" ? -10 : 10), y: high.y - 14 }, fontPx: 11, light: true,
-    });
+    const fromKnee = ([across, down]: readonly [number, number]): P2 => ({ x: kx + dir * across * DEMO_SHIN, y: ky + down * DEMO_SHIN });
+    if (state.lowering) {
+      const [rx, ry] = demoAnkle(0, side);
+      drawArrow(ctx, fromKnee([0.45, 0.36]), { x: kx + dir * 40, y: 236 }, { x: rx + dir * 6, y: ry - 2 }, {
+        width: 3.4, label: "Foot down", emphasis: state.armed, now: state.now, reducedMotion: state.reducedMotion,
+        labelAt: { x: sideX(226, side), y: 254 }, fontPx: 11, light: true,
+      });
+    } else {
+      drawArrow(ctx, fromKnee(GUIDE_LIFT.start), fromKnee(GUIDE_LIFT.control), fromKnee(GUIDE_LIFT.end), {
+        width: 3.4, label: "Toward the camera", emphasis: state.armed, now: state.now, reducedMotion: state.reducedMotion,
+        labelAt: { x: sideX(248, side), y: 176 }, fontPx: 11, light: true, control2: fromKnee(GUIDE_LIFT.control2),
+      });
+    }
   }
-  // The affected leg: thigh, then the lower leg straightening out to the side, the foot with it.
+  // The affected leg: the thigh, then the lower leg straightening toward the viewer, wider as it comes nearer; under
+  // it the foot's shadow on the floor, coming forward (lower in the picture).
   const [ax, ay] = demoAnkle(state.progress, side);
+  const forward = demoForward(state.progress), near = 1 + 0.6 * forward;
+  ctx.fillStyle = "rgba(60,130,85,.18)";
+  ctx.beginPath(); ctx.ellipse(ax, 252 + 8 * forward, 9 * near, 2.5 * near, 0, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = "#e18e6d"; ctx.lineWidth = 9;
-  line([P(FRONT.hipA), P(FRONT.kneeA), [ax, ay]]);
-  ctx.lineWidth = 7;
-  line([[ax, ay], [ax + (side === "left" ? -5 : 5), ay + 8]]);
+  line([P(FRONT.hipA), [kx, ky]]);
+  ctx.lineWidth = 9 * (1 + 0.25 * forward);
+  line([[kx, ky], [ax, ay]]);
+  // The foot: resting, its top seen from the front; straightened, its sole facing the viewer, nearer and larger.
+  ctx.fillStyle = forward > 0.3 ? "#f2c2ad" : "#e18e6d"; ctx.strokeStyle = "#e18e6d"; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.ellipse(ax + dir * 2, ay + (6 - 2 * forward) * near, 6 * near, (3.5 + 8 * forward) * near, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   // The knee dial beside the shoulder: its foot follows the knee.
   drawDialBase(ctx, demoDial(side), state.progress, "Knee angle", true);
   drawDialFoot(ctx, demoDial(side), state.progress);
@@ -635,7 +690,7 @@ export function kneeDemoState(elapsedMs: number, returning: boolean, armed = tru
     : phase === "complete" ? returning ? "Foot down complete" : "Knee straight enough — now lower your foot slowly"
     : phase === "hold" ? `${returning ? "Rest your foot on the floor" : "Hold your knee straight"} · ${Math.round(progress * 100)}%`
     : returning ? "Bend your knee and lower your foot slowly to the floor"
-    : "Straighten your knee, swinging your foot out along the arrow. The knee dial moves with the knee, toward its circle";
+    : "Straighten your knee toward the camera and a little out to the side, along the arrow. The knee dial moves with the knee, toward its circle";
   return { pose, target, radius: DIAL_CIRCLE_SHARE * DEMO_DIAL.r, armed, contact, progress, completionElapsedMs, phase, label, instruction };
 }
 
@@ -652,6 +707,8 @@ export function drawKneeDemo(ctx: CanvasRenderingContext2D, elapsedMs: number, r
   ctx.font = "600 12px Manrope, sans-serif";
   ctx.textAlign = "center";
   ctx.fillStyle = state.contact ? "#285b49" : "#a14d32";
-  ctx.fillText(state.phase === "complete" ? "Complete" : state.label, x, y + radius + 16);
+  // Under the circle, kept inside the canvas (the dial sits near its edge).
+  const text = state.phase === "complete" ? "Complete" : state.label, half = ctx.measureText(text).width / 2;
+  ctx.fillText(text, clamp(x, half + 4, Math.max(half + 4, width - half - 4)), y + radius + 16);
   ctx.restore();
 }

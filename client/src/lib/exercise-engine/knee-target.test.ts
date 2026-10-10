@@ -5,9 +5,26 @@ import { reachDemoState } from "./reach-demo";
 import { exerciseScreenPreview } from "./screen-preview";
 import { ExerciseSession, simFrame, type Snapshot } from "./session";
 import {
-  DIAL_GOAL_DEG, dialPoint, kneeDemoDuration, kneeDemoState, kneeDial, kneeFrame, kneeGhostContact, kneeGhostTarget, kneeGuide,
+  DIAL_GOAL_DEG, dialPoint, drawKneeDial, drawKneeGuide, drawKneeScene, kneeDemoDuration, kneeDemoState, kneeDial, kneeFrame, kneeGhostContact, kneeGhostTarget, kneeGuide,
   kneePracticeGoal, kneeRestCheck, KneeTarget, KNEE_EASE_MS, KNEE_EASED_DEG, KNEE_HYSTERESIS_DEG,
 } from "./knee-target";
+import { drawToeScene } from "./toe-target";
+
+/** A canvas context that records its drawing calls (text measured at about 0.6 of the font size a character). */
+function recordingContext() {
+  const calls: { name: string; args: unknown[] }[] = [];
+  const state: Record<string, unknown> = { font: "10px sans-serif" };
+  const gradient = { addColorStop() {} };
+  const ctx = new Proxy(state, {
+    get(target, prop: string) {
+      if (prop === "measureText") return (text: string) => ({ width: text.length * 0.6 * Number(/(\d+(?:\.\d+)?)px/.exec(String(target.font))?.[1] ?? 10) });
+      if (prop in target) return target[prop];
+      return (...args: unknown[]) => { calls.push({ name: prop, args }); return gradient; };
+    },
+    set(target, prop: string, value) { target[prop] = value; return true; },
+  }) as unknown as CanvasRenderingContext2D;
+  return { ctx, calls, texts: () => calls.filter(call => call.name === "fillText").map(call => ({ text: call.args[0] as string, x: call.args[1] as number, y: call.args[2] as number })) };
+}
 
 const ASPECT = 4 / 3;
 const SIDES: Side[] = ["left", "right"];
@@ -129,23 +146,33 @@ describe("Seated Knee Extension on the shared target flow", () => {
     // Clear of the leg: the whole dial sits above the knee.
     expect(down.y + 0.3 * dial.radius).toBeLessThan(at(pose, j.knee).y + 0.02);
   });
-  it.each(SIDES)("points the arrow from the resting foot out to the affected side and up, toward beside the knee (%s side)", side => {
+  it.each(SIDES)("draws the straightening arrow forward toward the camera and a little out: from below the knee, sweeping out and down, curling back (%s side)", side => {
     const pose = kneeBody(side), j = poseJoints(side);
     const geo = kneeFrame({ pose }, side, 0, ASPECT, null).geo!;
     const dial = kneeDial(pose, side, ASPECT)!;
     const guide = kneeGuide(geo, dial, ASPECT)!;
-    const ankle = at(pose, j.ankle), knee = at(pose, j.knee);
-    expect(Math.hypot((guide.start.x - ankle.x) * ASPECT, guide.start.y - ankle.y)).toBeLessThan(0.2 * guide.shin);
-    // Out to the same side as the dial, and higher than the resting foot, below the knee.
-    expect((guide.end.x - ankle.x) * dial.out).toBeGreaterThan(0.5 * guide.shin / ASPECT);
-    expect(guide.end.y).toBeLessThan(ankle.y);
-    expect(guide.end.y).toBeGreaterThan(knee.y);
+    const ankle = at(pose, j.ankle), knee = at(pose, j.knee), { lift, lower } = guide;
+    const out = (p: { x: number }) => (p.x - knee.x) * dial.out;
+    // It starts just below the knee, on the dial's side.
+    expect(Math.hypot((lift.start.x - knee.x) * ASPECT, lift.start.y - knee.y)).toBeLessThan(0.25 * guide.shin);
+    expect(out(lift.start)).toBeGreaterThan(0);
+    expect(lift.start.y).toBeGreaterThan(knee.y);
+    // It sweeps out and down, furthest out at its second control point, then curls back in, its head toward the body
+    // and below the knee, above the resting foot's level.
+    expect(out(lift.control)).toBeGreaterThan(out(lift.start));
+    expect(out(lift.control2)).toBeGreaterThan(out(lift.end));
+    expect(out(lift.end)).toBeGreaterThan(out(lift.start));
+    expect(lift.end.y).toBeGreaterThan(lift.control.y);
+    expect(lift.end.y).toBeLessThan(ankle.y + 0.05);
+    // Lowering: from beside the knee down to where the foot rested.
+    expect(out(lower.start)).toBeGreaterThan(0);
+    expect(lower.start.y).toBeLessThan(lower.end.y);
+    expect(Math.hypot((lower.end.x - ankle.x) * ASPECT, lower.end.y - ankle.y)).toBeLessThan(0.2 * guide.shin);
     expect(kneeGuide(null, dial, ASPECT)).toBeNull();
     // Near the edge of the picture the arrow reaches less far out, so it stays in view.
     const nearEdge = { ...geo, kneeImgX: dial.out > 0 ? 0.9 : 0.1, ankleImgX: dial.out > 0 ? 0.9 : 0.1 };
     const short = kneeGuide(nearEdge, dial, ASPECT)!;
-    expect(short.end.x).toBeGreaterThan(0.03);
-    expect(short.end.x).toBeLessThan(0.97);
+    for (const p of [short.lift.start, short.lift.control, short.lift.control2, short.lift.end]) { expect(p.x).toBeGreaterThan(0.03); expect(p.x).toBeLessThan(0.97); }
   });
   it("sets a modest practice goal from the resting knee", () => {
     expect(kneePracticeGoal(90)).toBe(118);
@@ -276,6 +303,61 @@ describe("Seated Knee Extension demonstration, simulator and previews", () => {
     // The circle is reached as the demonstration's dial foot gets there, before the hold.
     const at = kneeDemoState(kneeDemoDuration(false) - 1, false);
     expect(at.target[0]).toBeCloseTo(right.x);
+  });
+  it.each(SIDES)("draws the demonstration's arrow as the curling hook, out from the knee on the affected side (%s side)", side => {
+    const { ctx, calls, texts } = recordingContext();
+    drawKneeScene(ctx, 300, 270, { progress: 0.5, lowering: false, side, arrow: true, armed: true, now: 0, reducedMotion: true });
+    const hooks = calls.filter(call => call.name === "bezierCurveTo");
+    expect(hooks.length).toBeGreaterThan(0);
+    // The knee is at x 178 for a right leg, mirrored for a left; the hook's end and its furthest point are out from it.
+    const knee = side === "left" ? 122 : 178, out = side === "left" ? -1 : 1;
+    for (const call of hooks) {
+      const [, , c2x, , endX] = call.args as number[];
+      expect((c2x - knee) * out).toBeGreaterThan(40);
+      expect((endX - knee) * out).toBeGreaterThan(20);
+    }
+    const label = texts().find(text => text.text === "Toward the camera")!;
+    expect((label.x - knee) * out).toBeGreaterThan(30);
+    // Lowering: a plain curve back down to the floor.
+    const lowering = recordingContext();
+    drawKneeScene(lowering.ctx, 300, 270, { progress: 0.5, lowering: true, side, arrow: true, armed: true, now: 0, reducedMotion: true });
+    expect(lowering.calls.some(call => call.name === "bezierCurveTo")).toBe(false);
+    expect(lowering.texts().some(text => text.text === "Foot down")).toBe(true);
+  });
+  it.each(SIDES)("labels the camera view's arrow outward from it, clear of the knee dial's practice hint (%s side)", side => {
+    for (const [width, height] of [[640, 480], [1280, 720]]) {
+      const pose = kneeBody(side), geo = kneeFrame({ pose }, side, 0, ASPECT, null).geo!, dial = kneeDial(pose, side, ASPECT)!;
+      const guide = kneeGuide(geo, dial, ASPECT)!;
+      const { ctx, calls, texts } = recordingContext();
+      drawKneeDial(ctx, dial, width, height, { progress: 0, lowering: false, armed: true, contact: false, hold: 0, label: "Straighten", now: 0, reducedMotion: true, hint: "Moves with your knee" });
+      drawKneeGuide(ctx, guide, width, height, { lowering: false, emphasis: true, now: 0, reducedMotion: true });
+      expect(calls.some(call => call.name === "bezierCurveTo")).toBe(true);
+      const hint = texts().find(text => text.text === "Moves with your knee")!, label = texts().find(text => /toward the camera/i.test(text.text))!;
+      // On the mirrored view out from the body is -out; the label reads outward from where the arrow starts.
+      const start = (1 - guide.lift.start.x) * width;
+      expect((label.x - start) * -guide.out).toBeGreaterThan(0);
+      // Not printed over the hint: well apart in height, or side by side.
+      const fontPx = Math.max(14, Math.round(height / 30)), apart = Math.abs(label.y - hint.y) > fontPx * 1.2;
+      const halfLabel = label.text.length * 0.6 * fontPx / 2, halfHint = hint.text.length * 0.6 * Math.max(13, Math.round(height / 34)) / 2;
+      expect(apart || Math.abs(label.x - hint.x) > halfLabel + halfHint, `${width}x${height}`).toBe(true);
+    }
+  });
+  it.each(SIDES)("keeps the camera view's arrow label outward of the knee in a portrait picture (%s side)", side => {
+    const portrait = 3 / 4, pose = kneeBody(side), geo = kneeFrame({ pose }, side, 0, portrait, null).geo!, dial = kneeDial(pose, side, portrait);
+    // A portrait picture may leave no room for the dial; the arrow is drawn from the dial's side regardless.
+    const guide = kneeGuide(geo, dial ?? { pivot: { x: 0.5, y: 0.3 }, radius: 0.1, out: side === "left" ? 1 : -1 }, portrait)!;
+    const { ctx, texts } = recordingContext();
+    drawKneeGuide(ctx, guide, 480, 640, { lowering: false, emphasis: true, now: 0, reducedMotion: true });
+    const label = texts().find(text => /toward the camera/i.test(text.text))!, knee = (1 - geo.kneeImgX!) * 480;
+    const fontPx = Number(/(\d+)px/.exec(String((ctx as unknown as { font: string }).font))?.[1] ?? 14);
+    // The label's inner edge is no further in than the knee itself.
+    expect((label.x - knee) * -guide.out - label.text.length * 0.6 * fontPx / 2).toBeGreaterThan(-24);
+  });
+  it("leaves the toe lift's arrows plain curves, as the knee's hook adds a second control point", () => {
+    const { ctx, calls } = recordingContext();
+    drawToeScene(ctx, 300, 270, { progress: 0.5, lowering: false, side: "right", arrow: true, armed: true, now: 0, reducedMotion: true });
+    expect(calls.some(call => call.name === "quadraticCurveTo")).toBe(true);
+    expect(calls.some(call => call.name === "bezierCurveTo")).toBe(false);
   });
   it("previews its two steps, the set-up checks with the lighting, and the results", () => {
     expect(exerciseScreenPreview("warm-reach", 1, "right", ID).snapshot).toMatchObject({ kind: "reach", stepIndex: 0, stepCount: 2 });

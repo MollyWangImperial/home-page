@@ -495,9 +495,10 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
       cr("other_leg", "other leg helping", "other_leg_pct", 20, 4, 0, "Keep your other foot still on the floor.", { unit: "%", minConsecutiveMs: 400, alternative: [{ metric: "other_knee_delta", threshold: 20 }], steps: [0] }),
     ],
     cycle: [
-      // The foot swings a little out to the side, along the arrow: straight toward the camera, it can hardly see the
-      // knee straighten. The circle is on the knee dial: it measures the knee, it is not a place for the foot.
-      { caption: "Straighten your knee and hold", voice: "Slowly straighten your knee, swinging your foot a little out to the side along the arrow, until the knee dial reaches its circle. Keep your thigh on the chair and sit tall. Hold it there.", kind: "reach", gate: ["knee_extension"], holdMs: 1500, cue: "Straighten your knee, out along the arrow." },
+      // The foot comes forward toward the camera and a little out to the side, along the arrow: exactly straight at
+      // the camera, it can hardly see the knee straighten. The circle is on the knee dial: it measures the knee, it
+      // is not a place for the foot.
+      { caption: "Straighten your knee and hold", voice: "Slowly straighten your knee, bringing your foot forward toward the camera and a little out to the side, along the arrow, until the knee dial reaches its circle. Keep your thigh on the chair and sit tall. Hold it there.", kind: "reach", gate: ["knee_extension"], holdMs: 1500, cue: "Straighten your knee, forward along the arrow." },
       { ...ret("Lower your foot to the floor", "Now slowly bend your knee and lower your foot back to the floor."), cue: "Lower slowly." },
     ],
     feedback: [
