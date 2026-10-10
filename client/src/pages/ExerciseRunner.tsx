@@ -781,7 +781,7 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
         const setup = currentSnapshot.phase === "setup";
         // Green only while waiting for the palm: during the movement the area is just a faint reminder.
         try {
-          if (canvas && ctx) drawHandZone(ctx, handZoneRef.current, canvas.width, canvas.height, { emphasis: setup || currentSnapshot.awaitingReady, ready: setup ? Boolean(frame.lapRest) : currentSnapshot.awaitingReady && frame.ready === true, side: opts.side, now: t, reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches });
+          if (canvas && ctx) drawHandZone(ctx, handZoneRef.current, canvas.width, canvas.height, { emphasis: setup || currentSnapshot.awaitingReady, ready: setup ? Boolean(frame.lapRest) : currentSnapshot.awaitingReady && frame.ready === true, side: opts.side, now: t, reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches, ...(session.cfg.id === PINCH_ID ? { openDemo: true, label: "Palm to camera, fingers open" } : {}) });
         } catch (err) {
           console.warn("Shaded area drawing failed", err);
         }
@@ -1296,7 +1296,7 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
                     <i className="fill" style={{ width: `${snap.holdProgress * 100}%` }} />
 
                   </div>
-                  <p className="xe-hint">{snap.awaitingReady ? "Show me your palm in the shaded area to begin" : !snap.targetArmed ? "Listen to the instruction. Wait for the circle to become active." : cfg.id === "ex_grasp" ? snap.inZone ? "Hold it there..." : GRASP_HINTS[snap.stepIndex] ?? ""
+                  <p className="xe-hint">{snap.awaitingReady ? cfg.id === PINCH_ID ? "Show me your open palm in the shaded area to begin" : "Show me your palm in the shaded area to begin" : !snap.targetArmed ? "Listen to the instruction. Wait for the circle to become active." : cfg.id === "ex_grasp" ? snap.inZone ? "Hold it there..." : GRASP_HINTS[snap.stepIndex] ?? ""
                     : cfg.id === TOE_ID ? snap.kind === "return" ? "Lower your toes slowly to the floor and pause" : snap.inZone ? "Hold it there..." : "With your foot turned out and your heel down, lift your toes until the ankle dial reaches its circle"
                     : cfg.id === KNEE_ID ? snap.kind === "return" ? "Lower your foot slowly to the floor and pause" : snap.inZone ? "Hold it there..." : "Straighten your knee, swinging your foot out along the arrow, until the knee dial reaches its circle"
                     : cfg.id === PINCH_ID ? snap.kind === "return" ? "Open your thumb and finger to let the peg drop into the tray" : snap.inZone ? "Hold the peg..." : `Bring your thumb to your ${PINCH_FINGERS[pinchStepOf(cfg.cycle, snap.stepIndex).finger].name}, tip to tip, in the circle`
@@ -1400,7 +1400,7 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
           {cfg.id === KNEE_ID && <p className="xe-countdown-note"><Footprints size={16} aria-hidden="true" /> Sit tall, both feet flat on the floor, ready to straighten your knee.</p>}
           {cfg.id === TOE_ID && <p className="xe-countdown-note"><Footprints size={16} aria-hidden="true" /> Sit tall, foot turned out, heel down, ready to lift your toes.</p>}
           {cfg.id === SLIDE_ID && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Forearm resting beside you, ready to move your hand out to the cup.</p>}
-          {cfg.id === PINCH_ID && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Hand up in the shaded area, thumb apart from your finger.</p>}
+          {cfg.id === PINCH_ID && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Hand up in the shaded area, palm to the camera, fingers open.</p>}
         </div>
       </div>}
 
@@ -1472,7 +1472,7 @@ function Intro(props: { base: (typeof EXERCISES)[string]; cfg: ReturnType<typeof
         </>}
       </div>
       {cfg.tracking !== "pose" && !opts.sim && <p className="xe-note"><Hand size={14} aria-hidden="true" /> {base.id === "ex_handopen" ? "Rest your elbow on an armrest or table and hold your hand up in the shaded area beside your body, at chest height, palm to the camera. That keeps your face and both shoulders in view." : base.id === "ex_grasp" ? "Sit without a table, with your head to mid-thigh in view and both hands resting on your thighs. The cup is drawn on screen. Have good light in front of you."
-        : base.id === PINCH_ID ? "Rest your elbow on an armrest or table and hold your hand up in the shaded area beside your body, at chest height, palm to the camera. The peg and tray are drawn on screen. Have good light in front of you."
+        : base.id === PINCH_ID ? "Rest your elbow on an armrest or table and hold your hand up in the shaded area beside your body, at chest height, palm to the camera with your fingers open. The peg and tray are drawn on screen. Have good light in front of you."
         : "Hold the hand close to the camera with every fingertip in view."}</p>}
       {base.id === SLIDE_ID && !opts.sim && <p className="xe-note"><Hand size={14} aria-hidden="true" /> {opts.armrest ? "Rest your forearm on the armrest of your chair and your other hand on your thigh." : "Sit with a table beside your affected side, forearm resting on it and your other hand on your thigh."} Place the camera in front of you at chest height so you are in view from your head to your thighs, with room beside your arm and good light in front of you. Follow the arrow out to the side and a little forward, not toward the camera.</p>}
       {base.id === KNEE_ID && !opts.sim && <p className="xe-note"><Footprints size={14} aria-hidden="true" /> Place the camera about 2 metres in front of you at knee to hip height, so you are in view from your head to your feet while you sit. Use a stable chair with a back, keep a carer nearby, and have good light in front of you. When you straighten your knee, swing your foot a little out to the side, as the arrow shows: straight toward the camera, it can hardly see your knee move.</p>}
@@ -1786,7 +1786,7 @@ function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Dete
         return { id: need.joint, label: labels[need.joint], visible: !!point && (point.visibility ?? 1) >= 0.5 && point.x > 0.01 && point.x < 0.99 && point.y > 0.01 && point.y < 0.99, hint: need.say };
       }),
       { id: "wrist", label: `${labels.wrist} in the shaded area`, visible: placed, hint: zone?.hint ?? `Rest your elbow on an armrest or table and hold your ${side} hand up in the shaded area beside your body.` },
-      { id: "fingers", label: "Palm to camera, thumb apart", visible: placed && palmFacing(hand, side) >= 0.5 && (pinchGap(hand, 0) ?? 0) >= 0.3, hint: "Turn your palm to the camera and let your thumb rest a little away from your first finger." },
+      { id: "fingers", label: "Palm to camera, fingers open", visible: placed && palmFacing(hand, side) >= 0.5 && (pinchGap(hand, 0) ?? 0) >= 0.3, hint: "Face your palm to the camera, then open your fingers and thumb." },
       { id: "lighting", label: lightingInfo?.waived && light && !light.ok ? "Lighting (could be better)" : "Lighting", visible: Boolean(light?.ok || lightingInfo?.waived), hint: light?.hint ?? "Checking the light..." },
     ];
   }
@@ -2040,7 +2040,7 @@ function AssessmentCards({ snap, levels, exerciseId, onHelp }: { snap: Snapshot;
           <b>{seconds}</b>
           <p>Starts in {seconds} {seconds === 1 ? "second" : "seconds"}</p>
         </div>
-        <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> {exerciseId === "ex_handopen" ? "Hand up in the shaded area, fingers relaxed." : exerciseId === PINCH_ID ? "Hand up in the shaded area, thumb apart from your finger." : "Hand resting on your lap."}</p>
+        <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> {exerciseId === "ex_handopen" ? "Hand up in the shaded area, fingers relaxed." : exerciseId === PINCH_ID ? "Hand up in the shaded area, palm to the camera, fingers open." : "Hand resting on your lap."}</p>
       </div>
     </div>;
   }

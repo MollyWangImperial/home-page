@@ -337,7 +337,7 @@ export function followZone(last: HandZone | null, next: HandZone | null, share =
  * faint outline of a hand, palm to the camera, and a label; once the palm is there it turns solid green. During
  * the movement it stays as a faint reminder of where to keep the hand.
  */
-export function drawHandZone(ctx: CanvasRenderingContext2D, zone: HandZone, width: number, height: number, state: { emphasis: boolean; ready: boolean; side: Side; now: number; reducedMotion: boolean }) {
+export function drawHandZone(ctx: CanvasRenderingContext2D, zone: HandZone, width: number, height: number, state: { emphasis: boolean; ready: boolean; side: Side; now: number; reducedMotion: boolean; openDemo?: boolean; label?: string }) {
   const pad = 0.6 * zone.palm * height;
   const xs = [(1 - zone.x0) * width, (1 - zone.x1) * width];
   const left = Math.min(...xs) - pad, right = Math.max(...xs) + pad;
@@ -359,11 +359,13 @@ export function drawHandZone(ctx: CanvasRenderingContext2D, zone: HandZone, widt
   if (state.emphasis) {
     if (!state.ready) {
       // A faint hand, palm to the camera, where the patient's hand goes (mirrored like the video).
-      const points = handGhostPoints(0.35), palm = ghostPalm();
+      // openDemo (Pinch and Peg): the palm turns to face the camera, then the fingers and thumb open.
+      const show = state.openDemo ? openDemoPose(state.now, state.reducedMotion) : { open: 0.35, face: 1 };
+      const points = handGhostPoints(show.open), palm = ghostPalm();
       const scale = (zone.palm * height) / palm.scale;
       const cx = (left + right) / 2, cy = (top + bottom) / 2 + 0.2 * pad;
       const flip = state.side === "right" ? -1 : 1;
-      const at = (p: [number, number]): [number, number] => [cx + flip * (p[0] - palm.x) * scale, cy + (p[1] - palm.y) * scale];
+      const at = (p: [number, number]): [number, number] => [cx + flip * (p[0] - palm.x) * scale * show.face, cy + (p[1] - palm.y) * scale];
       ctx.strokeStyle = `rgba(255,254,250,${0.75 * pulse})`;
       ctx.lineWidth = Math.max(2, zone.palm * height * 0.09);
       ctx.lineCap = "round";
@@ -379,9 +381,20 @@ export function drawHandZone(ctx: CanvasRenderingContext2D, zone: HandZone, widt
     ctx.fillStyle = state.ready ? "#7fe5a3" : "#fffefa";
     ctx.shadowColor = "rgba(0,0,0,.55)";
     ctx.shadowBlur = 6;
-    ctx.fillText(state.ready ? "✓ Palm ready" : "Hand here, palm to camera", (left + right) / 2, top - 10);
+    ctx.fillText(state.ready ? "✓ Palm ready" : state.label ?? "Hand here, palm to camera", (left + right) / 2, top - 10);
   }
   ctx.restore();
+}
+
+/**
+ * The shaded area's hand for Pinch and Peg, every 3.2 s: the palm turns to face the camera (seen edge-on, then
+ * square: face 0.25 to 1), then the fingers and thumb open (0.35 to 1) and hold. Still and open when motion is reduced.
+ */
+function openDemoPose(now: number, reducedMotion: boolean): { open: number; face: number } {
+  if (reducedMotion) return { open: 1, face: 1 };
+  const k = (now % 3200) / 3200;
+  const ease = (x: number) => { const c = Math.max(0, Math.min(1, x)); return c * c * (3 - 2 * c); };
+  return { face: 0.25 + 0.75 * ease(k / 0.3), open: 0.35 + 0.65 * ease((k - 0.38) / 0.3) };
 }
 
 /** "Open" or "Close" beside the ring on the camera view, so each step reads at a glance. */

@@ -422,8 +422,8 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     // The hand every frame; the body every third frame, for the trunk, shoulder and other-hand checks (tracker.ts).
     tracking: "pose+hand",
     ghost: "pinch",
-    setupVoice: "Welcome. We are going to practise pinching, as if picking up a small peg. The peg and a tray are drawn on your screen, so you do not need real objects. Rest your affected elbow on an armrest or a table, and hold your hand up in the shaded area beside your body, at chest height, with your palm facing the camera. Keeping your hand there leaves your face and both shoulders in view.",
-    calibrationInstruction: "Before we begin, hold your hand in the shaded area with your palm facing the camera, your fingers relaxed and your thumb resting a little away from your first finger. Make sure the room is well lit, with the light in front of you. Hold still while I learn your starting position.",
+    setupVoice: "Welcome. We are going to practise pinching, as if picking up a small peg. The peg and a tray are drawn on your screen, so you do not need real objects. Rest your affected elbow on an armrest or a table, and hold your hand up in the shaded area beside your body, at chest height, with your palm facing the camera and your fingers open. Keeping your hand there leaves your face and both shoulders in view.",
+    calibrationInstruction: "Before we begin, hold your hand in the shaded area with your palm facing the camera, then open your fingers and thumb, so your thumb is well away from your first finger. Make sure the room is well lit, with the light in front of you. Hold still while I learn your starting position.",
     // How far the thumb has closed on each fingertip (pinch-target.ts), 0-100: 75 is touching. The scored goal sits just
     // inside the closest pinch held in practice, and is never more than touching.
     romSteps: [

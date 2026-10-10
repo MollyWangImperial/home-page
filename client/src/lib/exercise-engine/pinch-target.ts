@@ -169,11 +169,11 @@ export const startGap = (restClosure: number) => Math.min(0.5, gapOf(restClosure
 
 /**
  * The resting hand at set-up, as Active Hand Opening learns it (every fingertip in view, the face and both shoulders
- * too, in the shaded area, palm to the camera) but with the fingers simply relaxed, however open, and the thumb
- * resting a little away from the first finger.
+ * too, in the shaded area, palm to the camera) but with the fingers and thumb opened out, so the thumb rests away
+ * from the first finger (a relaxed hand rests its thumb against that finger).
  */
 export function pinchRest(hand: HandInput | null, aspect: number, side: Side, faceAndShoulders: boolean, zone: HandZone | null): { lapRest?: { x: number; y: number; bodyScale: number }; lapMissing?: string } {
-  if (!hand) return { lapMissing: `Hold your ${side} hand up in the shaded area with your palm facing the camera.` };
+  if (!hand) return { lapMissing: `Hold your ${side} hand up in the shaded area with your palm facing the camera and your fingers open.` };
   const view = handVisible(hand);
   if (!view.ok) return { lapMissing: view.missing };
   if (!faceAndShoulders) return { lapMissing: "Keep your face and both shoulders in view." };
@@ -182,7 +182,7 @@ export function pinchRest(hand: HandInput | null, aspect: number, side: Side, fa
   if (palmFacing(hand, side) < 0.5) return { lapMissing: "Turn your palm to face the camera." };
   const gap = pinchGap(hand, 0);
   if (!ring || gap === undefined) return { lapMissing: "Hold your hand toward the camera so I can see every finger." };
-  if (gap < REST_GAP_MIN) return { lapMissing: "Let your thumb rest a little away from your first finger." };
+  if (gap < REST_GAP_MIN) return { lapMissing: "Open your fingers and thumb, so your thumb is away from your first finger." };
   return { lapRest: { x: hand.landmarks[0].x, y: hand.landmarks[0].y, bodyScale: ring.scale } };
 }
 
@@ -195,7 +195,7 @@ export function pinchReady(hand: HandInput | null, zone: HandZone | null, aspect
   const ready = handReady(hand, zone, aspect, side, { covering: options.covering, ref: options.ref });
   if (!ready.ready || options.startGap === undefined) return ready;
   const gap = pinchGap(hand, 0);
-  if (gap !== undefined && gap < options.startGap) return { ready: false, placed: ready.placed, almost: true, hint: "Open your thumb away from your finger." };
+  if (gap !== undefined && gap < options.startGap) return { ready: false, placed: ready.placed, almost: true, hint: "Open your fingers and thumb." };
   return ready;
 }
 

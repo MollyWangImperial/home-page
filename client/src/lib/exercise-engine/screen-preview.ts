@@ -107,9 +107,9 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
     { id: "shoulder", label: `${side === "right" ? "Right" : "Left"} shoulder` },
     { id: "shoulderOther", label: "Other shoulder" },
     { id: "wrist", label: `${side === "right" ? "Right" : "Left"} hand in the shaded area` },
-    { id: "fingers", label: "Palm to camera, thumb apart" },
+    { id: "fingers", label: "Palm to camera, fingers open" },
     { id: "lighting", label: "Lighting" },
-  ].map(check => ({ ...check, visible: check.id !== "fingers", progress: check.id === "fingers" ? 0.2 : 1, hint: "Turn your palm to the camera and let your thumb rest a little away from your first finger." })) : (hand ? [
+  ].map(check => ({ ...check, visible: check.id !== "fingers", progress: check.id === "fingers" ? 0.2 : 1, hint: "Face your palm to the camera, then open your fingers and thumb." })) : (hand ? [
     { id: "nose", label: "Face" },
     { id: "shoulder", label: `${side === "right" ? "Right" : "Left"} shoulder` },
     { id: "shoulderOther", label: "Other shoulder" },

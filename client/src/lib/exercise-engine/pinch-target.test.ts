@@ -112,7 +112,7 @@ describe("Pinch and Peg set-up and readiness", () => {
     const zone = zoneFor(side);
     const rest = pinchRest(pinchingHand(side), ASPECT, side, true, zone);
     expect(rest.lapRest, rest.lapMissing).toBeDefined();
-    expect(pinchRest(pinchingHand(side, { close: 0.9 }), ASPECT, side, true, zone).lapMissing).toBe("Let your thumb rest a little away from your first finger.");
+    expect(pinchRest(pinchingHand(side, { close: 0.9 }), ASPECT, side, true, zone).lapMissing).toBe("Open your fingers and thumb, so your thumb is away from your first finger.");
     expect(pinchRest(pinchingHand(side, { forearmTurnDeg: 180 }), ASPECT, side, true, zone).lapMissing).toBe("Turn your palm to face the camera.");
     expect(pinchRest(pinchingHand(side), ASPECT, side, false, zone).lapMissing).toBe("Keep your face and both shoulders in view.");
   });
@@ -120,7 +120,7 @@ describe("Pinch and Peg set-up and readiness", () => {
     const zone = zoneFor(side), pose = seatedPose(side);
     const frame = (shape: Shape, ref: Geo | null = null) => pinchFrame({ pose, hands: [pinchingHand(side, shape)] }, side, 0, ASPECT, ref, { zone, startGap: startGap(closureOf(pinchGap(pinchingHand(side), 0)!)) });
     expect(frame({})).toMatchObject({ ready: true, placed: true, visible: true });
-    expect(frame({ close: 0.8 })).toMatchObject({ ready: false, readyAlmost: true, readyHint: "Open your thumb away from your finger." });
+    expect(frame({ close: 0.8 })).toMatchObject({ ready: false, readyAlmost: true, readyHint: "Open your fingers and thumb." });
     const away = pinchFrame({ pose, hands: [pinchingHand(side, {}, placeAt(0.5, 0.85))] }, side, 0, ASPECT, null, { zone });
     expect(away.ready).toBe(false);
   });
@@ -225,7 +225,7 @@ describe("Pinch and Peg on the shared target flow", () => {
   it("previews its steps, the set-up checks with the lighting, and the results", () => {
     expect(exerciseScreenPreview("warm-reach", 1, "right", "ex_pinch").snapshot).toMatchObject({ kind: "reach", stepIndex: 0, stepCount: 4 });
     expect(exerciseScreenPreview("warm-waiting", 1, "right", "ex_pinch").snapshot.awaitingReady).toBe(true);
-    expect(exerciseScreenPreview("setup", 1, "right", "ex_pinch").bodyChecks.map(check => check.label)).toEqual(["Face", "Right shoulder", "Other shoulder", "Right hand in the shaded area", "Palm to camera, thumb apart", "Lighting"]);
+    expect(exerciseScreenPreview("setup", 1, "right", "ex_pinch").bodyChecks.map(check => check.label)).toEqual(["Face", "Right shoulder", "Other shoulder", "Right hand in the shaded area", "Palm to camera, fingers open", "Lighting"]);
     expect(exerciseScreenPreview("results", 1, "right", "ex_pinch").snapshot.record!.compensation_counts).toEqual({ trunk_forward: 2, shoulder_hike: 1 });
   });
   it("the no-camera simulator completes every step", () => {
