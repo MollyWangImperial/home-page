@@ -6,6 +6,7 @@ import {
   circleSeatsTaken,
   communityHref,
   communityStore,
+  friendList,
   hiddenThisVisit,
   isBlocked,
   listNames,
@@ -46,18 +47,36 @@ function AudienceIcon({ seenBy, size = 16 }: { seenBy: PostsSeenBy; size?: numbe
   return <UsersIcon size={size} />;
 }
 
+/** The composer's audience choices, in the design's order: Friends first, then Everyone, then Only me. */
+const AUDIENCE_ORDER: PostsSeenBy[] = ["friends", "everyone", "onlyMe"];
+
+/** Who will see this post, said under the choice: "Visible to your 12 friends". */
+function audienceLine(seenBy: PostsSeenBy, friends: number): string {
+  if (seenBy === "everyone") return "Visible to everyone in My community";
+  if (seenBy === "onlyMe") return "Only you will see this";
+  return friends === 0 ? "Visible to your friends, once you have some" : `Visible to your ${friends} ${friends === 1 ? "friend" : "friends"}`;
+}
+
 /**
- * Who can see the person's posts, chosen right where they write. It is the same choice as "Who can
- * see my posts" in Community settings, so changing it here changes it there too.
+ * Who can see the person's posts, chosen right where they write: three choices side by side, each
+ * with its picture, the chosen one raised. It is the same choice as "Who can see my posts" in
+ * Community settings, so changing it here changes it there too.
  */
 function AudiencePicker({ seenBy }: { seenBy: PostsSeenBy }) {
+  const name = useId();
   return (
-    <label className="cm-audience">
-      <AudienceIcon seenBy={seenBy} />
-      <select aria-label="Who can see my posts" value={seenBy} onChange={event => communityStore.updateSettings({ postsSeenBy: event.target.value as PostsSeenBy })}>
-        {settingsChoices.postsSeenBy.map(choice => <option key={choice.id} value={choice.id}>{choice.label}</option>)}
-      </select>
-    </label>
+    <div className="cm-audience" role="radiogroup" aria-label="Who can see my posts">
+      {AUDIENCE_ORDER.map(id => {
+        const label = settingsChoices.postsSeenBy.find(choice => choice.id === id)?.label ?? postsAudience(id).label;
+        return (
+          <label key={id} className={`cm-audience-option ${seenBy === id ? "is-on" : ""}`}>
+            <input className="cm-sr" type="radio" name={name} value={id} checked={seenBy === id} onChange={() => communityStore.updateSettings({ postsSeenBy: id })} />
+            <AudienceIcon seenBy={id} size={15} />
+            <span>{label}</span>
+          </label>
+        );
+      })}
+    </div>
   );
 }
 
@@ -66,7 +85,9 @@ function AudiencePicker({ seenBy }: { seenBy: PostsSeenBy }) {
  * Post says who can see it (Community settings holds the same choice).
  */
 function PostComposer({ name }: { name: string }) {
-  const seenBy = useCommunity().settings.postsSeenBy;
+  const memory = useCommunity();
+  const seenBy = memory.settings.postsSeenBy;
+  const friendCount = friendList(memory).length;
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
@@ -158,13 +179,16 @@ function PostComposer({ name }: { name: string }) {
 
         {problem && <p className="cm-problem" role="alert">{problem}</p>}
         {open && (
-          <div className="cm-composer-foot">
-            <AudiencePicker seenBy={seenBy} />
-            <span className="cm-composer-actions">
-              <button type="button" className="cm-btn cm-btn-quiet" onClick={close}>Cancel</button>
-              <button type="submit" className="cm-btn cm-btn-green">Post</button>
-            </span>
-          </div>
+          <>
+            <div className="cm-composer-foot">
+              <AudiencePicker seenBy={seenBy} />
+              <span className="cm-composer-actions">
+                <button type="button" className="cm-btn cm-btn-quiet" onClick={close}>Cancel</button>
+                <button type="submit" className="cm-btn cm-btn-green">Post</button>
+              </span>
+            </div>
+            <p className="cm-audience-line"><AudienceIcon seenBy={seenBy} size={14} /><span>{audienceLine(seenBy, friendCount)}</span></p>
+          </>
         )}
       </form>
       <p className="cm-status" role="status">{posted}</p>

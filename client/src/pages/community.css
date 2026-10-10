@@ -340,11 +340,16 @@
 .cm-composer-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 12px; }
 .cm-composer-actions { display: flex; gap: 8px; margin-left: auto; }
 /* Who can see the post: Everyone, Friends or Only me, beside Post. */
-.cm-audience { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 1.5px solid var(--cm-line); border-radius: 999px; background: #fff; color: var(--cm-ink); font-size: 14.5px; font-weight: 700; }
-.cm-audience svg { flex-shrink: 0; color: var(--cm-muted); }
-.cm-audience select { appearance: none; -webkit-appearance: none; min-height: 40px; padding: 0 22px 0 2px; border: 0; background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235F6B66' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 2px center; color: inherit; font: inherit; cursor: pointer; }
-.cm-audience select:focus { outline: none; }
-.cm-audience:focus-within { outline: 3px solid #204b3e; outline-offset: 2px; }
+/* Three choices side by side in a soft tray, the chosen one raised on white (as in the design). */
+.cm-audience { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: #f1ece2; }
+.cm-audience-option { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 999px; color: var(--cm-muted); font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color .15s ease, color .15s ease, box-shadow .15s ease; }
+.cm-audience-option svg { flex-shrink: 0; }
+.cm-audience-option:hover { color: var(--cm-ink); }
+.cm-audience-option.is-on { background: #fff; color: var(--cm-ink); font-weight: 700; box-shadow: 0 1px 3px rgba(32,75,62,.14); }
+.cm-audience-option:has(input:focus-visible) { outline: 3px solid #204b3e; outline-offset: 1px; }
+.cm-audience-line { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; color: var(--cm-muted); font-size: 13px; }
+.cm-audience-line svg { flex-shrink: 0; }
+@media (prefers-reduced-motion: reduce) { .cm-audience-option { transition: none; } }
 .cm-post-audience { display: inline-flex; align-items: center; gap: 4px; vertical-align: -2px; }
 .cm-post-audience svg { flex-shrink: 0; }
 .cm-feelings { padding: 0; border: 0; }
@@ -480,7 +485,7 @@
 
 .recovery-large-text :is(.cm-page, .cm-layer) { --cm-post: 21px; --cm-message: 19px; }
 .recovery-large-text .cm-page :is(.cm-comment p, .cm-said-text, .cm-speech-inner, .cm-peek-bubble, .cm-starter-text) { font-size: 18px; }
-.recovery-large-text :is(.cm-page, .cm-layer) :is(.cm-post-meta, .cm-card-note, .cm-group-text > span, .cm-hint, .cm-audience, .cm-wave-text > span, .cm-upcoming-text > span, .cm-plain-text > span) { font-size: 16px; }
+.recovery-large-text :is(.cm-page, .cm-layer) :is(.cm-post-meta, .cm-card-note, .cm-group-text > span, .cm-hint, .cm-audience-option, .cm-audience-line, .cm-wave-text > span, .cm-upcoming-text > span, .cm-plain-text > span) { font-size: 16px; }
 .recovery-strong-contrast :is(.cm-page, .cm-layer) { --cm-muted: #3A4440; --cm-soft-ink: #333C38; --cm-line: #A9B0A9; --cm-chip-line: #8F978F; --cm-placeholder: #4B5550; }
 .recovery-strong-contrast :is(.cm-page, .cm-layer) .cm-card { border-color: #7DA08C; }
 
