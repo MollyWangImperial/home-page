@@ -1,4 +1,5 @@
 import express from "express";
+import { fixRunnerPage, RUNNER_STEADY } from "./movement-check-fixes";
 
 // The movement check's original camera runner (the Rehyn app's anonymous review runner) served from the companion's
 // own origin, so the companion can show each task's full-screen demonstration before the task starts. The runner page
@@ -8,6 +9,8 @@ import express from "express";
 // - its startStep (inside its module, out of reach from other scripts) first asks window.__rehynHostDemos, which ...
 // - ... a small script defines when the page is opened with host_demos=1: a task's first step announces "task_intro"
 //   and waits once for the host's "host_continue" (the camera keeps running and set-up is done once).
+// It also gets the fixes in movement-check-fixes.ts: steadier keypoints, no coin on the pinch target, and posture
+// checks a seated patient's camera can measure.
 // Its movement models load from the companion's own /vendor/mediapipe, byte-identical to the Rehyn app's.
 // If the page no longer has what this relies on, the iframe is sent to the original runner unchanged.
 
@@ -63,33 +66,42 @@ export const RUNNER_HOOK = `<script>
 export function prepareRunnerHtml(html: string, upstream = RUNNER_UPSTREAM): string | null {
   const once = (anchor: string) => html.split(anchor).length === 2;
   if (!once(API_ANCHOR) || !once(STEP_ANCHOR) || !html.includes(POST_ANCHOR) || !html.includes("</body>")) return null;
+  // The display, pinch and posture fixes (movement-check-fixes.ts), each skipped if the page is not as it expects.
+  const fixed = fixRunnerPage(html);
+  const scripts = fixed.steady ? `${RUNNER_STEADY}\n${RUNNER_HOOK}` : RUNNER_HOOK;
   // Function replacers, so nothing in the page or the hook is read as a "$" replacement pattern.
-  return html
+  return fixed.html
     .replace(API_ANCHOR, () => JSON.stringify(`${upstream}/api`))
     .replace(STEP_ANCHOR, () => STEP_WAIT)
     .split(POST_ANCHOR).join("postMessage(message,window.location.origin)")
-    .replace(/<\/body>(?![\s\S]*<\/body>)/, () => `${RUNNER_HOOK}\n</body>`);
+    .replace(/<\/body>(?![\s\S]*<\/body>)/, () => `${scripts}\n</body>`);
 }
 
 type Fetch = (url: string, init?: { signal?: AbortSignal; headers?: Record<string, string> }) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
 
+/** The runner page itself (as opposed to a holding page shown while the Rehyn app wakes). */
+const isRunnerPage = (html: string) => html.includes(STEP_ANCHOR) || html.includes("RehynAssessmentLadder");
+const WAKING = "waking";
+
 /**
  * GET /?<runner query>: the prepared runner page. The Rehyn app sleeps when idle (Render's free plan wakes in up to a
- * minute or so), so each try waits long and a failed try is made once more. If the page still cannot be prepared,
- * the iframe goes to the original runner unchanged (no demonstrations; the host accepts its messages and lets it use
- * the camera).
+ * minute or so, and may answer with a holding page meanwhile), so a failed try or a page that is not the runner is
+ * tried again after a short wait, all within `timeoutMs`. If the page still cannot be prepared (or is the runner but
+ * changed, which another try will not fix), the iframe goes to the original runner unchanged (no demonstrations or
+ * fixes; the host accepts its messages and lets it use the camera).
  */
-export function createMovementCheckRunnerRouter({ upstream = RUNNER_UPSTREAM, fetchImpl = fetch as unknown as Fetch, timeoutMs = 100000, tries = 2 }: { upstream?: string; fetchImpl?: Fetch; timeoutMs?: number; tries?: number } = {}) {
+export function createMovementCheckRunnerRouter({ upstream = RUNNER_UPSTREAM, fetchImpl = fetch as unknown as Fetch, timeoutMs = 100000, tries = 40, retryDelayMs = 3000 }: { upstream?: string; fetchImpl?: Fetch; timeoutMs?: number; tries?: number; retryDelayMs?: number } = {}) {
   // An Express app also initialises req/res helpers when mounted in Vite's Connect middleware.
   const router = express();
-  const attempt = async (url: string): Promise<string | null> => {
+  /** The prepared page, "" for a runner page that cannot be prepared (final), "waking" for a holding page, or null for a failed try. */
+  const attempt = async (url: string, waitMs: number): Promise<string | null> => {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = setTimeout(() => controller.abort(), waitMs);
     try {
       const response = await fetchImpl(url, { signal: controller.signal, headers: { Accept: "text/html" } });
       if (!response.ok) throw new Error(`Runner unavailable (${response.status})`);
-      // A page that no longer has what this relies on will not change on a second try.
-      return prepareRunnerHtml(await response.text(), upstream) ?? "";
+      const page = await response.text();
+      return prepareRunnerHtml(page, upstream) ?? (isRunnerPage(page) ? "" : WAKING);
     } catch {
       return null;
     } finally {
@@ -99,8 +111,17 @@ export function createMovementCheckRunnerRouter({ upstream = RUNNER_UPSTREAM, fe
   router.get("/", async (req, res) => {
     const query = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
     const original = `${upstream}/api/pose/review-runner${query}`;
-    let html: string | null = null;
-    for (let left = Math.max(1, tries); left > 0 && html === null; left--) html = await attempt(original);
+    const deadline = Date.now() + timeoutMs;
+    // A holding page is waited through until the deadline; failed tries (errors, timeouts, bad statuses: a waking
+    // Render app may answer 502/503 at once for a while) count against `tries`, by default enough to fill the deadline.
+    let html: string | null = null, failures = 0;
+    for (;;) {
+      const result = await attempt(original, Math.max(1, deadline - Date.now()));
+      if (result !== null && result !== WAKING) { html = result; break; }
+      if (result === null && ++failures >= Math.max(1, tries)) break;
+      if (Date.now() + retryDelayMs >= deadline) break;
+      await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+    }
     if (!html) { res.redirect(302, original); return; }
     res.set({ "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }).send(html);
   });

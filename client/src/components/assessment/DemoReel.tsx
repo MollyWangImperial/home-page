@@ -13,7 +13,7 @@ import { drawWalkFilmingDemo, walkDemoHeight, walkDemoState, WALK_DEMO_CAPTIONS,
 import type { AssessmentTaskId, CameraTaskId } from "@/lib/assessment-engine/types";
 import { drawHandDemo, handDemoDuration, handDemoState } from "@/lib/exercise-engine/hand-target";
 import { drawMouthDemo, mouthDemoDuration, mouthDemoState } from "@/lib/exercise-engine/mouth-demo";
-import { drawPinchDemo, pinchDemoDuration, pinchDemoState, type PinchStep } from "@/lib/exercise-engine/pinch-target";
+import { checkPinchDemoDuration, checkPinchDemoState, drawCheckPinchDemo } from "@/lib/assessment-engine/pinch-demo";
 import { drawReachDemo, reachDemoDuration, reachDemoState } from "@/lib/exercise-engine/reach-demo";
 import { TARGET_COMPLETION_MS, TARGET_HOLD_MS } from "@/lib/exercise-engine/target-timing";
 import { createVoice, type RunnerVoice } from "@/lib/exercise-engine/voice";
@@ -96,19 +96,12 @@ type EngineDemo = {
   draw(ctx: CanvasRenderingContext2D, elapsedMs: number, returning: boolean, width: number, height: number, now: number, reducedMotion: boolean, armed: boolean): void;
 };
 
-/** Pinch: the first finger only, pinched and then let go (the tray shows the dropped peg). */
-const PINCH_STEPS: [PinchStep, PinchStep] = [{ finger: 0, letGo: false, index: 0 }, { finger: 0, letGo: true, index: 1 }];
-const pinchStep = (letGo: boolean) => PINCH_STEPS[letGo ? 1 : 0];
-
 const ENGINE: Record<CameraTaskId, EngineDemo> = {
   T1: { duration: reachDemoDuration, instruction: (e, r, a) => reachDemoState(e, r, a).instruction, draw: drawReachDemo },
   T3: { duration: mouthDemoDuration, instruction: (e, r, a) => mouthDemoState(e, r, a).instruction, draw: drawMouthDemo },
   H4: { duration: handDemoDuration, instruction: (e, r, a) => handDemoState(e, r, a).instruction, draw: drawHandDemo },
-  H3: {
-    duration: pinchDemoDuration,
-    instruction: (e, r, a) => pinchDemoState(e, pinchStep(r), a).instruction,
-    draw: (ctx, e, r, w, h, now, reduced, armed) => drawPinchDemo(ctx, e, pinchStep(r), w, h, now, reduced, armed),
-  },
+  // Pinch: thumb to first finger and back, with no object, as the check's pinch task asks.
+  H3: { duration: checkPinchDemoDuration, instruction: (e, r, a) => checkPinchDemoState(e, r, a).instruction, draw: drawCheckPinchDemo },
 };
 
 /** The engine demonstrations' drawing space. */

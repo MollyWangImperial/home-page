@@ -142,7 +142,10 @@ describe("the demonstration's timeline", () => {
     expect(demoCaption("T1", reachDemoDuration(false) - 900, false)).toMatch(/^Hold on target · \d+%$/);
     expect(demoCaption("T1", reachDemoDuration(false) + 10, false)).toBe("Return your hand to the lap circle");
     expect(demoCaption("T1", reachDemoDuration(false) + reachDemoDuration(true) + 200, false)).toBe("Lap target complete");
-    expect(demoCaption("H3", pinchDemoDuration(false) + 10, false)).toBe("Open your thumb and finger to let the peg go");
+    // Pinch, as the check asks it: thumb to first finger, no peg.
+    expect(demoCaption("H3", 0, false)).toBe("Bring your thumb to your first finger, tip to tip");
+    expect(demoCaption("H3", pinchDemoDuration(false) + 10, false)).toBe("Open your thumb and finger");
+    expect(demoCaption("H3", 5000, true)).toBe("Hold the pinch");
     // Reduced motion: the still frame's caption, the hold without a frozen percentage.
     expect(demoCaption("T1", 5000, true)).toBe("Hold on target");
     expect(demoCaption("H4", 5000, true)).toBe("Hold your hand open");

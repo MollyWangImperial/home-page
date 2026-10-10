@@ -139,8 +139,8 @@ describe("the hook that waits for each task's demonstration", () => {
 describe("the runner route", () => {
   let server: Server | null = null;
   afterEach(() => new Promise<void>(resolve => (server ? server.close(() => resolve()) : resolve())));
-  const serve = async (fetchImpl: Parameters<typeof createMovementCheckRunnerRouter>[0]["fetchImpl"]) => {
-    const app = createMovementCheckRunnerRouter({ upstream: "https://rehyn.test", fetchImpl });
+  const serve = async (fetchImpl: Parameters<typeof createMovementCheckRunnerRouter>[0]["fetchImpl"], timeoutMs = 100000) => {
+    const app = createMovementCheckRunnerRouter({ upstream: "https://rehyn.test", fetchImpl, retryDelayMs: 5, timeoutMs, tries: 4 });
     server = await new Promise<Server>(resolve => { const s = app.listen(0, "127.0.0.1", () => resolve(s)); });
     const address = server.address() as { port: number };
     return (path: string) => fetch(`http://127.0.0.1:${address.port}${path}`, { redirect: "manual" });
@@ -164,14 +164,48 @@ describe("the runner route", () => {
     expect(calls).toBe(2);
   });
 
+  it("keeps trying through quick error answers until the deadline by default", async () => {
+    let calls = 0;
+    const app = createMovementCheckRunnerRouter({ upstream: "https://rehyn.test", retryDelayMs: 5, fetchImpl: async () => {
+      calls += 1;
+      return calls < 10 ? { ok: false, status: 503, text: async () => "" } : { ok: true, status: 200, text: async () => PAGE };
+    } });
+    server = await new Promise<Server>(resolve => { const s = app.listen(0, "127.0.0.1", () => resolve(s)); });
+    const response = await fetch(`http://127.0.0.1:${(server.address() as { port: number }).port}/?task_ids=T1`, { redirect: "manual" });
+    expect(response.status).toBe(200);
+    expect(calls).toBe(10);
+  });
+
+  it("waits through the holding page Render shows while the Rehyn app wakes", async () => {
+    let calls = 0;
+    const get = await serve(async () => { calls += 1; return { ok: true, status: 200, text: async () => (calls < 3 ? "<html><body>Service waking up</body></html>" : PAGE) }; });
+    const response = await get("/?task_ids=T1");
+    expect(response.status).toBe(200);
+    expect(calls).toBe(3);
+  });
+
   it("sends the iframe to the original runner when the page is unusable or the Rehyn app is unreachable", async () => {
     let calls = 0;
-    let get = await serve(async () => { calls += 1; return { ok: true, status: 200, text: async () => "<html><body>changed</body></html>" }; });
+    // The runner, but changed: another try will not fix it.
+    let get = await serve(async () => { calls += 1; return { ok: true, status: 200, text: async () => PAGE.replace('window.location.origin + "/api"', '"/api"') }; });
     let response = await get("/?task_ids=T1");
     expect(response.status).toBe(302);
-    // A changed page is not fetched again.
     expect(calls).toBe(1);
     expect(response.headers.get("location")).toBe("https://rehyn.test/api/pose/review-runner?task_ids=T1");
+    await new Promise<void>(resolve => server!.close(() => resolve()));
+    // Never the runner: waited through until the deadline (more tries than failed fetches get), then given up.
+    calls = 0;
+    get = await serve(async () => { calls += 1; return { ok: true, status: 200, text: async () => "<html><body>Service waking up</body></html>" }; }, 150);
+    response = await get("/?task_ids=T1");
+    expect(response.status).toBe(302);
+    expect(calls).toBeGreaterThan(4);
+    await new Promise<void>(resolve => server!.close(() => resolve()));
+    // Failing fetches: given up after the tries.
+    calls = 0;
+    get = await serve(async () => { calls += 1; throw new Error("offline"); });
+    response = await get("/?task_ids=T1");
+    expect(response.status).toBe(302);
+    expect(calls).toBe(4);
     await new Promise<void>(resolve => server!.close(() => resolve()));
     get = await serve(async () => { throw new Error("offline"); });
     response = await get("/?task_ids=T3");
