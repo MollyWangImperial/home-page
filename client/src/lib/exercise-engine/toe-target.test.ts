@@ -358,9 +358,100 @@ describe("the toes' targets", () => {
     expect(small.update("e", { ...floor, value: 6, t: 20000 }).contact).toBe(false);
     // Lifted well past the goal, then set down resting higher than before: half the way down from the top counts, after a while.
     const high = new ToeTarget();
-    expect(high.update("f", { ...lowering, value: 26, t: 0 }).contact).toBe(false);
-    expect(high.update("f", { ...lowering, value: 14, t: 5000 }).contact).toBe(false);
-    expect(high.update("f", { ...lowering, value: 14, t: 10500 }).contact).toBe(true);
+    for (let t = 0; t <= 300; t += 50) high.update("f", { ...lowering, value: 26, t });
+    const resting = (t: number) => high.update("f", { ...lowering, value: 14 + (t % 100 ? 0.3 : -0.3), t }).contact;
+    for (let t = 350; t < 9900; t += 50) expect(resting(t), String(t)).toBe(false);
+    expect(resting(10500)).toBe(true);
+  });
+  describe("toes lowered and stopped, though the foot settled turned a little and reads higher than its rest", () => {
+    // The goal is 20 above rest (-4): the band alone needs the toes back within 6 of rest.
+    const lowering = { ...base, lowering: true };
+    /** Readings `values`, one each `step` ms from `from`, through one target; the results. */
+    const run = (target: ToeTarget, key: string, values: number[], from = 0, step = 50, extra: Partial<typeof lowering> = {}) =>
+      values.map((value, i) => target.update(key, { ...lowering, ...extra, value, t: from + i * step }));
+    const jitter = (center: number, n: number) => Array.from({ length: n }, (_, i) => center + [0, 0.8, -0.6, 0.4, -0.2, -0.7, 0.6][i % 7]);
+    it("count as down once they have stopped, and the dial's toes are shown in their circle", () => {
+      // Held at the goal, lowered at 20 degrees a second to 10 above rest, where the foot comes to rest.
+      const target = new ToeTarget();
+      const hold = run(target, "g", Array(6).fill(16));
+      const coming = run(target, "g", Array.from({ length: 11 }, (_, i) => 16 - i), 300);
+      expect([...hold, ...coming].some(result => result.contact)).toBe(false);
+      const still = run(target, "g", jitter(6, 24), 850);
+      const first = still.findIndex(result => result.contact);
+      // Down within about a second and a half of stopping, and from then on (through the camera's jitter and a little more).
+      expect(first).toBeGreaterThan(-1);
+      expect(first * 50).toBeLessThanOrEqual(1500);
+      expect(still.slice(first).every(result => result.contact && result.progress === 0)).toBe(true);
+      expect(target.update("g", { ...lowering, value: 8, t: 2100 }).contact).toBe(true);
+      // Lifted again well above where they settled: no longer down.
+      expect(run(target, "g", Array(4).fill(12), 2150).at(-1)!.contact).toBe(false);
+    });
+    it("count wherever the foot settled, from a typical small learned goal", () => {
+      // Goal 11 above rest; held at 13 above, the foot settled 8.5 above rest (turned out while lowering).
+      for (const settle of [6, 8.5, 9]) {
+        const target = new ToeTarget(), small = { goal: 7 };
+        run(target, `s${settle}`, Array(30).fill(9), 0, 33, { ...small, lowering: false });
+        const down = run(target, `d${settle}`, [...Array.from({ length: 10 }, (_, i) => 9 - (i + 1) * (9 - (settle - 4)) / 10), ...jitter(settle - 4, 90)], 1000, 33, small);
+        const first = down.findIndex(result => result.contact);
+        expect(first, String(settle)).toBeGreaterThan(-1);
+        expect(first * 33, String(settle)).toBeLessThan(2500);
+      }
+    });
+    it("never keep the lowering waiting for ever: in the end, stopped toes count", () => {
+      const target = new ToeTarget();
+      const results = run(target, "n", [...Array(6).fill(16), ...jitter(15, 460)], 0, 50);
+      expect(results.slice(0, 380).some(result => result.contact)).toBe(false);
+      expect(results.at(-1)!.contact).toBe(true);
+    });
+    it("do not count a slow lowering through the camera's jitter", () => {
+      // 3 degrees a second from the goal, readings with up to 2 degrees of noise, smoothed as the page does.
+      let seed = 7;
+      const noise = () => { seed = (seed * 16807) % 2147483647; return (seed / 2147483647 - 0.5) * 4; };
+      for (let trial = 0; trial < 20; trial++) {
+        const target = new ToeTarget(), filter = new ToeLiftFilter();
+        for (let t = 0; t <= 300; t += 33) target.update("p", { ...lowering, value: filter.push(t, 16 + noise()), t });
+        for (let t = 333; t < 6000; t += 33) {
+          const truth = 16 - 3 * (t - 333) / 1000, value = filter.push(t, truth + noise());
+          const result = target.update("p", { ...lowering, value, t });
+          if (result.contact) expect(truth - -4, `trial ${trial} at ${t}`).toBeLessThan(10);
+        }
+      }
+    });
+    it("count from the lift's top, when the lowering starts with the toes already partway down", () => {
+      const target = new ToeTarget();
+      run(target, "lift", Array(10).fill(16), 0, 50, { lowering: false });
+      // The scored lift ended early ("touched") and the toes were let down; the foot rests 8 above where it was.
+      const down = run(target, "lower", [5, 4.5, ...jitter(4, 30)], 500);
+      expect(down.some(result => result.contact)).toBe(true);
+      // Without a lift before it, the lowering's own first readings are its top: these toes did not come down from it.
+      const alone = new ToeTarget();
+      expect(run(alone, "lower", [5, 4.5, ...jitter(4, 30)]).some(result => result.contact)).toBe(false);
+    });
+    it("do not count while still coming down slowly, held up, or after a glitch", () => {
+      // Coming down slowly, at 3 or 5 degrees a second, from the goal past the 60% line: not down until within the band.
+      for (const speed of [3, 5]) {
+        const slow = new ToeTarget();
+        const values = Array.from({ length: 80 }, (_, i) => 16 - speed * i * 0.05).filter(value => value > 2.5);
+        const results = run(slow, `slow-${speed}`, values);
+        expect(results.every((result, i) => !result.contact || values[i] - -4 <= 6 + 3), String(speed)).toBe(true);
+      }
+      // Held only a little below the top.
+      const held = new ToeTarget();
+      expect(run(held, "i", [16, 16, 16, 15, ...Array(30).fill(13)]).some(result => result.contact)).toBe(false);
+      // Held at the goal, with one glitched reading far above it.
+      const glitch = new ToeTarget();
+      expect(run(glitch, "k", [...Array(8).fill(16), 40, ...Array(30).fill(16)]).some(result => result.contact)).toBe(false);
+      // A lift far past the goal does not raise the line either: toes still well up stay up.
+      const over = new ToeTarget();
+      expect(run(over, "l", [...Array(10).fill(30), ...Array(30).fill(15)]).some(result => result.contact)).toBe(false);
+    });
+    it("leave toes that hardly lifted to the band", () => {
+      const flat = new ToeTarget();
+      expect(run(flat, "j", Array(20).fill(-1)).some(result => result.contact)).toBe(true);
+      // A small goal (6 above rest), held, then the toes barely lowered and stopped: not down.
+      const small = new ToeTarget();
+      expect(run(small, "m", [...Array(5).fill(2), ...Array(30).fill(1.5)], 0, 50, { goal: -4 + 6 }).some(result => result.contact)).toBe(false);
+    });
   });
   it("brings a practice goal closer when it is not reached for a while, but never a scored one", () => {
     const target = new ToeTarget(), practice = { ...base, practice: true, goal: toePracticeGoal(-4) };
@@ -425,8 +516,9 @@ describe("Seated Toe Lift demonstration, simulator and previews", () => {
 /**
  * eager: in the scored repetitions, the patient starts to lift as the cue begins, before the circle is active.
  * perRep: a posture kept through one scored repetition (by its number, from 1).
+ * drift: degrees the foot turns further side-on as it comes down in each lowering (practice included), from 60 at set-up.
  */
-function toePatient(side: Side, scored: (dorsi: number) => Posture = () => ({}), options: { reps?: number; lift?: number; repLift?: number; fastReps?: boolean; always?: Posture; perRep?: (rep: number) => Posture; speechMs?: number; eager?: boolean } = {}) {
+function toePatient(side: Side, scored: (dorsi: number) => Posture = () => ({}), options: { reps?: number; lift?: number; repLift?: number; fastReps?: boolean; always?: Posture; perRep?: (rep: number) => Posture; speechMs?: number; eager?: boolean; drift?: number } = {}) {
   const said: string[] = [];
   // speechMs: each line keeps the voice busy this long (0: speech takes no time).
   let now = 0, speakingUntil = 0;
@@ -434,11 +526,21 @@ function toePatient(side: Side, scored: (dorsi: number) => Posture = () => ({}),
     say: text => { said.push(text); speakingUntil = now + (options.speechMs ?? 0); }, busy: at => at < speakingUntil, stop() { speakingUntil = 0; },
   });
   const target = new ToeTarget(), filter = new ToeLiftFilter();
-  let t = 0, dorsi = 0;
+  let t = 0, dorsi = 0, lowered = 0, lastKind = "";
+  const lowering = new Map<number, number>();
   session.start(t);
   for (let n = 0; n < 40000 && session.snapshot().phase !== "done"; n++) {
     t += 50; now = t;
     const snap: Snapshot = session.snapshot();
+    // The foot turned further side-on once it is most of the way down in a lowering, and kept so.
+    if (snap.phase === "warm" || snap.phase === "reps") {
+      if (lastKind === "return" && snap.kind !== "return") lowered++;
+      lastKind = snap.kind;
+    }
+    // How long each lowering's circle has been active (the patient lowers straight away).
+    if (snap.phase === "reps" && snap.kind === "return" && snap.targetArmed && !snap.review) lowering.set(snap.repIndex, (lowering.get(snap.repIndex) ?? 0) + 50);
+    const settling = snap.kind === "return" && (snap.phase === "warm" || snap.phase === "reps") && dorsi < 10 ? 1 : 0;
+    const drift = options.drift ? { turn: 60 + options.drift * (lowered + settling) } : {};
     const live = (snap.phase === "warm" || snap.phase === "reps") && !snap.review;
     const high = snap.phase === "reps" ? options.repLift ?? options.lift ?? 20 : options.lift ?? 20;
     const moving = live && (snap.targetArmed || (options.eager === true && snap.phase === "reps" && snap.kind === "reach"));
@@ -449,7 +551,7 @@ function toePatient(side: Side, scored: (dorsi: number) => Posture = () => ({}),
     // A repetition's own posture is taken up during the countdown before it.
     const repNumber = snap.review === "countdown" ? snap.repIndex + 1 : snap.repIndex;
     const extra = { ...(snap.phase === "reps" ? { ...options.always, ...options.perRep?.(repNumber) } : {}), ...(moving && snap.phase === "reps" && snap.kind === "reach" ? scored(dorsi) : {}) };
-    const frame = toeFrame({ pose: toeBody(side, { dorsi, ...extra }) }, side, t, ASPECT, session.reference, filter);
+    const frame = toeFrame({ pose: toeBody(side, { dorsi, ...drift, ...extra }) }, side, t, ASPECT, session.reference, filter);
     if (live) {
       const rest = session.restValues().toe_lift;
       const goal = snap.phase === "reps" ? session.targets().toe_lift : toePracticeGoal(rest);
@@ -463,7 +565,7 @@ function toePatient(side: Side, scored: (dorsi: number) => Posture = () => ({}),
     }
     session.push(frame);
   }
-  return { session, said };
+  return { session, said, lowering: [...lowering.values()] };
 }
 
 describe("Seated Toe Lift session from camera landmarks", () => {
@@ -502,6 +604,16 @@ describe("Seated Toe Lift session from camera landmarks", () => {
       expect(reps).toHaveLength(2);
       for (const rep of reps) { expect(rep.compensations, side).toEqual([id]); expect(rep.hold, side).not.toBe("none"); }
     }
+  });
+  it.each([[0, 4], [5, 4], [8, 4], [20, 1]])("finishes each lowering soon after the toes are down, though the foot settles %s degrees more side-on each time (%s repetitions)", (drift, reps) => {
+    // By the last lowering the foot is turned up to 40 degrees further side-on than at set-up, so it rests well above
+    // the set-up angle (5 degrees of turn read about 1.5 higher; 20, more than the band of 5 above where the lift began).
+    const { session, lowering } = toePatient("right", () => ({}), { reps, drift });
+    expect(session.snapshot().phase).toBe("done");
+    expect(session.snapshot().record?.repetition_scores).toEqual(Array(reps).fill(100));
+    // Lowering at 20 degrees a second takes about a second; then the 1.5 s hold. Never the 10 s wait.
+    expect(lowering).toHaveLength(reps);
+    for (const ms of lowering) expect(ms, String(lowering)).toBeLessThan(5000);
   });
   it("flags a heel that comes up before the toes reach their circle", () => {
     const reps = toePatient("right", () => ({ heelUp: 0.05 }), { reps: 1 }).session.snapshot().reps;

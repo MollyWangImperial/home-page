@@ -306,6 +306,9 @@ export class ExerciseSession {
   private toeRebased = false;
   private toeLiftRest: number | undefined;
   private toeLiftAcross: number | undefined;
+  /** The last lift's accepted resting angle and reach: the next lift's rest is checked against it, not the set-up one. */
+  private toeLastRest: number | undefined;
+  private toeLastAcross: number | undefined;
   private lastContactT = -Infinity;
   private holdAcc = 0;
   private inZone = false;
@@ -697,6 +700,8 @@ export class ExerciseSession {
       if (vals.length) this.rest[key] = vals[Math.floor(vals.length / 2)];
     });
     this.ref = medianGeo(this.geoSamples.length ? this.geoSamples : (this.recent.map(f => f.geo).filter(Boolean) as Geo[]));
+    // The toe lift's first lift is checked against the set-up foot again.
+    this.toeLastRest = this.toeLastAcross = undefined;
     this.prompt = forced ? "Skipped the camera check." : "";
     this.beginDemo(t);
   }
@@ -923,9 +928,16 @@ export class ExerciseSession {
     if (base && this.ref) this.ref = toeRebase(this.ref, base);
     const lifts = frames.map(recent => recent.values.toe_lift).filter((value): value is number => value !== undefined && Number.isFinite(value)).sort((a, b) => a - b);
     const rest = lifts.length ? lifts[Math.floor(lifts.length / 2)] : undefined;
-    const ok = rest !== undefined && Number.isFinite(this.rest.toe_lift) && toeRestShiftOk(rest - this.rest.toe_lift);
-    this.toeLiftRest = ok ? rest : undefined;
-    this.toeLiftAcross = ok ? base?.footAcross : undefined;
+    // Against where the last lift rested: a foot set down turned a little differently each time drifts further from
+    // the set-up angle over the repetitions, but only a little from one lift to the next.
+    const from = this.toeLastRest ?? this.rest.toe_lift, fromAcross = this.toeLastAcross ?? this.ref?.footAcross;
+    // Reaching further across the picture than then: turned further side-on, so resting higher, not toes up.
+    const wider = base?.footAcross && fromAcross ? base.footAcross / fromAcross : 1;
+    const ok = rest !== undefined && Number.isFinite(from) && toeRestShiftOk(rest - from, wider);
+    if (ok) { this.toeLastRest = rest; this.toeLastAcross = base?.footAcross; }
+    // Not resting (the toes already up): judged from where the last lift rested.
+    this.toeLiftRest = ok ? rest : this.toeLastRest;
+    this.toeLiftAcross = ok ? base?.footAcross : this.toeLastAcross;
   }
 
   /** Moving too fast (kicking the foot up, dropping it): a spoken reminder at most once per step, never scored. */

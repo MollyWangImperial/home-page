@@ -84,11 +84,13 @@ export function toeRebase(ref: Geo, base: Geo): Geo {
 }
 
 /**
- * Whether a lift's resting foot angle can stand in for the set-up one (`shift`, degrees from it): a foot set down
- * turned a little differently rests up to the rest calibration's 8 degrees higher, or further toward the camera,
- * lower; much higher, the toes are not resting but already up, and the set-up rest is kept.
+ * Whether a lift's resting foot angle can stand in for the last lift's (or, for the first, the set-up one): `shift`,
+ * degrees from it. A foot set down turned a little differently rests up to the rest calibration's 8 degrees higher,
+ * or further toward the camera, lower; much higher, the toes are not resting but already up, and the last rest is kept.
+ * `wider`: the foot's reach across the picture against the last rest's (a share). A foot turned further side-on
+ * reaches further across and rests higher (up to 20 degrees for a quarter turn), while toes lifted reach less far.
  */
-export const toeRestShiftOk = (shift: number) => shift <= 8 && shift >= -20;
+export const toeRestShiftOk = (shift: number, wider = 1) => shift >= -20 && (shift <= 8 || (shift <= 20 && wider >= 1.05));
 
 /** Heel to foot index as a share of the lower leg (knee to ankle) for an adult, both side-on to the camera. */
 const FOOT_SHIN_SHARE = 0.47;
@@ -357,13 +359,26 @@ export const TOE_LOWER_SHARE = 0.3, TOE_LOWER_MIN = 5;
  * the lowering has no other way to finish.
  */
 const TOE_LOWER_LENIENT_MS = 10000, TOE_LOWER_LENIENT_SHARE = 0.5, TOE_LOWER_LENIENT_MIN = 8;
+/**
+ * Toes lowered and stopped also count straight away, wherever the foot settled (a foot set down turned a little more
+ * side-on reads higher than it rested before the lift, so it may never come back within the band above): come down
+ * from the lift's top (its highest reading, at most a little above its goal, so a glitch or an overshoot cannot
+ * count) by at least TOE_DROP_MIN degrees and TOE_DROP_SHARE of the way to rest, and stopped: over the last
+ * TOE_STILL_WINDOW_MS the readings' trend under TOE_STILL_RATE degrees a second (slower than a slow lowering, and a
+ * trend, so the camera's jitter cannot pass for it), for TOE_STILL_FOR_MS on end.
+ */
+const TOE_DROP_MIN = 4, TOE_DROP_SHARE = 0.3, TOE_STILL_WINDOW_MS = 1000, TOE_STILL_RATE = 1.5, TOE_STILL_FOR_MS = 300;
+/** After the lenient time, stopped toes count once down at least this far from the top; after TOE_LOWER_LAST_MS, any stopped toes do. */
+const TOE_LENIENT_DROP = 3, TOE_LOWER_LAST_MS = 20000;
 
 export type ToeTargetInput = { value: number | undefined; rest: number; goal: number; lowering: boolean; armed: boolean; practice: boolean; t: number };
 
+const median = (values: number[]) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
+
 /**
  * Whether the toes are on this step's target, and how far along they are. Lift: the toes at their goal (on target
- * until they sag a little below). Lower: the toes most of the way back down. A practice lift not on target for a while
- * eases to a small lift.
+ * until they sag a little below). Lower: the toes most of the way back down, or come down from the lift and stopped
+ * (shown in the circle once down). A practice lift not on target for a while eases to a small lift.
  */
 export class ToeTarget {
   private key = "";
@@ -371,13 +386,29 @@ export class ToeTarget {
   private armedSince: number | null = null;
   private lastOn: number | null = null;
   private eased = false;
-  /** The highest reading in this step: a lowering after a while also counts once the toes have come half the way down from it. */
+  private lowering = false;
+  /**
+   * The highest reading in this step (of the last three readings' median, so one glitch cannot set it), carried from a
+   * lift into the lowering after it (it may start partway down).
+   */
   private peak = -Infinity;
+  private lastThree: number[] = [];
+  /** The lowering's recent readings, to tell toes that have stopped from toes still coming down, and since when they have. */
+  private recent: { t: number; value: number }[] = [];
+  private stillSince: number | null = null;
+  /** Where the toes were counted down beyond the band above rest: they stay down until they rise a little above it. */
+  private settledAt: number | null = null;
 
-  reset() { this.key = ""; this.on = false; this.armedSince = null; this.lastOn = null; this.eased = false; this.peak = -Infinity; }
+  reset() { this.key = ""; this.on = false; this.armedSince = null; this.lastOn = null; this.eased = false; this.lowering = false; this.peak = -Infinity; this.lastThree = []; this.recent = []; this.stillSince = null; this.settledAt = null; }
 
   update(key: string, input: ToeTargetInput): { contact: boolean; progress: number; goal: number; eased: boolean } {
-    if (key !== this.key) { this.reset(); this.key = key; }
+    if (key !== this.key) {
+      const carried = !this.lowering && input.lowering && this.key ? this.peak : -Infinity;
+      this.reset();
+      this.key = key;
+      this.peak = carried;
+    }
+    this.lowering = input.lowering;
     if (input.armed) this.armedSince ??= input.t;
     let goal = input.goal;
     if (input.practice && !input.lowering) {
@@ -388,19 +419,52 @@ export class ToeTarget {
     const measured = value !== undefined && Number.isFinite(value);
     const range = Math.max(0.5, goal - input.rest);
     const progress = measured ? (value - input.rest) / range : 0;
+    if (measured) {
+      this.lastThree = [...this.lastThree.slice(-2), value];
+      if (this.lastThree.length === 3) this.peak = Math.max(this.peak, median(this.lastThree));
+    }
     if (input.lowering) {
-      if (measured) this.peak = Math.max(this.peak, value);
-      const lenient = this.armedSince !== null && input.t - this.armedSince >= TOE_LOWER_LENIENT_MS;
-      const band = (lenient ? Math.max(TOE_LOWER_LENIENT_SHARE * range, TOE_LOWER_LENIENT_MIN) : Math.max(TOE_LOWER_SHARE * range, TOE_LOWER_MIN)) + (this.on ? TOE_HYSTERESIS : 0);
-      // After a while, toes come half the way down from the step's highest reading also count (the foot may have been
-      // set down turned a little differently, so it rests higher than its rest).
-      const cameDown = lenient && Number.isFinite(this.peak) && this.peak - input.rest >= range && measured && value <= this.peak - TOE_LOWER_LENIENT_SHARE * range;
-      this.on = measured && (value - input.rest <= band || cameDown);
+      if (measured) this.recent = [...this.recent.filter(sample => input.t - sample.t <= TOE_STILL_WINDOW_MS && sample.t <= input.t), { t: input.t, value }];
+      const still = this.still(input.t);
+      if (!still) this.stillSince = null;
+      else this.stillSince ??= input.t;
+      const stopped = measured && this.stillSince !== null && input.t - this.stillSince >= TOE_STILL_FOR_MS;
+      const armedFor = this.armedSince === null ? 0 : input.t - this.armedSince;
+      const lenient = armedFor >= TOE_LOWER_LENIENT_MS;
+      const baseBand = lenient ? Math.max(TOE_LOWER_LENIENT_SHARE * range, TOE_LOWER_LENIENT_MIN) : Math.max(TOE_LOWER_SHARE * range, TOE_LOWER_MIN);
+      const inBand = measured && value - input.rest <= baseBand + (this.on ? TOE_HYSTERESIS : 0);
+      // The lift's top, at most a little above its goal; how far the toes have come down from it.
+      const top = Math.min(this.peak, goal + TOE_HYSTERESIS);
+      const drop = measured && Number.isFinite(top) ? top - value : 0;
+      // After a while, toes come half the way down from the top also count (the foot may have been set down turned a
+      // little differently, so it rests higher than its rest).
+      const cameDown = lenient && top - input.rest >= range && drop >= TOE_LOWER_LENIENT_SHARE * range;
+      // Toes come down from the lift and stopped count at once, wherever the foot settled; after a while, stopped toes
+      // come down a little; in the end, any stopped toes (the step never waits for ever).
+      const settled = stopped && (drop >= Math.max(TOE_DROP_MIN, TOE_DROP_SHARE * (top - input.rest)) || (lenient && drop >= TOE_LENIENT_DROP) || armedFor >= TOE_LOWER_LAST_MS);
+      const staying = measured && this.settledAt !== null && value <= this.settledAt + TOE_HYSTERESIS;
+      this.on = measured && (inBand || cameDown || settled || staying);
+      this.settledAt = !this.on || inBand || value === undefined ? null : this.settledAt ?? value;
     } else {
       this.on = measured && (this.on ? value >= goal - TOE_HYSTERESIS : value >= goal);
     }
     if (this.on) this.lastOn = input.t;
-    return { contact: this.on, progress, goal, eased: this.eased };
+    // Toes counted down are shown down, in their active circle (though the foot may rest a little higher than before).
+    return { contact: this.on, progress: input.lowering && this.on && input.armed ? 0 : progress, goal, eased: this.eased };
+  }
+
+  /**
+   * Whether the lowering toes are no longer moving: the trend (least-squares slope) of the last second's readings,
+   * at least 4 of them over at least 0.6 s, under TOE_STILL_RATE degrees a second.
+   */
+  private still(t: number): boolean {
+    const samples = this.recent;
+    if (samples.length < 4 || t - samples[0].t < 600) return false;
+    const mt = samples.reduce((sum, sample) => sum + sample.t, 0) / samples.length;
+    const mv = samples.reduce((sum, sample) => sum + sample.value, 0) / samples.length;
+    let num = 0, den = 0;
+    for (const sample of samples) { num += (sample.t - mt) * (sample.value - mv); den += (sample.t - mt) ** 2; }
+    return den > 0 && Math.abs(num / den) * 1000 <= TOE_STILL_RATE;
   }
 }
 
