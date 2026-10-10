@@ -175,15 +175,91 @@ describe("Cylindrical Grasp and Transport layout and measures", () => {
   it("draws the cup at the pick-up circle, in the hand while carried, and left at the put-down circle", () => {
     const layout = layoutFor("right"), cup = new CupCarry();
     const hand = handAt("right", layout.pick, { fist: true });
-    expect(cup.update("reps:1", GRASP_STEP.reach, false, hand, layout.pick, layout).at).toEqual(layout.pick);
-    cup.update("reps:1", GRASP_STEP.grasp, true, hand, layout.pick, layout);
+    expect(cup.update("reps:1", GRASP_STEP.reach, false, hand, layout.pick, layout, 0, ASPECT).at).toEqual(layout.pick);
+    cup.update("reps:1", GRASP_STEP.grasp, true, hand, layout.pick, layout, 33, ASPECT);
     expect(cup.grip).toBeDefined();
+    // Carried: the cup follows the hand, settling where it stops.
     const moving = { x: (layout.pick.x + layout.put.x) / 2, y: layout.pick.y };
-    expect(cup.update("reps:1", GRASP_STEP.carry, false, handAt("right", moving, { fist: true }), moving, layout)).toMatchObject({ at: moving, inHand: true });
-    cup.update("reps:1", GRASP_STEP.release, true, handAt("right", layout.put, { open: 1 }), layout.put, layout);
-    expect(cup.update("reps:1", GRASP_STEP.back, false, null, null, layout).at).toEqual(layout.put);
+    let shown = cup.update("reps:1", GRASP_STEP.carry, false, handAt("right", moving, { fist: true }), moving, layout, 66, ASPECT);
+    for (let t = 99; t < 2000; t += 33) shown = cup.update("reps:1", GRASP_STEP.carry, false, handAt("right", moving, { fist: true }), moving, layout, t, ASPECT);
+    expect(shown.inHand).toBe(true);
+    expect(shown.at.x).toBeCloseTo(moving.x, 3);
+    expect(shown.at.y).toBeCloseTo(moving.y, 3);
+    cup.update("reps:1", GRASP_STEP.release, true, handAt("right", layout.put, { open: 1 }), layout.put, layout, 2033, ASPECT);
+    expect(cup.update("reps:1", GRASP_STEP.back, false, null, null, layout, 2066, ASPECT).at).toEqual(layout.put);
     // A new repetition starts with the cup back at the pick-up circle.
-    expect(cup.update("reps:2", GRASP_STEP.reach, false, null, null, layout).at).toEqual(layout.pick);
+    expect(cup.update("reps:2", GRASP_STEP.reach, false, null, null, layout, 2100, ASPECT).at).toEqual(layout.pick);
+  });
+  it("keeps the cup in the hand once grasped, though the grip reading flickers (the practice's rings are wider)", () => {
+    const layout = layoutFor("right"), cup = new CupCarry();
+    const hand = handAt("right", layout.pick, { fist: true });
+    cup.update("reps:1", GRASP_STEP.grasp, true, hand, layout.pick, layout, 0, ASPECT);
+    // Contact on and off every frame while the hand holds the cup: never back to the circle, nor jumping about.
+    const near = { x: layout.pick.x + 0.01, y: layout.pick.y + 0.01 };
+    const seen: { x: number; y: number }[] = [];
+    for (let n = 1; n < 40; n++) {
+      const shown = cup.update("reps:1", GRASP_STEP.grasp, n % 2 === 0, handAt("right", near, { fist: true }), near, layout, n * 33, ASPECT);
+      expect(shown.inHand).toBe(true);
+      seen.push(shown.at);
+    }
+    const steps = seen.slice(1).map((p, i) => Math.hypot((p.x - seen[i].x) * ASPECT, p.y - seen[i].y));
+    expect(Math.max(...steps)).toBeLessThan(0.2 * layout.radius);
+  });
+  it("holds the cup steady while the hand is still, though its landmarks jitter, and follows a real move at once", () => {
+    const layout = layoutFor("right"), cup = new CupCarry();
+    const hand = (p: { x: number; y: number }) => handAt("right", p, { fist: true });
+    cup.update("reps:1", GRASP_STEP.grasp, true, hand(layout.pick), layout.pick, layout, 0, ASPECT);
+    // Let the cup settle in the hand, then jitter the hand point by a fifth of the circle's radius, frame to frame.
+    for (let t = 33; t < 1500; t += 33) cup.update("reps:1", GRASP_STEP.carry, false, hand(layout.pick), layout.pick, layout, t, ASPECT);
+    const jitter = 0.2 * layout.radius, shown: { x: number; y: number }[] = [];
+    for (let n = 0; n < 30; n++) {
+      const p = { x: layout.pick.x + (n % 2 ? jitter : -jitter) / ASPECT, y: layout.pick.y + (n % 4 < 2 ? jitter : -jitter) };
+      shown.push(cup.update("reps:1", GRASP_STEP.carry, false, hand(p), p, layout, 1500 + n * 33, ASPECT).at);
+    }
+    const wander = Math.max(...shown.map(p => Math.hypot((p.x - layout.pick.x) * ASPECT, p.y - layout.pick.y)));
+    expect(wander).toBeLessThan(0.5 * jitter);
+    // A real carry across: within a third of a second the cup is most of the way there.
+    let at = shown[shown.length - 1];
+    const from = at;
+    for (let n = 1; n <= 10; n++) {
+      const p = { x: layout.pick.x + (layout.put.x - layout.pick.x) * Math.min(1, n / 5), y: layout.pick.y };
+      at = cup.update("reps:1", GRASP_STEP.carry, false, hand(p), p, layout, 2500 + n * 33, ASPECT).at;
+    }
+    expect(Math.abs(at.x - layout.put.x)).toBeLessThan(0.35 * Math.abs(layout.put.x - from.x));
+  });
+  it("keeps the cup with the hand while the hand model loses it: moved as the wrist moves, never onto the wrist", () => {
+    const layout = layoutFor("right"), cup = new CupCarry();
+    const palm = { x: layout.put.x, y: layout.put.y }, wrist = { x: layout.put.x, y: layout.put.y + 0.06 };
+    cup.update("reps:1", GRASP_STEP.grasp, true, handAt("right", layout.pick, { fist: true }), layout.pick, layout, 0, ASPECT);
+    let shown = cup.update("reps:1", GRASP_STEP.carry, false, handAt("right", palm, { fist: true }), palm, layout, 33, ASPECT);
+    for (let t = 66; t < 2000; t += 33) shown = cup.update("reps:1", GRASP_STEP.carry, false, handAt("right", palm, { fist: true }), palm, layout, t, ASPECT);
+    const before = shown.at;
+    // The hand model loses the hand (the point falls back to the pose wrist), the arm still: the cup stays put.
+    for (let t = 2000; t < 3000; t += 33) shown = cup.update("reps:1", GRASP_STEP.carry, false, null, wrist, layout, t, ASPECT);
+    expect(shown.at).toEqual(before);
+    // The wrist moves 4 cm across while still unseen by the hand model: the cup moves the same way, not onto the wrist.
+    const moved = { x: wrist.x - 0.04 / ASPECT, y: wrist.y };
+    for (let t = 3000; t < 4500; t += 33) shown = cup.update("reps:1", GRASP_STEP.carry, false, null, moved, layout, t, ASPECT);
+    expect(shown.at.x).toBeCloseTo(before.x - 0.04 / ASPECT, 3);
+    expect(shown.at.y).toBeCloseTo(before.y, 3);
+  });
+  it("carries the cup smoothly through a dropout of the hand model halfway across, without a stall and a lurch", () => {
+    const layout = layoutFor("right"), cup = new CupCarry();
+    cup.update("reps:1", GRASP_STEP.grasp, true, handAt("right", layout.pick, { fist: true }), layout.pick, layout, 0, ASPECT);
+    for (let t = 33; t < 1000; t += 33) cup.update("reps:1", GRASP_STEP.grasp, true, handAt("right", layout.pick, { fist: true }), layout.pick, layout, t, ASPECT);
+    // A one-second carry (eased), the hand model losing the hand for 300 ms halfway; the pose wrist sits 6% of the picture below the palm.
+    let last = cup.update("reps:1", GRASP_STEP.carry, false, handAt("right", layout.pick, { fist: true }), layout.pick, layout, 1000, ASPECT).at;
+    let biggest = 0;
+    for (let t = 1033; t <= 2500; t += 33) {
+      const k = Math.min(1, (t - 1000) / 1000), s = k * k * (3 - 2 * k);
+      const palm = { x: layout.pick.x + (layout.put.x - layout.pick.x) * s, y: layout.pick.y };
+      const lost = t >= 1350 && t < 1650;
+      const at = cup.update("reps:1", GRASP_STEP.carry, false, lost ? null : handAt("right", palm, { fist: true }), lost ? { x: palm.x, y: palm.y + 0.06 } : palm, layout, t, ASPECT).at;
+      biggest = Math.max(biggest, Math.hypot((at.x - last.x) * ASPECT, at.y - last.y));
+      last = at;
+    }
+    expect(biggest).toBeLessThan(0.5 * layout.radius);
+    expect(Math.hypot((last.x - layout.put.x) * ASPECT, last.y - layout.put.y)).toBeLessThan(0.1 * layout.radius);
   });
 });
 
@@ -292,7 +368,7 @@ function cameraPatient(side: Side, scored: (step: number) => Scored = () => ({})
         frame.targetContact = target.contact;
         frame.targetProgress = target.progress;
       }
-      cup.update(`${snap.phase}:${snap.repIndex}`, snap.stepIndex, frame.targetContact === true, seen, point, layout);
+      cup.update(`${snap.phase}:${snap.repIndex}`, snap.stepIndex, frame.targetContact === true, seen, point, layout, t, ASPECT);
     }
     session.push(frame);
   }

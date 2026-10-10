@@ -611,7 +611,7 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
                 frame.targetContact = frame.visible && target.contact;
                 frame.targetProgress = target.progress;
               }
-              graspCup.current = cupCarry.current.update(key, now.stepIndex, frame.targetContact === true, hand, point, layout);
+              graspCup.current = cupCarry.current.update(key, now.stepIndex, frame.targetContact === true, hand, point, layout, t, aspect);
             } else { frame.visible = false; frame.missing = "Go back to Set up so I can place the cup."; }
           } else if (graspNow && (now.phase === "setup" || now.phase === "demo")) {
             // Back to the demonstration or set-up: the practice starts again with the cup at the pick-up circle.

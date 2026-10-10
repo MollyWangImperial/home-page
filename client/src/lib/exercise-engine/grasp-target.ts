@@ -13,6 +13,7 @@ import { chooseHand } from "./tracker";
 
 const DEG = 180 / Math.PI;
 type P2 = { x: number; y: number };
+const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
 
 /** The cycle's steps, by index (config.ts ex_grasp). */
 export const GRASP_STEP = { reach: 0, grasp: 1, carry: 2, release: 3, back: 4 } as const;
@@ -275,18 +276,75 @@ export function graspTarget(step: number, point: P2 | null, openness: number | u
 // ---------- the cup on screen, through a repetition ----------
 
 /**
+ * The drawn cup in the hand (display only: contact, holds and scores come from the measured hand). A One Euro filter:
+ * still while the hand is still (the hand points' jitter averaged away), following at once as the hand moves, and
+ * never faster than a hand carrying a cup, so a one-frame landmark glitch glides instead of jumping.
+ */
+export const CUP_STEADY = {
+  /** Cutoff with the hand still (Hz), its rise per cup-circle radius a second of speed, and the speed estimate's cutoff (Hz). */
+  minCutoff: 1, beta: 0.6, speedCutoff: 1,
+  /** The drawn cup's top speed, frame heights a second. */
+  glide: 3,
+};
+
+class CupSteadier {
+  private at: P2 | null = null;
+  private raw: P2 | null = null;
+  private speed = { x: 0, y: 0 };
+  private t = 0;
+
+  /** Start the drawing at `from` (where the cup was), so the cup slides into the hand rather than jumping. */
+  start(from: P2, t: number) { this.at = { ...from }; this.raw = { ...from }; this.speed = { x: 0, y: 0 }; this.t = t; }
+
+  get current(): P2 | null { return this.at ? { ...this.at } : null; }
+
+  /** No reading this frame: the cup stays, and the clock moves on (so the next reading cannot jump it far). */
+  touch(t: number) { if (this.at) this.t = t; }
+
+  /** The drawn point after a reading `p` at `t` ms. scale: the cup circle's radius (frame heights). */
+  next(t: number, p: P2, aspect: number, scale: number): P2 {
+    if (!this.at || !this.raw) { this.start(p, t); return { ...p }; }
+    const dt = clamp((t - this.t) / 1000, 0.001, 0.1);
+    this.t = t;
+    const alpha = (cutoff: number) => 1 / (1 + 1 / (2 * Math.PI * cutoff * dt));
+    // The speed estimate filters the velocity, not its size, so a still hand's noise averages out.
+    const k = alpha(CUP_STEADY.speedCutoff), unit = Math.max(0.01, scale);
+    this.speed = {
+      x: this.speed.x + k * ((p.x - this.raw.x) * aspect / unit / dt - this.speed.x),
+      y: this.speed.y + k * ((p.y - this.raw.y) / unit / dt - this.speed.y),
+    };
+    this.raw = { ...p };
+    let a = alpha(CUP_STEADY.minCutoff + CUP_STEADY.beta * Math.hypot(this.speed.x, this.speed.y));
+    const gap = Math.hypot((p.x - this.at.x) * aspect, p.y - this.at.y);
+    if (gap > 0 && a * gap > CUP_STEADY.glide * dt) a = CUP_STEADY.glide * dt / gap;
+    this.at = { x: this.at.x + a * (p.x - this.at.x), y: this.at.y + a * (p.y - this.at.y) };
+    return { ...this.at };
+  }
+}
+
+/**
  * Where to draw the cup and how it is tilted, and the grip tilt the cup-tipping check measures from. The cup sits
- * at the pick-up circle until the hand closes around it, travels with the hand while carried, and stays at the
- * put-down circle once let go.
+ * at the pick-up circle until the hand first closes around it; from then it stays in the hand, steadied
+ * (CUP_STEADY), until let go, even if the grip reading flickers or the hand model loses the hand for a while (the cup
+ * then moves as the pose wrist does); and it stays at the put-down circle once let go.
  */
 export class CupCarry {
   private key = "";
   private gripAxis: [number, number, number] | undefined;
   private tilt = 0;
   private placed = false;
+  /** Grasped this repetition: the cup is in the hand from the first grasp until let go. */
+  private grasped = false;
+  private steady = new CupSteadier();
+  /** While the hand model does not see the hand: the pose wrist and the cup when it lost the hand. */
+  private anchor: { wrist: P2; cup: P2 } | null = null;
 
-  update(key: string, step: number, contact: boolean, hand: HandInput | null, point: P2 | null, layout: GraspLayout): { at: P2; tilt: number; inHand: boolean } {
-    if (key !== this.key) { this.key = key; this.gripAxis = undefined; this.tilt = 0; this.placed = false; }
+  /**
+   * t: the frame's time (ms); aspect: the picture's width over its height. The cup follows `point` (the palm's
+   * centre, or the pose wrist when the hand model does not see the hand: `hand` null).
+   */
+  update(key: string, step: number, contact: boolean, hand: HandInput | null, point: P2 | null, layout: GraspLayout, t: number, aspect: number): { at: P2; tilt: number; inHand: boolean } {
+    if (key !== this.key) { this.key = key; this.gripAxis = undefined; this.tilt = 0; this.placed = false; this.grasped = false; this.steady = new CupSteadier(); this.anchor = null; }
     // The grip's own knuckle line: kept up to date (steadied) while the hand is closed around the cup.
     const axis = cupAxis(hand);
     if (step === GRASP_STEP.grasp && contact && axis) {
@@ -297,11 +355,27 @@ export class CupCarry {
     }
     if (step === GRASP_STEP.release && contact) this.placed = true;
     if (step === GRASP_STEP.back) this.placed = true;
-    const inHand = !this.placed && (step === GRASP_STEP.carry || step === GRASP_STEP.release || (step === GRASP_STEP.grasp && contact)) && point !== null;
+    // Grasped at the first close around the cup (or once past the grasp): the cup does not go back to its circle.
+    if (!this.grasped && ((step === GRASP_STEP.grasp && contact) || step === GRASP_STEP.carry || step === GRASP_STEP.release) && point) {
+      this.grasped = true;
+      this.steady.start(layout.pick, t);
+    }
+    const inHand = this.grasped && !this.placed;
+    if (inHand && point && hand) {
+      this.anchor = null;
+      this.steady.next(t, point, aspect, layout.radius);
+    } else if (inHand && point) {
+      // The hand model lost the hand: the cup moves as the pose wrist has since (the wrist sits apart from the palm, so
+      // the cup is not moved onto it), and the drawing keeps time, so the hand coming back does not jump the cup.
+      const cup = this.steady.current;
+      if (!this.anchor && cup) this.anchor = { wrist: point, cup };
+      const a = this.anchor;
+      this.steady.next(t, a ? { x: a.cup.x + point.x - a.wrist.x, y: a.cup.y + point.y - a.wrist.y } : point, aspect, layout.radius);
+    } else if (inHand) this.steady.touch(t);
     const tipping = cupTipping(hand, this.gripAxis);
     if (inHand && tipping !== undefined) this.tilt += (tipping - this.tilt) * 0.3;
     if (!inHand) this.tilt *= 0.7;
-    const at = inHand ? point! : this.placed ? layout.put : layout.pick;
+    const at = inHand ? this.steady.current ?? layout.pick : this.placed ? layout.put : layout.pick;
     return { at, tilt: this.tilt, inHand };
   }
 
@@ -309,7 +383,7 @@ export class CupCarry {
   get grip(): [number, number, number] | undefined { return this.gripAxis; }
 
   /** Start again with the cup at the pick-up circle (the practice restarts after going back). */
-  reset() { this.key = ""; this.gripAxis = undefined; this.tilt = 0; this.placed = false; }
+  reset() { this.key = ""; this.gripAxis = undefined; this.tilt = 0; this.placed = false; this.grasped = false; this.steady = new CupSteadier(); this.anchor = null; }
 }
 
 /** A drawn cup (side view) at a canvas point, tilted by degrees. */
