@@ -39,7 +39,7 @@ const DESCRIPTION: Record<string, string> = {
   ex_grasp: "Seated. Pick up the cup on your screen, carry it across your body and set it down.",
   ex_pinch: "Elbow resting, palm to the camera. Bring your thumb to your fingertip, tip to tip, and hold.",
   ex_lower_selective: "Seated, feet flat. Straighten your knee slowly, hold, then lower your foot.",
-  ex_ankle_dorsiflexion: "Seated, feet flat. Keep your heel down, lift your toes, hold, then lower slowly.",
+  ex_ankle_dorsiflexion: "Seated, the foot turned out to the side. Keep your heel down, lift your toes, hold, then lower slowly.",
 };
 const SAFETY_NOTE = "Sit in a stable chair and move in a comfortable range. Stop for pain, dizziness or new weakness.";
 const LEG_SAFETY_NOTE = "Sit in a stable chair with a back, with someone nearby if your balance is unsteady. Stop for pain, cramp or dizziness.";

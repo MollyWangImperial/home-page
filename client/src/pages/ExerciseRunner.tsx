@@ -645,16 +645,19 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
             kneeDone.current = kneeLast.current = null;
           }
           if (toeNow && (now.phase === "warm" || now.phase === "reps") && !now.review) {
-            // Seated Toe Lift: the ankle dial's circle sits at the goal while lifting (the toes' rise above the ankle at the
-            // goal learned in practice) and with the toes down while lowering.
+            // Seated Toe Lift: the ankle dial's circle sits at the goal while lifting (the foot's angle at the goal learned
+            // in practice) and with the toes down while lowering.
             const rest = session.restValues().toe_lift, dial = kneeDialRef.current;
             if (Number.isFinite(rest) && dial) {
               const lowering = now.kind === "return";
               // Practice lowers from the goal it learned (it may have eased), so the dial's toes do not jump.
               const learned = session.learnedValue("toe_lift");
               const goal = now.phase === "reps" ? session.targets().toe_lift : lowering && learned !== undefined ? learned : toePracticeGoal(rest);
-              const target = toeTarget.current.update(`${now.phase}:${now.repIndex}:${now.stepIndex}`, { value: frame.values.toe_lift, rest, goal, lowering, armed: now.targetArmed, practice: now.phase === "warm", t });
-              frame.targetContact = frame.visible && target.contact;
+              // Judged from where this lift's foot rested (its turn may differ from set-up), as the session does; on target
+              // only once the circle is active, so a reading before then cannot count as touching it.
+              const value = session.toeValue(frame.values.toe_lift);
+              const target = toeTarget.current.update(`${now.phase}:${now.repIndex}:${now.stepIndex}`, { value, rest, goal, lowering, armed: now.targetArmed, practice: now.phase === "warm", t });
+              frame.targetContact = frame.visible && now.targetArmed && target.contact;
               frame.targetProgress = frame.targetContact ? 1 : Math.max(0, Math.min(0.98, lowering ? 1 - target.progress : target.progress));
               const measured = Number.isFinite(frame.values.toe_lift);
               kneeShown.current = { progress: measured ? target.progress : kneeShown.current?.progress ?? 0, contact: frame.targetContact };
@@ -930,7 +933,7 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
         setSnap(snapshot);
         const targets = session.targets();
         setLive({
-          roms: session.cfg.romSteps.map(rom => ({ label: rom.label, value: frame!.values[rom.metric], target: targets[rom.id], start: usesTargetFlow(session.cfg.id) ? snapshot.startingAngles[rom.id] ?? NaN : 0, unit: "°", scale: metricUnit(rom.metric), units: metricUnitName(rom.metric) })),
+          roms: session.cfg.romSteps.map(rom => ({ label: rom.label, value: rom.metric === "toe_lift" ? session.toeValue(frame!.values.toe_lift) : frame!.values[rom.metric], target: targets[rom.id], start: usesTargetFlow(session.cfg.id) ? snapshot.startingAngles[rom.id] ?? NaN : 0, unit: "°", scale: metricUnit(rom.metric), units: metricUnitName(rom.metric) })),
           comps: session.cfg.compensations.map(comp => ({ label: comp.label, value: compensationStatus(frame!.comps, comp).ratio, limit: 1 })),
           progress: frame!.targetProgress,
         });
@@ -1294,7 +1297,7 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
 
                   </div>
                   <p className="xe-hint">{snap.awaitingReady ? "Show me your palm in the shaded area to begin" : !snap.targetArmed ? "Listen to the instruction. Wait for the circle to become active." : cfg.id === "ex_grasp" ? snap.inZone ? "Hold it there..." : GRASP_HINTS[snap.stepIndex] ?? ""
-                    : cfg.id === TOE_ID ? snap.kind === "return" ? "Lower your toes slowly to the floor and pause" : snap.inZone ? "Hold it there..." : "Keeping your heel down, lift your toes until the ankle dial reaches its circle"
+                    : cfg.id === TOE_ID ? snap.kind === "return" ? "Lower your toes slowly to the floor and pause" : snap.inZone ? "Hold it there..." : "With your foot turned out and your heel down, lift your toes until the ankle dial reaches its circle"
                     : cfg.id === KNEE_ID ? snap.kind === "return" ? "Lower your foot slowly to the floor and pause" : snap.inZone ? "Hold it there..." : "Straighten your knee, swinging your foot out along the arrow, until the knee dial reaches its circle"
                     : cfg.id === PINCH_ID ? snap.kind === "return" ? "Open your thumb and finger to let the peg drop into the tray" : snap.inZone ? "Hold the peg..." : `Bring your thumb to your ${PINCH_FINGERS[pinchStepOf(cfg.cycle, snap.stepIndex).finger].name}, tip to tip, in the circle`
                     : cfg.id === SLIDE_ID ? snap.kind === "return" ? "Bring your hand back to rest where it started and pause" : snap.inZone ? "Hold it there..." : "Follow the arrow: move your hand out to the cup"
@@ -1395,7 +1398,7 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
           {cfg.id === "ex_handopen" && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Hand up in the shaded area, fingers relaxed.</p>}
           {cfg.id === "ex_grasp" && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Hand resting on your lap, ready to reach for the cup.</p>}
           {cfg.id === KNEE_ID && <p className="xe-countdown-note"><Footprints size={16} aria-hidden="true" /> Sit tall, both feet flat on the floor, ready to straighten your knee.</p>}
-          {cfg.id === TOE_ID && <p className="xe-countdown-note"><Footprints size={16} aria-hidden="true" /> Sit tall, heel down, ready to lift your toes.</p>}
+          {cfg.id === TOE_ID && <p className="xe-countdown-note"><Footprints size={16} aria-hidden="true" /> Sit tall, foot turned out, heel down, ready to lift your toes.</p>}
           {cfg.id === SLIDE_ID && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Forearm resting beside you, ready to move your hand out to the cup.</p>}
           {cfg.id === PINCH_ID && <p className="xe-countdown-note"><Hand size={16} aria-hidden="true" /> Hand up in the shaded area, thumb apart from your finger.</p>}
         </div>
@@ -1473,7 +1476,7 @@ function Intro(props: { base: (typeof EXERCISES)[string]; cfg: ReturnType<typeof
         : "Hold the hand close to the camera with every fingertip in view."}</p>}
       {base.id === SLIDE_ID && !opts.sim && <p className="xe-note"><Hand size={14} aria-hidden="true" /> {opts.armrest ? "Rest your forearm on the armrest of your chair and your other hand on your thigh." : "Sit with a table beside your affected side, forearm resting on it and your other hand on your thigh."} Place the camera in front of you at chest height so you are in view from your head to your thighs, with room beside your arm and good light in front of you. Follow the arrow out to the side and a little forward, not toward the camera.</p>}
       {base.id === KNEE_ID && !opts.sim && <p className="xe-note"><Footprints size={14} aria-hidden="true" /> Place the camera about 2 metres in front of you at knee to hip height, so you are in view from your head to your feet while you sit. Use a stable chair with a back, keep a carer nearby, and have good light in front of you. When you straighten your knee, swing your foot a little out to the side, as the arrow shows: straight toward the camera, it can hardly see your knee move.</p>}
-      {base.id === TOE_ID && !opts.sim && <p className="xe-note"><Footprints size={14} aria-hidden="true" /> Place the camera about 2 metres in front of you at about knee height, so you are in view from your head to your feet while you sit. Use a stable chair with a back, keep a carer nearby, and have good light in front of you. Bare feet or thin flat shoes work best; your heel stays on the floor and your foot stays where it is.</p>}
+      {base.id === TOE_ID && !opts.sim && <p className="xe-note"><Footprints size={14} aria-hidden="true" /> Place the camera about 2 metres in front of you at about knee height, so you are in view from your head to your feet while you sit. Use a stable chair with a back, keep a carer nearby, and have good light in front of you. Bare feet or thin flat shoes work best. Turn the foot you are exercising out to the side, toes pointing away from your other foot, and keep the heel on the floor where it is: the camera cannot see toes lift that point straight at it.</p>}
       {base.domain === "lower_limb" && base.id !== KNEE_ID && base.id !== TOE_ID && !opts.sim && <p className="xe-note">Lower-limb tracking seated and front-on is unverified. If the angles look unstable, try the simulator or a side-on phone position.</p>}
       <div className="xe-actions">
         <button className="xe-primary" onClick={onStart}>{opts.sim ? <Play size={16} aria-hidden="true" /> : <Camera size={16} aria-hidden="true" />} Start · {reps} reps · {LEVEL_LABEL[opts.rung]}</button>
@@ -1802,7 +1805,7 @@ function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Dete
     ];
   }
   if (session.cfg.id === TOE_ID) {
-    // As for the knee, with the affected toes (the measure) and the seated position with the foot flat and toes down.
+    // As for the knee, with the affected heel and toes (the measure) and the seated position with the foot turned out.
     const light = lightingInfo?.lighting;
     const both = (a: number, b: number) => inViewCheck(a) && inViewCheck(b);
     const position = toeRestCheck(detection.pose, side, aspect);
@@ -1812,8 +1815,8 @@ function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Dete
       { id: "hips", label: "Both hips", visible: both(joints.hip, joints.hipOther), hint: "Sit facing the camera so I can see both hips." },
       { id: "knees", label: "Both knees", visible: both(joints.knee, joints.kneeOther), hint: "Move the camera back so I can see both knees." },
       { id: "feet", label: "Both feet", visible: both(joints.ankle, joints.ankleOther), hint: "Move the camera back, or tilt it down, so I can see both feet." },
-      { id: "toes", label: `${side === "right" ? "Right" : "Left"} toes`, visible: inViewCheck(joints.foot), hint: "Tilt the camera down a little so I can see your toes." },
-      { id: "position", label: "Foot flat, heel down, space around you", visible: Boolean(position.lapRest) && lightingInfo?.dialFits !== false, hint: position.lapMissing ?? (lightingInfo?.dialFits === false ? KNEE_DIAL_HINT : "Sit tall with both feet flat on the floor.") },
+      { id: "toes", label: `${side === "right" ? "Right" : "Left"} heel and toes`, visible: inViewCheck(joints.foot) && inViewCheck(side === "left" ? 29 : 30), hint: "Tilt the camera down a little so I can see your heel and toes." },
+      { id: "position", label: "Foot turned out, heel down, space around you", visible: Boolean(position.lapRest) && lightingInfo?.dialFits !== false, hint: position.lapMissing ?? (lightingInfo?.dialFits === false ? KNEE_DIAL_HINT : `Turn your ${side} foot out to the side, heel on the floor.`) },
       { id: "lighting", label: lightingInfo?.waived && light && !light.ok ? "Lighting (could be better)" : "Lighting", visible: Boolean(light?.ok || lightingInfo?.waived), hint: light?.hint ?? "Checking the light..." },
     ];
   }
@@ -1882,20 +1885,20 @@ function HandSteps({ current, steps = HAND_STEPS, label: name = "Steps for this 
 
 /**
  * scale: the measure's units per degree (metricUnit); units: how it is read out (metricUnitName): degrees, shoulder
- * widths for a distance across the body, percent for the pinch's closure, or percent of the lower leg for the toe
- * lift, read as the rise from rest.
+ * widths for a distance across the body, percent for the pinch's closure, or degrees of lift for the toe lift (its
+ * foot angle, read as the rise from rest).
  */
 function MetricBar({ label, value, threshold, start = 0, scale = 1, units, ready, limit = false, personalized = false, pending = "Keep reaching" }: { label: string; value: number | undefined; threshold: number; start?: number; scale?: number; units?: string; ready: boolean; limit?: boolean; personalized?: boolean; pending?: string }) {
   const range = threshold - start;
   const progress = personalized ? reachAngleProgress(value, threshold, start, scale) : range > 0 && value !== undefined ? (value - start) / range : 0;
   const unitName = units ?? (scale === 1 ? "degrees" : "shoulder widths");
-  const angle = unitName === "degrees", closure = unitName === "percent", rise = unitName === "percent of the lower leg";
-  const say = (n: number) => angle || closure || rise ? `${Math.round(n)} ${unitName}` : `${n.toFixed(2)} ${unitName}`;
-  // The toe lift reads negative at rest: the bar and the read-out are its rise from rest (before practice, of 25%).
+  const rise = unitName === "degrees of lift", angle = unitName === "degrees" || rise, closure = unitName === "percent";
+  const say = (n: number) => angle || closure ? `${Math.round(n)} ${rise ? "degrees" : unitName}` : `${n.toFixed(2)} ${unitName}`;
+  // The toe lift's foot angle may be below level at rest: the bar and the read-out are its rise from rest (before practice, of 30 degrees).
   const lifted = rise && value !== undefined && Number.isFinite(start) ? Math.max(0, value - start) : undefined;
   const crossed = ready && progress >= 1;
   const learning = personalized ? "Learning your movement goal" : "Learning starting position";
-  const percent = value === undefined ? 0 : Math.min(100, Math.max(0, ready ? progress / 1.4 * 100 : rise ? (lifted ?? 0) / 25 * 100 : value / (limit ? 1.4 : 180) * 100));
+  const percent = value === undefined ? 0 : Math.min(100, Math.max(0, ready ? progress / 1.4 * 100 : rise ? (lifted ?? 0) / 30 * 100 : value / (limit ? 1.4 : 180) * 100));
   return <section className={`xe-metric ${crossed ? limit ? "is-limit" : "is-met" : ""}`}>
     <div className="xe-metric-label"><b>{label}</b><span>{value === undefined ? "Finding you…" : !ready ? learning : crossed ? limit ? "Ease back" : "Target reached" : limit ? "Within limit" : pending}</span></div>
     <div className="xe-metric-track" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percent)} aria-valuetext={value === undefined ? "Tracking unavailable" : !ready ? learning : limit ? crossed ? "Above posture limit" : "Within posture limit" : rise ? `Estimated lift ${say(lifted ?? 0)}; goal ${say(Math.max(0, threshold - start))}${personalized ? "; learned at the practice target" : ""}` : `Estimated ${angle ? "angle" : closure ? "closure" : "distance"} ${say(value)}; resting ${angle ? "angle" : closure ? "closure" : "position"} ${say(start)}; goal ${say(threshold)}${personalized ? "; learned at the practice target" : ""}`}><i style={{ width: `${percent}%` }} />{ready && <em style={{ left: `${100 / 1.4}%` }} />}</div>

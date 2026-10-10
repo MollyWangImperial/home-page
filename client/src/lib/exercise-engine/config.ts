@@ -63,8 +63,9 @@ export type RomStep = {
   /** Target flow: the scored goal is at least this far beyond rest (toe lift: so jitter alone cannot reach it). */
   learnedFloor?: number;
   /**
-   * The session's best is reported as the movement from the repetition's start, times this, in degrees (toe lift: its
-   * rise in % of the lower leg, about 1.1 degrees each), when the measure itself is not an angle from zero.
+   * The session's best is reported as the movement from the repetition's start, times this, in degrees (toe lift: the
+   * foot's angle in the picture, whose resting value depends on how far the foot is turned out), when the measure
+   * itself is not an angle from zero.
    */
   bestFromStart?: number;
 };
@@ -518,39 +519,41 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     chain: "Foot clears",
     dailyTask: "Walking without catching the toe",
     // Seated the whole time with the foot where it is, so the patient never moves out of view; the face and shoulders
-    // carry the trunk checks, the lighting check and the ankle dial's place.
-    framing: "Front, seated, head to feet in view, both feet flat on the floor",
+    // carry the trunk checks, the lighting check and the ankle dial's place. The exercising foot is turned out to the
+    // side first: a front camera cannot see toes lift that point at it, but sees a foot side-on lift clearly.
+    framing: "Front, seated, head to feet in view, the exercising foot turned out to the side",
     tracking: "pose",
     ghost: "toe",
-    setupVoice: "Welcome. We are going to practise lifting the front of your foot while your heel stays on the floor. Sit in a stable chair with a back, with both feet flat on the floor, and keep a carer nearby if you need help with balance. Place the camera about two metres in front of you, at about knee height, so I can see you from your head to your feet. Bare feet or thin flat shoes work best. You do not need to move your chair or your feet. Stop if you feel cramp, pain or numbness.",
-    calibrationInstruction: "Sit tall with your back against the chair, both feet flat on the floor and your hands resting on your thighs. Make sure the room is well lit, with the light in front of you. Hold still while I learn your starting position.",
-    // How far the toes rise above the ankle in the picture, in % of the lower leg's image length (toe-target.ts):
-    // negative at rest, where the toes sit lower. The live goal is learned in practice; the levels stay ascending for
-    // planning. The best is reported as the lift from rest in about-degrees.
-    romSteps: [{ id: "toe_lift", label: "Toe lift", metric: "toe_lift", targets: { easy: -14, medium: -12, difficult: -10 }, weight: 1, learnedShare: 0.9, learnedFloor: 3.5, bestFromStart: 1.1 }],
+    setupVoice: "Welcome. We are going to practise lifting the front of your foot while your heel stays on the floor. Sit in a stable chair with a back, with both feet on the floor, and keep a carer nearby if you need help with balance. Place the camera about two metres in front of you, at about knee height, so I can see you from your head to your feet. Turn the foot you are exercising out to the side, so its toes point away from your other foot, with the heel on the floor: the camera sees your toes lift best from the side. Bare feet or thin flat shoes work best. Stop if you feel cramp, pain or numbness.",
+    calibrationInstruction: "Sit tall with your back against the chair and your hands resting on your thighs. Turn the foot you are exercising out to the side, toes pointing away from your other foot, with your heel on the floor. Make sure the room is well lit, with the light in front of you. Hold still while I learn your starting position.",
+    // The foot's angle in the picture, heel to toes, in degrees above level (toe-target.ts): about level at rest with
+    // the foot turned out. The live goal is learned in practice; the levels stay ascending for planning. The best is
+    // reported as the lift from rest.
+    romSteps: [{ id: "toe_lift", label: "Toe lift", metric: "toe_lift", targets: { easy: 8, medium: 12, difficult: 16 }, weight: 1, learnedShare: 0.9, learnedFloor: 6, bestFromStart: 1 }],
     compensations: [
-      // Engineering defaults, in % of the resting lower leg's image length (or degrees), against the set-up posture,
-      // while the toes lift (step 0).
-      // The heel leaving the floor: the ankle rising, or the lower leg swinging forward (a knee kick; toe-target.ts toeComps).
-      cr("heel_lift", "heel lifting", "heel_lift_pct", 5, 4, 0, "Keep your heel on the floor and lift only the front of your foot.", { unit: "%", minConsecutiveMs: 400, steps: [0] }),
+      // Engineering defaults, in % of the lower leg's image length, against where the legs rested as each lift began,
+      // while the toes lift (step 0). Replayed camera landmarks of a seated patient sitting still stay under them.
+      // The heel leaving its place on the floor: lifting, or the lower leg swinging forward (toe-target.ts toeComps).
+      cr("heel_lift", "heel lifting", "heel_lift_pct", 10, 4, 0, "Keep your heel on the floor and lift only the front of your foot.", { unit: "%", minConsecutiveMs: 400, steps: [0] }),
       // The knee rising in the picture: the whole leg lifting from the hip instead of the ankle moving.
       cr("knee_motion", "knee lifting", "thigh_lift_pct", 7, 4, 0, "Keep your knee still and let your ankle do the lifting.", { unit: "%", minConsecutiveMs: 300, steps: [0] }),
       // The knee moving sideways against the hip on its side (the hip turning to tip the foot).
-      cr("knee_sideways", "knee falling out or in", "knee_sideways_pct", 10, 4, 0, "Keep your knee pointing straight ahead.", { unit: "%", minConsecutiveMs: 400, steps: [0] }),
+      cr("knee_sideways", "knee falling out or in", "knee_sideways_pct", 10, 4, 0, "Keep your knee still where it started.", { unit: "%", minConsecutiveMs: 400, steps: [0] }),
       // The other foot moving, or its toes lifting along (a mirror movement, counted double: toe-target.ts toeComps).
-      cr("other_leg", "other leg helping", "other_leg_pct", 15, 4, 0, "Keep your other foot still on the floor.", { unit: "%", minConsecutiveMs: 400, alternative: [{ metric: "other_knee_delta", threshold: 20 }], steps: [0] }),
+      // Not the other knee's 3D angle: from the front it wanders by up to 30 degrees with the leg still.
+      cr("other_leg", "other leg helping", "other_leg_pct", 15, 4, 0, "Keep your other foot still on the floor.", { unit: "%", minConsecutiveMs: 400, steps: [0] }),
       cr("trunk_forward", "leaning forward", "trunk_approach_pct", 4, 4, 0, "Sit tall with your back against the chair.", { unit: "%", minConsecutiveMs: 300, steps: [0] }),
       cr("trunk_lean", "leaning back", "trunk_retreat_pct", 4, 4, 0, "Sit tall and let your ankle do the lifting.", { unit: "%", minConsecutiveMs: 300, steps: [0] }),
     ],
     cycle: [
-      { caption: "Lift your toes and hold", voice: "Keeping your heel on the floor, slowly lift your toes and the whole front of your foot, until the ankle dial reaches its circle. Keep your knee still and sit tall. Hold it there.", kind: "reach", gate: ["toe_lift"], holdMs: 1500, cue: "Lift your toes, heel down." },
+      { caption: "Lift your toes and hold", voice: "With your foot turned out and your heel on the floor, slowly lift your toes and the whole front of your foot, until the ankle dial reaches its circle. Keep your knee still and sit tall. Hold it there.", kind: "reach", gate: ["toe_lift"], holdMs: 1500, cue: "Lift your toes, heel down." },
       { ...ret("Lower your toes slowly", "Now slowly lower the front of your foot to the floor."), cue: "Lower slowly." },
     ],
     feedback: [
       // Worded like the other target-flow exercises, so the final repetition's version drops "on the next ..." the same way.
       { comp: "heel_lift", say: "I noticed your heel came up. On the next repetition, try keeping your heel on the floor and lifting only the front of your foot." },
       { comp: "knee_motion", say: "I noticed your knee lifted. On the next repetition, try keeping your knee still and let your ankle do the lifting." },
-      { comp: "knee_sideways", say: "I noticed your knee moved to the side. On the next repetition, try keeping your knee pointing straight ahead." },
+      { comp: "knee_sideways", say: "I noticed your knee moved to the side. On the next repetition, try keeping your knee still where it started." },
       { comp: "other_leg", say: "I noticed your other leg moved to help. On the next repetition, try keeping your other foot still on the floor." },
       { comp: "trunk_forward", say: "I noticed you leaned forward. On the next repetition, try sitting tall with your back against the chair." },
       { comp: "trunk_lean", say: "I noticed you leaned back. On the next repetition, try sitting tall and let your ankle do the lifting." },
@@ -560,8 +563,8 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     bestLabel: "toe lift",
     bestRomId: "toe_lift",
     rescueNote: "Smaller toe target",
-    // Flicking the toes up or dropping them: a reminder only (in % of the lower leg each second).
-    speedCue: { metric: "toe_lift", degPerS: 25, lift: "Nice and slow as you lift.", lower: "Nice and slow as you lower." },
+    // Flicking the toes up or dropping them: a reminder only.
+    speedCue: { metric: "toe_lift", degPerS: 60, lift: "Nice and slow as you lift.", lower: "Nice and slow as you lower." },
   },
 };
 

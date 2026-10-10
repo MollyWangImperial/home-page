@@ -1,18 +1,19 @@
 import type { Side } from "./config";
-import { drawArrow, drawSeatedFront, frontHip, frontKnee, kneeComps, kneeGeo, kneeRestCheck, shinLength, sideX, type KneeDial } from "./knee-target";
-import { angleAt, inView, poseFrameValues, poseJoints, type Frame, type Geo, type LapRest, type PoseInput } from "./metrics";
+import { drawArrow, kneeComps, kneeGeo, kneeRestCheck, sideX, type KneeDial } from "./knee-target";
+import { inView, poseFrameValues, poseJoints, type Frame, type Geo, type LapRest, type PoseInput } from "./metrics";
 import { TARGET_COMPLETION_MS, TARGET_HOLD_MS } from "./target-timing";
 import { drawTargetCompletion, drawTestingTarget } from "./target-visual";
 
-// Seated Toe Lift on the shared target flow: a front camera with the patient seated, head to feet in view, both feet
-// flat on the floor. Lifting the toes with the heel down moves the toes straight up, which the camera sees well:
-// the measure is how far the toes (the pose's foot index) rise above the ankle in the picture, in % of the lower
-// leg's image length. Moving the whole leg, or the foot sliding, moves the toes and the ankle together and does not
-// count; a knee kick does lift the toes, and is flagged as the heel lifting (toeComps). An "Ankle angle" dial beside the shoulder (placed like the knee's, knee-target.ts) shows it: a side view of
-// a foot whose toes turn up about the heel into the target circle, with the same circle activation as the other
-// exercises; an arrow at the real toes shows them lifting. The patient never moves out of view: everything is done
-// seated with the foot where it is. Positions are raw (unmirrored) image coordinates: x in frame widths, y in frame
-// heights; lengths in frame heights.
+// Seated Toe Lift on the shared target flow: a front camera with the patient seated, head to feet in view, the
+// exercising foot turned out to the side with the heel on the floor. A front camera cannot see toes lift that point
+// at it (replayed camera landmarks of a patient doing so barely moved), but sees a foot side-on lift clearly: the
+// measure is the foot's angle in the picture, heel to toes (the pose's heel and foot index), in degrees above level.
+// The toes turning up about the heel raise it; the whole leg moving, or the foot sliding, moves the heel and toes
+// together and hardly does. An "Ankle angle" dial beside the shoulder (placed like the knee's, knee-target.ts) shows
+// it: a side view of a foot whose toes turn up about the heel into the target circle, with the same circle
+// activation as the other exercises; an arrow at the real toes shows them lifting. The patient never moves out of
+// view: everything is done seated with the foot where it is. Positions are raw (unmirrored) image coordinates: x in
+// frame widths, y in frame heights; lengths in frame heights.
 
 const DEG = 180 / Math.PI;
 type P2 = { x: number; y: number };
@@ -23,14 +24,23 @@ export const TOE_STEP = { lift: 0, lower: 1 } as const;
 
 // ---------- the measure ----------
 
-/** How far the toes are above the ankle in the picture, % of the lower leg's image length (negative at rest: the toes sit lower). */
+/** The pose's heel landmark on a side. */
+export const heelIndex = (side: Side) => (side === "left" ? 29 : 30);
+
+/**
+ * The foot's angle in the picture: from the heel to the toes, in degrees above level, whichever way the toes point
+ * (about level for a foot turned out side-on; well below for one pointing at the camera).
+ */
 export function toeLiftRaw(pose: PoseInput, side: Side, aspect: number): number | undefined {
   const lm = pose.landmarks, j = poseJoints(side);
-  const knee = lm[j.knee], ankle = lm[j.ankle], toe = lm[j.foot];
-  if (![knee, ankle, toe].every(p => inView(p))) return undefined;
-  const shin = shinLength(knee, ankle, aspect);
-  return shin < 0.03 ? undefined : ((ankle.y - toe.y) / shin) * 100;
+  const heel = lm[heelIndex(side)], toe = lm[j.foot];
+  if (!inView(heel) || !inView(toe)) return undefined;
+  const across = Math.abs(toe.x - heel.x) * aspect, up = heel.y - toe.y;
+  // Too short in the picture to have a direction (the foot end-on to the camera).
+  return Math.hypot(across, up) < TOE_MIN_FOOT ? undefined : Math.atan2(up, across) * DEG;
 }
+/** The foot must be at least this long in the picture (frame heights) to measure its angle. */
+const TOE_MIN_FOOT = 0.02;
 
 /** The toe lift steadied over the last few frames (a median of up to 5 within 250 ms): the foot's points are small and jitter. */
 export class ToeLiftFilter {
@@ -46,86 +56,129 @@ export class ToeLiftFilter {
 }
 
 /**
- * The toe lift's part of the set-up snapshot: the knee's, plus the affected toes and hip, and the other toes, in the
- * picture, and the affected knee's 3D angle.
+ * The toe lift's part of the set-up snapshot: the knee's, plus the affected toes, heel and hip, and the other toes, in
+ * the picture.
  */
 export function toeGeo(pose: PoseInput, side: Side, aspect: number): Partial<Geo> {
-  const lm = pose.landmarks, w = pose.world, j = poseJoints(side);
+  const lm = pose.landmarks, j = poseJoints(side);
   const out: Partial<Geo> = kneeGeo(pose, side, aspect);
-  const toe = lm[j.foot], hip = lm[j.hip], otherToe = lm[j.footOther];
+  const toe = lm[j.foot], heel = lm[heelIndex(side)], hip = lm[j.hip], otherToe = lm[j.footOther];
   if (inView(toe)) { out.toeImgX = toe.x; out.toeImgY = toe.y; }
+  if (inView(heel)) { out.heelImgX = heel.x; out.heelImgY = heel.y; }
+  if (inView(toe) && inView(heel)) out.footAcross = Math.abs(toe.x - heel.x) * aspect;
   if (inView(hip)) { out.hipImgX = hip.x; out.hipImgY = hip.y; }
   if (inView(otherToe)) out.otherToeImgY = otherToe.y;
-  if ([j.hip, j.knee, j.ankle].every(index => inView(lm[index])) && w[j.hip] && w[j.knee] && w[j.ankle]) out.toeKnee = angleAt(w[j.hip], w[j.knee], w[j.ankle]);
   return out;
 }
 
 /**
- * The toe lift's own checks against the set-up reference, in % of the resting lower leg's image length:
- * - heel_lift_pct: the heel leaving the floor. Either the ankle risen in the picture beyond the knee's rise and beyond
- *   what lifting the toes itself raises it (the foot pulled back under the chair), or the lower leg swinging forward:
- *   the knee straightening in 3D (a kick, which lifts the toes in the picture too, but from the knee, with the heel off
- *   the floor; from the front the ankle hardly moves in the picture);
+ * Where the legs rest, which the toe lift's checks are judged from: taken at set-up, and again before each lift
+ * (session.ts), so a foot set down a little differently between repetitions is not counted as a check.
+ */
+const TOE_REBASE: (keyof Geo)[] = ["kneeImgX", "kneeImgY", "ankleImgX", "ankleImgY", "hipImgX", "hipImgY", "heelImgX", "heelImgY", "toeImgX", "toeImgY", "otherAnkleImgX", "otherAnkleImgY", "otherToeImgY"];
+/** The reference with the resting legs' positions taken from `base` where it has them. */
+export function toeRebase(ref: Geo, base: Geo): Geo {
+  const out = { ...ref };
+  for (const key of TOE_REBASE) if (base[key] !== undefined) out[key] = base[key];
+  return out;
+}
+
+/**
+ * Whether a lift's resting foot angle can stand in for the set-up one (`shift`, degrees from it): a foot set down
+ * turned a little differently rests up to the rest calibration's 8 degrees higher, or further toward the camera,
+ * lower; much higher, the toes are not resting but already up, and the set-up rest is kept.
+ */
+export const toeRestShiftOk = (shift: number) => shift <= 8 && shift >= -20;
+
+/** Heel to foot index as a share of the lower leg (knee to ankle) for an adult, both side-on to the camera. */
+const FOOT_SHIN_SHARE = 0.47;
+/**
+ * The foot's real turn up (degrees) from its turn in the picture: a foot turned only partly side-on shows less of its
+ * length across the picture than up it, so the picture overstates the lift (about a third more at 45 degrees). How
+ * side-on it rested comes from how far it reached across the picture against the lower leg.
+ */
+export function toeTrueLift(imageLift: number, ref: Geo): number {
+  if (!ref.footAcross || !ref.kneeShin || !(imageLift > 0)) return Math.max(0, imageLift);
+  return Math.atan(Math.tan(Math.min(imageLift, 85) / DEG) * sideOn(ref.footAcross, ref.kneeShin)) * DEG;
+}
+/** How side-on a resting foot is (1 fully; less as it turns toward the camera), from its reach across the picture. */
+const sideOn = (across: number, shin: number) => clamp(across / (FOOT_SHIN_SHARE * shin), 0.4, 1);
+
+/**
+ * A lift's reading as the set-up foot would show it: measured from where this lift's foot rested (`liftRest`), and
+ * turned up as far as the set-up foot would show the same real lift (a foot set down turned differently shows it
+ * larger or smaller: toeTrueLift), from the set-up rest. Below rest it is left as it is. `liftAcross`/`setupAcross`:
+ * the resting feet's reach across the picture; `shin`: the set-up lower leg's length (frame heights).
+ */
+export function toeInSetupView(raw: number, liftRest: number, setupRest: number, liftAcross?: number, setupAcross?: number, shin?: number): number {
+  const lift = raw - liftRest;
+  if (!(lift > 0) || !liftAcross || !setupAcross || !shin) return setupRest + lift;
+  return setupRest + Math.atan(Math.tan(Math.min(lift, 85) / DEG) * sideOn(liftAcross, shin) / sideOn(setupAcross, shin)) * DEG;
+}
+
+/**
+ * The toe lift's own checks against where the legs rested (toeRebase), in % of the resting lower leg's image length:
+ * - heel_lift_pct: the heel moved from its place in the picture, beyond the knee's own travel (which knee lifting
+ *   covers): the heel lifting, the foot pulled back or kicked forward. Lifting the toes turns the foot about the heel,
+ *   which stays put;
  * - knee_sideways_pct: the knee moved sideways against the hip on its side (the knee falling out or in);
  * - other_leg_pct: the knee's (the other ankle's travel), or the other foot's toes lifting along with these (a mirror
  *   movement), counted double since toes rise less than a foot moves;
- * and the knee's: thigh_lift_pct (the knee rising), other_knee_delta, trunk_retreat_pct.
+ * and the knee's: thigh_lift_pct (the knee rising), trunk_retreat_pct.
  */
-export function toeComps(pose: PoseInput, geo: Geo, ref: Geo | null, side: Side, aspect: number, lift: number | undefined): Frame["comps"] {
+export function toeComps(pose: PoseInput, geo: Geo, ref: Geo | null, side: Side, aspect: number): Frame["comps"] {
   const out: Frame["comps"] = { ...kneeComps(pose, geo, ref, side, aspect) };
   const shin = ref?.kneeShin;
   if (!ref || !shin || shin <= 0.02) return out;
   const lm = pose.landmarks, j = poseJoints(side);
-  const knee = lm[j.knee], ankle = lm[j.ankle], hip = lm[j.hip];
+  const knee = lm[j.knee], heel = lm[heelIndex(side)], hip = lm[j.hip];
   const otherAnkle = lm[j.ankleOther], otherToe = lm[j.footOther];
+  const travel = (p: { x: number; y: number }, x: number, y: number) => Math.hypot((p.x - x) * aspect, p.y - y) / shin * 100;
   if (inView(otherAnkle) && inView(otherToe) && ref.otherAnkleImgY !== undefined && ref.otherToeImgY !== undefined) {
     // The other toes' rise against their ankle, so the whole foot moving is not counted twice.
     const otherToes = Math.max(0, ((ref.otherToeImgY - otherToe.y) - (ref.otherAnkleImgY - otherAnkle.y)) / shin * 100);
     out.other_leg_pct = Math.max(out.other_leg_pct ?? 0, OTHER_TOES_WEIGHT * otherToes);
   }
-  if (inView(knee) && inView(ankle) && ref.kneeImgY !== undefined && ref.ankleImgY !== undefined) {
-    const ankleRise = ((ref.ankleImgY - ankle.y) / shin) * 100, kneeRise = ((ref.kneeImgY - knee.y) / shin) * 100;
-    const restLift = ref.toeImgY !== undefined ? ((ref.ankleImgY - ref.toeImgY) / shin) * 100 : undefined;
-    const lifted = lift !== undefined && restLift !== undefined ? Math.max(0, lift - restLift) : 0;
-    out.heel_lift_pct = Math.max(0, ankleRise - kneeRise - HEEL_RISE_PER_LIFT * lifted);
-  }
-  if (geo.toeKnee !== undefined && ref.toeKnee !== undefined) {
-    out.heel_lift_pct = Math.max(out.heel_lift_pct ?? 0, KICK_WEIGHT * Math.max(0, geo.toeKnee - ref.toeKnee));
+  if (inView(heel) && inView(knee) && ref.heelImgX !== undefined && ref.heelImgY !== undefined && ref.kneeImgX !== undefined && ref.kneeImgY !== undefined) {
+    out.heel_lift_pct = Math.max(0, travel(heel, ref.heelImgX, ref.heelImgY) - travel(knee, ref.kneeImgX, ref.kneeImgY));
   }
   if (inView(knee) && inView(hip) && ref.kneeImgX !== undefined && ref.hipImgX !== undefined) {
     out.knee_sideways_pct = (Math.abs((knee.x - hip.x) - (ref.kneeImgX - ref.hipImgX)) * aspect / shin) * 100;
   }
   return out;
 }
-/**
- * Lifting the toes with the heel down raises the ankle a little in the picture (the heel cannot sink as the foot
- * turns, so the lower leg rises about a centimetre at a full lift): at most this share of the toes' own rise, half as
- * much again as the geometry's, for the ankle point's jitter as the foot turns.
- */
-const HEEL_RISE_PER_LIFT = 0.15;
 /** The other foot's toes lifting counts this many times over in other_leg_pct (7.5% of the lower leg trips it). */
 const OTHER_TOES_WEIGHT = 2;
-/**
- * The knee straightening counts this much per degree in heel_lift_pct: 10 degrees trips it (the toes then read about
- * 6% higher, a typical goal, with the heel coming off the floor), above the 3D angle's frame-to-frame jitter.
- */
-const KICK_WEIGHT = 0.5;
 
-/** What set-up waits for: the knee's (head to feet, seated, both feet flat, room round the body), and the toes in view, down. */
+/**
+ * What set-up waits for: the knee's (head to feet, seated, both feet on the floor, room round the body), and the
+ * affected heel and toes in view with the foot turned out to the side, toes down.
+ */
 export function toeRestCheck(pose: PoseInput | null, side: Side, aspect: number): { lapRest?: LapRest; lapMissing?: string } {
   const knee = kneeRestCheck(pose, side, aspect);
   if (!pose || !knee.lapRest) return knee;
   const lm = pose.landmarks, j = poseJoints(side);
-  const toe = lm[j.foot], ankle = lm[j.ankle];
-  if (!inView(toe)) return { lapMissing: "Tilt the camera down a little so I can see your toes." };
-  if (toe.y > 0.94) return { lapMissing: "Tilt the camera down a little so there is space below your feet." };
+  const toe = lm[j.foot], heel = lm[heelIndex(side)], hip = lm[j.hip], hipOther = lm[j.hipOther];
+  if (!inView(toe) || !inView(heel)) return { lapMissing: `Tilt the camera down a little so I can see your ${side} heel and toes.` };
+  if (Math.max(toe.y, heel.y) > 0.94) return { lapMissing: "Tilt the camera down a little so there is space below your feet." };
   const shin = knee.lapRest.bodyScale;
   if (shin < TOE_MIN_SHIN) return { lapMissing: "Move the camera a little closer, keeping your feet in view." };
-  if (toe.y - ankle.y < 0.05 * shin) return { lapMissing: "Rest your foot flat on the floor, toes down." };
+  // Turned out: the toes away from the other foot, and the foot side-on enough that its toes do not point down the picture.
+  const out = Math.sign(hip.x - hipOther.x) || 1;
+  const across = (toe.x - heel.x) * aspect * out, angle = Math.atan2(heel.y - toe.y, Math.abs(toe.x - heel.x) * aspect) * DEG;
+  if (across < TOE_TURNED_ACROSS * shin || angle < -TOE_TURNED_MAX_DROP_DEG) return { lapMissing: `Turn your ${side} foot out to the side, toes pointing away from your other foot, heel on the floor.` };
+  if (angle > TOE_REST_MAX_DEG) return { lapMissing: "Rest your toes on the floor, heel down." };
   return knee;
 }
-/** The lower leg must be at least this long in the picture (frame heights) for the toes' small rise to show. */
+/** The lower leg must be at least this long in the picture (frame heights) for the foot's turn to show. */
 const TOE_MIN_SHIN = 0.11;
+/**
+ * A foot turned out reaches at least this far across the picture, heel to toes (a share of the lower leg), and its
+ * toes sit at most this far below level (a foot pointing at the camera reads 50-60 degrees below; turned out, 20-35).
+ */
+const TOE_TURNED_ACROSS = 0.2, TOE_TURNED_MAX_DROP_DEG = 40;
+/** Resting toes are at most this far above level: further up, they are already lifted. */
+const TOE_REST_MAX_DEG = 15;
 
 /**
  * One camera frame: the toe lift (steadied by `filter` when given), the six checks and the set-up's resting foot.
@@ -141,8 +194,8 @@ export function toeFrame(det: { pose: PoseInput | null }, side: Side, t: number,
   const geo = { ...body.geo!, ...toeGeo(pose, side, aspect) } as Geo;
   const raw = toeLiftRaw(pose, side, aspect);
   const lift = filter ? filter.push(t, raw) : raw;
-  const legSeen = seen(j.hip, j.knee, j.ankle, j.foot);
-  const comps: Frame["comps"] = { trunk_approach_pct: body.comps.trunk_approach_pct, ...toeComps(pose, geo, ref, side, aspect, lift) };
+  const legSeen = seen(j.hip, j.knee, j.ankle, j.foot, heelIndex(side));
+  const comps: Frame["comps"] = { trunk_approach_pct: body.comps.trunk_approach_pct, ...toeComps(pose, geo, ref, side, aspect) };
   return {
     t, values: { toe_lift: legSeen ? lift : undefined }, comps, geo,
     visible: legSeen, missing: legSeen ? undefined : "Keep your knees and feet in view of the camera.",
@@ -152,21 +205,21 @@ export function toeFrame(det: { pose: PoseInput | null }, side: Side, t: number,
 
 // ---------- each step's target ----------
 
-/** The practice goal: a modest lift from the resting toes (about 10 degrees), before the personal goal is learned. */
-export const TOE_PRACTICE_LIFT = 6;
+/** The practice goal: a modest lift from the resting toes (degrees), before the personal goal is learned. */
+export const TOE_PRACTICE_LIFT = 12;
 export const toePracticeGoal = (rest: number) => rest + TOE_PRACTICE_LIFT;
 /** A practice lift not on target for this long comes closer: lift as far as is comfortable. */
-export const TOE_EASE_MS = 12000, TOE_EASED_LIFT = 4;
-/** Once on target, the toes may sag this much (% of the lower leg) before they count as off. */
-export const TOE_HYSTERESIS = 1.5;
-/** The toes are down again within this share of the way from rest to the goal (at least TOE_LOWER_MIN above rest). */
-export const TOE_LOWER_SHARE = 0.3, TOE_LOWER_MIN = 2.5;
+export const TOE_EASE_MS = 12000, TOE_EASED_LIFT = 8;
+/** Once on target, the toes may sag this much (degrees) before they count as off. */
+export const TOE_HYSTERESIS = 3;
+/** The toes are down again within this share of the way from rest to the goal (at least TOE_LOWER_MIN degrees above rest). */
+export const TOE_LOWER_SHARE = 0.3, TOE_LOWER_MIN = 5;
 /**
- * After this long lowering, toes within half the way back, or within the rest calibration's own tolerance (5% of the
- * lower leg), count: the measure may not settle exactly where it began (the foot set down a little turned), and the
- * lowering has no other way to finish.
+ * After this long lowering, toes within half the way back, or within the rest calibration's own tolerance (8
+ * degrees), count: the measure may not settle exactly where it began (the foot set down a little differently), and
+ * the lowering has no other way to finish.
  */
-const TOE_LOWER_LENIENT_MS = 10000, TOE_LOWER_LENIENT_SHARE = 0.5, TOE_LOWER_LENIENT_MIN = 5;
+const TOE_LOWER_LENIENT_MS = 10000, TOE_LOWER_LENIENT_SHARE = 0.5, TOE_LOWER_LENIENT_MIN = 8;
 
 export type ToeTargetInput = { value: number | undefined; rest: number; goal: number; lowering: boolean; armed: boolean; practice: boolean; t: number };
 
@@ -181,8 +234,10 @@ export class ToeTarget {
   private armedSince: number | null = null;
   private lastOn: number | null = null;
   private eased = false;
+  /** The highest reading in this step: a lowering after a while also counts once the toes have come half the way down from it. */
+  private peak = -Infinity;
 
-  reset() { this.key = ""; this.on = false; this.armedSince = null; this.lastOn = null; this.eased = false; }
+  reset() { this.key = ""; this.on = false; this.armedSince = null; this.lastOn = null; this.eased = false; this.peak = -Infinity; }
 
   update(key: string, input: ToeTargetInput): { contact: boolean; progress: number; goal: number; eased: boolean } {
     if (key !== this.key) { this.reset(); this.key = key; }
@@ -197,9 +252,13 @@ export class ToeTarget {
     const range = Math.max(0.5, goal - input.rest);
     const progress = measured ? (value - input.rest) / range : 0;
     if (input.lowering) {
+      if (measured) this.peak = Math.max(this.peak, value);
       const lenient = this.armedSince !== null && input.t - this.armedSince >= TOE_LOWER_LENIENT_MS;
       const band = (lenient ? Math.max(TOE_LOWER_LENIENT_SHARE * range, TOE_LOWER_LENIENT_MIN) : Math.max(TOE_LOWER_SHARE * range, TOE_LOWER_MIN)) + (this.on ? TOE_HYSTERESIS : 0);
-      this.on = measured && value - input.rest <= band;
+      // After a while, toes come half the way down from the step's highest reading also count (the foot may have been
+      // set down turned a little differently, so it rests higher than its rest).
+      const cameDown = lenient && Number.isFinite(this.peak) && this.peak - input.rest >= range && measured && value <= this.peak - TOE_LOWER_LENIENT_SHARE * range;
+      this.on = measured && (value - input.rest <= band || cameDown);
     } else {
       this.on = measured && (this.on ? value >= goal - TOE_HYSTERESIS : value >= goal);
     }
@@ -326,19 +385,33 @@ export function toeDialCircle(dial: KneeDial, lowering: boolean, width: number, 
 
 // ---------- the arrow at the toes ----------
 
-/** The toes' arrow from the set-up posture: from beside the resting toes, curving up (they lift straight up in the picture). */
+/**
+ * The toes' arrow from where the foot rests: an arc about the heel, just beyond the toes (so it does not hide them),
+ * from level with them up the way they turn as they lift. out: +1 when the toes point toward +x in the raw image.
+ */
 export type ToeGuide = { start: P2; control: P2; end: P2; shin: number; out: number };
 
+/** The arc's span about the heel, degrees above the resting foot, and its radius as a share of the foot's length. */
+const GUIDE_FROM_DEG = 4, GUIDE_TO_DEG = 40, GUIDE_REACH = 1.15;
+
 export function toeGuide(ref: Geo | null, dial: KneeDial | null, aspect: number): ToeGuide | null {
-  if (!ref || !dial || ref.toeImgX === undefined || ref.toeImgY === undefined || !ref.kneeShin) return null;
-  const shin = ref.kneeShin, out = dial.out;
-  // Beside the foot on the outside, so the arrow does not hide the toes it points at; kept inside the picture.
-  const x = clamp(ref.toeImgX + out * 0.2 * shin / aspect, 0.04, 0.96);
+  if (!ref || !dial || ref.toeImgX === undefined || ref.toeImgY === undefined || ref.heelImgX === undefined || ref.heelImgY === undefined || !ref.kneeShin) return null;
+  const hx = ref.heelImgX * aspect, hy = ref.heelImgY;
+  const across = ref.toeImgX * aspect - hx, down = ref.toeImgY - hy;
+  const length = Math.hypot(across, down);
+  if (length < TOE_MIN_FOOT) return null;
+  const out = Math.sign(across) || dial.out;
+  const rest = Math.atan2(-down, Math.abs(across));
+  // A point on the arc, `degrees` above the resting foot, at `reach` foot lengths from the heel; kept in the picture.
+  const at = (degrees: number, reach: number) => {
+    const a = rest + degrees / DEG;
+    return { x: clamp((hx + out * Math.cos(a) * length * reach) / aspect, 0.03, 0.97), y: clamp(hy - Math.sin(a) * length * reach, 0.03, 0.97) };
+  };
+  // A quadratic curve through the arc's middle bulges out by 1/cos(half the span).
+  const half = (GUIDE_TO_DEG - GUIDE_FROM_DEG) / 2;
   return {
-    start: { x, y: ref.toeImgY - 0.02 * shin },
-    control: { x: clamp(x + out * 0.18 * shin / aspect, 0.03, 0.97), y: ref.toeImgY - 0.24 * shin },
-    end: { x, y: ref.toeImgY - 0.45 * shin },
-    shin, out,
+    start: at(GUIDE_FROM_DEG, GUIDE_REACH), control: at(GUIDE_FROM_DEG + half, GUIDE_REACH / Math.cos(half / DEG)), end: at(GUIDE_TO_DEG, GUIDE_REACH),
+    shin: ref.kneeShin, out,
   };
 }
 
@@ -357,57 +430,72 @@ export function drawToeGuide(ctx: CanvasRenderingContext2D, guide: ToeGuide, wid
   });
 }
 
-// ---------- the demonstration and the no-camera simulator (front view, 300 x 270 drawing space) ----------
+// ---------- the demonstration and the no-camera simulator (300 x 270 drawing space) ----------
 
 const MOVE_MS = 1100;
 const smooth = (k: number) => k * k * (3 - 2 * k);
 const unit = (k: number) => clamp(k, 0, 1);
 const poseAt = (fraction: number, returning: boolean) => (returning ? 1 - smooth(fraction) : smooth(fraction));
-/** The demonstration's ankle dial, beside the shoulder as on the camera view: its heel and foot length. */
-const DEMO_TOE_DIAL = { x: 238, y: 128, r: 42 };
-/** The figure's affected ankle (below its knee) and how far its toes rise in the front view at the goal. */
-const DEMO_ANKLE_Y = 244, DEMO_TOE_RISE = 12;
+/** The demonstration's ankle dial, up beside the foot as it sits beside the shoulder on the camera view: its heel and foot length. */
+const DEMO_TOE_DIAL = { x: 196, y: 92, r: 44 };
+/**
+ * The close-up's lower leg and foot, as drawn for a right foot turned out (toes to the right, as the mirror shows it):
+ * the knee at the top, the ankle, the heel on the floor and the toes; the floor; and how far the foot turns up about
+ * the heel at the goal (degrees).
+ */
+const DEMO_KNEE = { x: 80, y: 44 }, DEMO_ANKLE = { x: 88, y: 204 }, DEMO_HEEL = { x: 70, y: 236 }, DEMO_TOES = { x: 206, y: 236 };
+const DEMO_FLOOR_Y = 242, DEMO_LIFT_DEG = 25;
 
 function demoToeDial(side: Side): ToeDialPx {
   return { x: sideX(DEMO_TOE_DIAL.x, side), y: DEMO_TOE_DIAL.y, r: DEMO_TOE_DIAL.r, dir: side === "left" ? -1 : 1 };
 }
 
 /**
- * The front-view scene for the demonstration, the simulator and the screen previews: the seated figure, its affected
- * foot's toes lifting (heel down), the arrow beside them, and the ankle dial beside its shoulder turning toward its
- * circle. The circle is drawn by the caller (the shared target visuals).
+ * The scene for the demonstration, the simulator and the screen previews: a close-up of the affected lower leg with
+ * the foot turned out to the side (the toe is small seen from across the room), its toes turning up about the heel
+ * on the floor, the arrow at the toes, and the ankle dial turning toward its circle as on the camera view. The circle
+ * is drawn by the caller (the shared target visuals).
  */
 export function drawToeScene(ctx: CanvasRenderingContext2D, width: number, height: number, state: { progress: number; lowering: boolean; side: Side; arrow: boolean; armed: boolean; now: number; reducedMotion: boolean }) {
   const s = Math.min(width / 300, height / 270);
   const side = state.side, dir = side === "left" ? -1 : 1;
+  const X = (p: P2): P2 => ({ x: sideX(p.x, side), y: p.y });
+  // A point of the foot turned up about the heel by `degrees` (toes toward the side's outward direction).
+  const turned = (p: P2, degrees: number): P2 => {
+    const a = degrees / DEG, dx = p.x - DEMO_HEEL.x, dy = p.y - DEMO_HEEL.y;
+    return X({ x: DEMO_HEEL.x + dx * Math.cos(a) + dy * Math.sin(a), y: DEMO_HEEL.y - dx * Math.sin(a) + dy * Math.cos(a) });
+  };
+  const lift = clamp(state.progress, -0.1, 1.2) * DEMO_LIFT_DEG;
   ctx.save();
   ctx.clearRect(0, 0, width, height);
   ctx.translate((width - 300 * s) / 2, (height - 270 * s) / 2);
   ctx.scale(s, s);
   ctx.lineCap = "round"; ctx.lineJoin = "round";
-  drawSeatedFront(ctx, side);
-  const [kx, ky] = frontKnee(side);
-  const lift = clamp(state.progress, -0.1, 1.2);
-  // The affected thigh to the knee, the lower leg straight down from it, the heel on the floor and the toes rising toward the viewer.
-  const [hx, hy] = frontHip(side);
-  ctx.strokeStyle = "#e18e6d"; ctx.lineWidth = 9;
-  ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(kx, ky); ctx.lineTo(kx + dir * 1, DEMO_ANKLE_Y); ctx.stroke();
-  ctx.lineWidth = 8;
-  ctx.beginPath(); ctx.moveTo(kx + dir * 1, DEMO_ANKLE_Y); ctx.lineTo(kx + dir * 4, DEMO_ANKLE_Y + 9 - DEMO_TOE_RISE * lift); ctx.stroke();
-  // The sole showing as the toes come up.
-  if (lift > 0.15) {
-    ctx.fillStyle = "rgba(225,142,109,.35)";
-    ctx.beginPath(); ctx.ellipse(kx + dir * 4, DEMO_ANKLE_Y + 8 - DEMO_TOE_RISE * lift * 0.5, 7, 3 + 4 * lift, 0, 0, Math.PI * 2); ctx.fill();
-  }
-  // The arrow beside the toes, over the leg: up while lifting, down while lowering; its label reads outward.
+  ctx.font = "800 11px Manrope, sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#285b49";
+  ctx.fillText("Your foot, turned out to the side", 150, 20);
+  // The floor, the lower leg down from the knee, and the foot turning up about the heel.
+  ctx.strokeStyle = "#b9d3c2"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(16, DEMO_FLOOR_Y); ctx.lineTo(284, DEMO_FLOOR_Y); ctx.stroke();
+  const knee = X(DEMO_KNEE), ankle = turned(DEMO_ANKLE, lift), heel = X(DEMO_HEEL), toes = turned(DEMO_TOES, lift);
+  ctx.strokeStyle = "#e18e6d"; ctx.lineWidth = 26;
+  ctx.beginPath(); ctx.moveTo(knee.x, knee.y); ctx.lineTo(ankle.x, ankle.y); ctx.stroke();
+  ctx.fillStyle = "#e18e6d"; ctx.lineWidth = 18;
+  ctx.beginPath(); ctx.moveTo(heel.x, heel.y); ctx.lineTo(ankle.x, ankle.y); ctx.lineTo(toes.x, toes.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // The heel stays down: a dot on the floor and a word under it.
+  ctx.fillStyle = "#fffefa";
+  ctx.beginPath(); ctx.arc(heel.x, heel.y, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#285b49";
+  ctx.fillText("Heel stays down", heel.x + dir * 28, DEMO_FLOOR_Y + 16);
+  // The arrow at the toes, along their turn about the heel: up while lifting, down while lowering.
   if (state.arrow) {
-    const low = { x: kx + dir * 20, y: DEMO_ANKLE_Y + 6 }, high = { x: kx + dir * 20, y: DEMO_ANKLE_Y - 30 };
-    const control = { x: kx + dir * 32, y: DEMO_ANKLE_Y - 12 };
+    const reach = (degrees: number, far: number) => turned({ x: DEMO_HEEL.x + (DEMO_TOES.x - DEMO_HEEL.x) * far, y: DEMO_TOES.y - 6 }, degrees);
+    const low = reach(3, 1.1), high = reach(DEMO_LIFT_DEG + 10, 1.1), control = reach((DEMO_LIFT_DEG + 13) / 2, 1.1 / Math.cos((DEMO_LIFT_DEG + 7) / 2 / DEG));
     const [from, to] = state.lowering ? [high, low] : [low, high];
     const label = state.lowering ? "Toes down" : "Lift your toes";
+    // Its label in the open space above the foot, clear of the arrowhead and of the dial's own labels under its circle.
     drawArrow(ctx, from, control, to, {
-      width: 3.2, label, emphasis: state.armed, now: state.now, reducedMotion: state.reducedMotion,
-      labelAt: { x: outwardLabelX(ctx, label, 11, kx + dir * 20, dir, 6), y: DEMO_ANKLE_Y - 40 }, fontPx: 11, light: true,
+      width: 4, label, emphasis: state.armed, now: state.now, reducedMotion: state.reducedMotion,
+      labelAt: { x: sideX(138, side), y: 128 }, fontPx: 12, light: true,
     });
   }
   drawToeDialBase(ctx, demoToeDial(side), state.progress, "Ankle angle", true);
@@ -458,7 +546,7 @@ export function toeDemoState(elapsedMs: number, returning: boolean, armed = true
     : phase === "complete" ? returning ? "Toes down complete" : "Toes high enough — now lower them slowly"
     : phase === "hold" ? `${returning ? "Rest your foot flat" : "Hold your toes up"} · ${Math.round(progress * 100)}%`
     : returning ? "Lower the front of your foot slowly to the floor"
-    : "Keeping your heel down, lift your toes. The ankle dial moves with your foot, toward its circle";
+    : "With your foot turned out and your heel down, lift your toes. The ankle dial moves with your foot, toward its circle";
   return { pose, target, radius: TOE_CIRCLE_SHARE * DEMO_TOE_DIAL.r, armed, contact, progress, completionElapsedMs, phase, label, instruction };
 }
 

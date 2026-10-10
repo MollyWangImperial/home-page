@@ -14,7 +14,7 @@ import { handDemoDuration } from "./hand-target";
 import { GRASP_STEP, graspDemoDuration } from "./grasp-target";
 import { curlJudged, pinchDemoDuration } from "./pinch-target";
 import { kneeDemoDuration } from "./knee-target";
-import { toeDemoDuration } from "./toe-target";
+import { toeDemoDuration, toeInSetupView, toeRebase, toeRestShiftOk, toeTrueLift } from "./toe-target";
 import { slideDemoDuration, slideRestPrompt, type SlideGeo } from "./slide-target";
 import { MouthCalibration, simulatedMouthComps, type MouthPoint } from "./mouth-target";
 // Relative on purpose: engine files must also build where the @shared alias is not available.
@@ -151,7 +151,7 @@ export const TIMING = {
 } as const;
 
 /** Smallest movement away from the resting value that counts as "moved", per metric, in degrees. */
-const MIN_EXCURSION: Record<string, number> = { shoulder_flexion: 15, elbow_extension: 20, elbow_flexion: 20, finger_extension: 20, knee_extension: 20, shoulder_abduction: 10, ankle_dorsiflexion: 3, toe_lift: 2, pinch_flexion: 0 };
+const MIN_EXCURSION: Record<string, number> = { shoulder_flexion: 15, elbow_extension: 20, elbow_flexion: 20, finger_extension: 20, knee_extension: 20, shoulder_abduction: 10, ankle_dorsiflexion: 3, toe_lift: 4, pinch_flexion: 0 };
 
 // ---------- the movement check (assessment mode), engineering defaults to be reviewed by a clinician ----------
 
@@ -228,7 +228,7 @@ const SLIDE_HAND_CHECKS = ["hand_lift", "other_hand"];
 // The grasp also needs the resting hand itself (its fingers' start), not only the arm. The knee rests with its foot
 // (the resting point) still to within a sixth of the lower leg, and allows its 3D angle a little more jitter. The
 // arm elevation rests with its hand still beside the body (a tenth of a shoulder span), its 3D shoulder angle within 10°.
-const restCalibrationFor = (id: string) => id === TOE_ID ? new ReachRestCalibration(["toe_lift"], 0.1, 5) : id === KNEE_ID ? new ReachRestCalibration(["knee_extension"], 0.15, 12)
+const restCalibrationFor = (id: string) => id === TOE_ID ? new ReachRestCalibration(["toe_lift"], 0.1, 8) : id === KNEE_ID ? new ReachRestCalibration(["knee_extension"], 0.15, 12)
   : id === SLIDE_ID ? new ReachRestCalibration(["shoulder_flexion"], 0.1, 10)
   // The pinch rests with its hand still (a quarter palm length) and the thumb's closure on each finger within 12 points.
   : id === PINCH_ID ? new ReachRestCalibration(["pinch_index", "pinch_middle"], 0.25, 12)
@@ -288,6 +288,14 @@ export class ExerciseSession {
   private stepStart = 0;
   private armed = false;
   private touched = false;
+  /**
+   * Seated Toe Lift: the lift step's first frames (the legs at rest), whether its legs were re-checked, and its foot's
+   * resting angle and reach across the picture.
+   */
+  private toeRestFrames: Frame[] = [];
+  private toeRebased = false;
+  private toeLiftRest: number | undefined;
+  private toeLiftAcross: number | undefined;
   private lastContactT = -Infinity;
   private holdAcc = 0;
   private inZone = false;
@@ -404,6 +412,21 @@ export class ExerciseSession {
   get mouthPoint(): MouthPoint | null { return this.learnedMouth ? { ...this.learnedMouth } : null; }
   /** A measure learned at the practice hold (hand opening: how open the hand was, for its ring), once learned. */
   learnedValue(metric: string): number | undefined { return this.learnedReach?.[metric]; }
+
+  /**
+   * Seated Toe Lift: a toe lift reading as the session judges it, and the page's circle with it: from where this lift's
+   * foot rested, in the set-up foot's view (its turn may differ from set-up; toe-target.ts toeInSetupView).
+   */
+  toeValue(raw: number | undefined): number | undefined {
+    if (raw === undefined || this.cfg.id !== TOE_ID || this.toeLiftRest === undefined || !Number.isFinite(this.rest.toe_lift)) return raw;
+    return toeInSetupView(raw, this.toeLiftRest, this.rest.toe_lift, this.toeLiftAcross, this.ref?.footAcross, this.ref?.kneeShin);
+  }
+
+  /** A frame's measure as the session judges it (the toe lift: toeValue). */
+  private valueOf(frame: Frame, metric: string): number | undefined {
+    const value = frame.values[metric];
+    return metric === "toe_lift" ? this.toeValue(value) : value;
+  }
 
   /** The movement check: whether this session runs a task's levels (assessment mode). */
   get assessing(): boolean { return this.assess !== null; }
@@ -553,6 +576,11 @@ export class ExerciseSession {
     }
     this.recent.push(frame);
     if (this.recent.length > 30) this.recent.shift();
+    // The toe lift's resting legs and foot, from the lift step's first frames: judged from as soon as they are in.
+    if (this.cfg.id === TOE_ID && this.stepIdx === 0 && !this.toeRebased && (this.phase === "warm" || this.phase === "reps")) {
+      this.toeRestFrames.push(frame);
+      if (this.toeRestFrames.length >= 5) this.rebaseToe();
+    }
     if (this.phase === "setup") return this.setupFrame(frame);
     if (this.phase === "demo") return this.demoFrame(t);
     if (this.phase === "done") return;
@@ -610,14 +638,15 @@ export class ExerciseSession {
       this.reachCalibrationProgress = learned.progress;
       if (!frame.visible || !frame.lapRest) {
         const missing = frame.missing ?? frame.lapMissing ?? (this.cfg.id === "ex_handopen" || this.cfg.id === PINCH_ID ? `Hold your ${this.opts.side} hand up in the shaded area with your palm facing the camera.`
-          : this.cfg.id === TOE_ID ? "Sit tall with both feet flat on the floor and your toes in view, from your head to your feet." : this.cfg.id === KNEE_ID ? "Sit tall with both feet flat on the floor, from your head to your feet in view."
+          : this.cfg.id === TOE_ID ? "Sit tall with the foot you are exercising turned out to the side, heel down, from your head to your feet in view." : this.cfg.id === KNEE_ID ? "Sit tall with both feet flat on the floor, from your head to your feet in view."
           : this.cfg.id === SLIDE_ID ? slideRestPrompt(this.opts.side, this.opts.armrest ? "armrest" : "table")
           : `Rest your ${this.opts.side} hand on the visible top of your ${this.opts.side} thigh.`);
         if (!this.voice.busy(t)) this.nag(t, missing); else this.prompt = missing;
       } else this.prompt = this.cfg.id === "ex_h2m" && !mouth ? "Keep your face in view and your hand on your lap while I learn the mouth target."
         : this.cfg.id === "ex_handopen" ? "Keep your fingers relaxed and gently curled, palm to the camera, while I learn your starting position."
         : this.cfg.id === PINCH_ID ? "Keep your hand relaxed, palm to the camera, with your thumb a little away from your first finger, while I learn your starting position."
-        : this.cfg.id === KNEE_ID || this.cfg.id === TOE_ID ? "Keep sitting tall with both feet flat on the floor while I learn your starting position."
+        : this.cfg.id === TOE_ID ? "Keep sitting tall, your foot turned out with the heel down, while I learn your starting position."
+        : this.cfg.id === KNEE_ID ? "Keep sitting tall with both feet flat on the floor while I learn your starting position."
         : this.cfg.id === SLIDE_ID ? "Keep sitting tall with your forearm resting beside you while I learn your starting position."
         : "Keep your arm relaxed with your hand on your lap while I learn your starting position.";
       // Once the posture is learned, a long introduction may be cut after 12 s, as for every seated target.
@@ -744,7 +773,7 @@ export class ExerciseSession {
       : this.cfg.id === "ex_h2m" ? "Now one practice repetition. It is not scored. Bring your hand to the mouth circle and hold while I learn your movement, then return to your lap."
       : this.cfg.id === "ex_handopen" ? "Now one practice repetition. It is not scored. Show me your palm in the shaded area. Then open your fingers out to the ring and hold while I learn your movement, and then close your hand gently."
       : this.cfg.id === "ex_grasp" ? "Now one practice repetition. It is not scored. Reach for the cup and open your hand, close it around the cup, carry it across, let it go, then return to your lap. I will learn your movement as you go."
-      : this.cfg.id === TOE_ID ? "Now one practice repetition. It is not scored. Look at the ankle dial beside your shoulder: it moves with your foot, so as you lift your toes, its toes turn up toward the circle. Keeping your heel down, lift your toes until the dial reaches its circle, and hold while I learn your movement. Then lower your toes." : this.cfg.id === KNEE_ID ? "Now one practice repetition. It is not scored. Look at the knee dial beside your shoulder: it moves with your knee, so as you straighten your knee, its foot moves toward the circle. Straighten your knee, swinging your foot out along the arrow, until the dial reaches its circle, and hold while I learn your movement. Then lower your foot to the floor."
+      : this.cfg.id === TOE_ID ? "Now one practice repetition. It is not scored. Look at the ankle dial beside your shoulder: it moves with your foot, so as you lift your toes, its toes turn up toward the circle. With your foot turned out and your heel down, lift your toes until the dial reaches its circle, and hold while I learn your movement. Then lower your toes." : this.cfg.id === KNEE_ID ? "Now one practice repetition. It is not scored. Look at the knee dial beside your shoulder: it moves with your knee, so as you straighten your knee, its foot moves toward the circle. Straighten your knee, swinging your foot out along the arrow, until the dial reaches its circle, and hold while I learn your movement. Then lower your foot to the floor."
       : this.cfg.id === SLIDE_ID ? "Now one practice repetition. It is not scored. Follow the arrow and move your hand out to the cup, and hold while I learn your movement, then bring it back to rest."
       : this.cfg.id === PINCH_ID ? "Now one practice repetition. It is not scored. Show me your palm in the shaded area. Then bring your thumb toward your first finger as far as is comfortable, tip to tip if you can, and hold while I learn your movement. Then let go, and do the same with your middle finger."
       : "Now one practice repetition. It is not scored, and it helps me learn your starting position.");
@@ -810,6 +839,10 @@ export class ExerciseSession {
     this.almostSince = null;
     this.gateSince = null;
     this.touched = false;
+    this.toeRestFrames = [];
+    this.toeRebased = false;
+    // A new lift is judged from its own resting foot (until it is in, from the set-up one); the lowering keeps the lift's.
+    if (this.stepIdx === 0) { this.toeLiftRest = undefined; this.toeLiftAcross = undefined; }
     this.lastContactT = -Infinity;
     this.slideStart = null;
     this.holdAcc = 0;
@@ -860,7 +893,28 @@ export class ExerciseSession {
     const rom = this.romById(this.cfg.bestRomId), value = rep.peaks[this.cfg.bestRomId];
     if (value === undefined || rom?.bestFromStart === undefined) return value;
     const start = rep.startingAngles?.[this.cfg.bestRomId];
-    return start === undefined || !Number.isFinite(start) ? undefined : Math.max(0, (value - start) * rom.bestFromStart);
+    if (start === undefined || !Number.isFinite(start)) return undefined;
+    // The toe lift's angle in the picture (judged in the set-up foot's view, toeValue) overstates a foot turned only
+    // partly side-on (toe-target.ts toeTrueLift): corrected with the set-up foot's turn.
+    const lift = Math.max(0, (value - start) * rom.bestFromStart);
+    return this.cfg.id === TOE_ID && this.ref ? toeTrueLift(lift, this.ref) : lift;
+  }
+
+  /**
+   * The toe lift's legs and foot as they rest before the lift (the step's first frames: frames are not kept through a
+   * review or countdown, when the legs may have moved): its leg checks, and the lift itself (liftShift), are judged
+   * from here.
+   */
+  private rebaseToe() {
+    this.toeRebased = true;
+    const frames = this.toeRestFrames.length ? this.toeRestFrames : this.recent.slice(-5);
+    const base = medianGeo(frames.map(recent => recent.geo).filter(Boolean) as Geo[]);
+    if (base && this.ref) this.ref = toeRebase(this.ref, base);
+    const lifts = frames.map(recent => recent.values.toe_lift).filter((value): value is number => value !== undefined && Number.isFinite(value)).sort((a, b) => a - b);
+    const rest = lifts.length ? lifts[Math.floor(lifts.length / 2)] : undefined;
+    const ok = rest !== undefined && Number.isFinite(this.rest.toe_lift) && toeRestShiftOk(rest - this.rest.toe_lift);
+    this.toeLiftRest = ok ? rest : undefined;
+    this.toeLiftAcross = ok ? base?.footAcross : undefined;
   }
 
   /** Moving too fast (kicking the foot up, dropping it): a spoken reminder at most once per step, never scored. */
@@ -958,6 +1012,11 @@ export class ExerciseSession {
     }
     if (this.waitForSpeech(t)) return;
     if (!this.armed) {
+      // The toe lift judges each lift from where the legs rested as its instruction began, once per step (push, as
+      // soon as its first frames are in; here only if they were not): not later (re-arming after a reminder mid-lift,
+      // or the end of an instruction that says to lift), or a knee or heel already moving would be taken as where
+      // they rest.
+      if (this.cfg.id === TOE_ID && this.stepIdx === 0 && !this.toeRebased) this.rebaseToe();
       this.armed = true;
       this.stepStart = t;
       this.lastMoveT = t;
@@ -977,7 +1036,7 @@ export class ExerciseSession {
     let progress = 0;
     for (const id of gate) {
       const rom = this.romById(id);
-      const v = frame.values[rom.metric];
+      const v = this.valueOf(frame, rom.metric);
       const target = targets[id];
       const unit = metricUnit(rom.metric);
       sumW += rom.weight;
@@ -997,11 +1056,10 @@ export class ExerciseSession {
     this.inZone = zone || unsure;
     if (progress > 0.15) this.lastMoveT = t;
     // Seated Knee Extension judges the other leg within each repetition, from where it rests as the knee starts to
-    // straighten: a foot moved between repetitions is not the other leg helping. The toe lift likewise judges its own
-    // knee's straightening (a kick) from where it rests as the toes start to lift.
-    if ((this.cfg.id === KNEE_ID || this.cfg.id === TOE_ID) && this.stepIdx === 0 && this.ref && !this.touched && progress < 0.1) {
+    // straighten: a foot moved between repetitions is not the other leg helping.
+    if (this.cfg.id === KNEE_ID && this.stepIdx === 0 && this.ref && !this.touched && progress < 0.1) {
       const base = medianGeo(this.recent.slice(-5).map(recent => recent.geo).filter(Boolean) as Geo[]);
-      if (base) this.ref = { ...this.ref, otherAnkleImgX: base.otherAnkleImgX ?? this.ref.otherAnkleImgX, otherAnkleImgY: base.otherAnkleImgY ?? this.ref.otherAnkleImgY, otherKnee: base.otherKnee ?? this.ref.otherKnee, otherToeImgY: base.otherToeImgY ?? this.ref.otherToeImgY, toeKnee: base.toeKnee ?? this.ref.toeKnee };
+      if (base) this.ref = { ...this.ref, otherAnkleImgX: base.otherAnkleImgX ?? this.ref.otherAnkleImgX, otherAnkleImgY: base.otherAnkleImgY ?? this.ref.otherAnkleImgY, otherKnee: base.otherKnee ?? this.ref.otherKnee };
     }
     // The table slide likewise judges the other hand from where it rests as the slide starts (wherever the shoulder
     // settled after the last slide back).
@@ -1032,7 +1090,8 @@ export class ExerciseSession {
     const holdMs = this.holdMsFor(step, frame.targetContact !== undefined);
     const learningReach = this.phase === "warm" && usesTargetFlow(this.cfg.id) && !this.assess;
     if (learningReach && !unsure) {
-      if (zone) this.reachTargetCalibration.observe(frame);
+      // The toe lift learns its goal as judged from where the practice's foot rested.
+      if (zone) this.reachTargetCalibration.observe(this.cfg.id === TOE_ID ? { ...frame, values: { ...frame.values, toe_lift: this.valueOf(frame, "toe_lift") } } : frame);
       else this.reachTargetCalibration.reset();
     }
     if (zone) {
@@ -1083,7 +1142,7 @@ export class ExerciseSession {
     for (const rom of this.cfg.romSteps) {
       const applies = rom.steps ? rom.steps.includes(this.stepIdx) : step.kind !== "return";
       if (!applies) continue;
-      const v = frame.values[rom.metric];
+      const v = this.valueOf(frame, rom.metric);
       if (v === undefined) continue;
       if (usesTargetFlow(this.cfg.id) && this.learnedReach) {
         const start = this.rest[rom.metric];
@@ -1148,7 +1207,7 @@ export class ExerciseSession {
     for (const id of ids) {
       const rom = this.romById(id);
       const peak = this.run.peakExc[id] ?? 0;
-      const exc = this.excursion(rom.metric, frame.values[rom.metric]);
+      const exc = this.excursion(rom.metric, this.valueOf(frame, rom.metric));
       if (peak > 0 && exc > TIMING.restFraction * peak) relaxed = false;
     }
     if (frame.targetContact !== undefined) relaxed = frame.targetContact;
@@ -1544,7 +1603,7 @@ export class ExerciseSession {
 // ---------- simulated patient (for testing without a camera) ----------
 
 /** Resting values a simulated patient starts from. */
-const SIM_REST: Record<string, number> = { shoulder_flexion: 8, elbow_extension: 100, elbow_flexion: 10, finger_extension: 105, pinch_flexion: 0, pinch_index: 30, pinch_middle: 30, knee_extension: 95, ankle_dorsiflexion: 0, toe_lift: -20, shoulder_abduction: 5 };
+const SIM_REST: Record<string, number> = { shoulder_flexion: 8, elbow_extension: 100, elbow_flexion: 10, finger_extension: 105, pinch_flexion: 0, pinch_index: 30, pinch_middle: 30, knee_extension: 95, ankle_dorsiflexion: 0, toe_lift: -5, shoulder_abduction: 5 };
 
 export type SimInput = {
   /** 0 = at rest, 1 = exactly on this rung's target. */
@@ -1570,7 +1629,7 @@ export function simFrame(t: number, cfg: ExerciseConfig, targets: Record<string,
     comps[comp.metric] = input.compensations.includes(comp.id) ? comp.thresholdDeg + 6 : Math.min(1, comp.thresholdDeg / 4);
   });
   return { t, values, comps, visible: input.visible !== false, missing: input.visible === false ? "Sit in front of the camera so I can see you." : undefined,
-    ...(usesTargetFlow(cfg.id) ? { lapRest: input.level <= 0.05 ? { x: 0.6, y: 0.8, bodyScale: 0.4 } : undefined, lapMissing: cfg.id === "ex_handopen" ? "Let your fingers relax, with your palm facing the camera." : cfg.id === PINCH_ID ? "Let your thumb rest a little away from your first finger." : cfg.id === TOE_ID ? "Rest your foot flat on the floor, heel down." : cfg.id === KNEE_ID ? "Rest your foot flat on the floor." : cfg.id === SLIDE_ID ? "Rest your forearm beside you." : "Lower your affected hand and rest it on your lap." } : {}),
+    ...(usesTargetFlow(cfg.id) ? { lapRest: input.level <= 0.05 ? { x: 0.6, y: 0.8, bodyScale: 0.4 } : undefined, lapMissing: cfg.id === "ex_handopen" ? "Let your fingers relax, with your palm facing the camera." : cfg.id === PINCH_ID ? "Let your thumb rest a little away from your first finger." : cfg.id === TOE_ID ? "Turn your foot out to the side, heel down." : cfg.id === KNEE_ID ? "Rest your foot flat on the floor." : cfg.id === SLIDE_ID ? "Rest your forearm beside you." : "Lower your affected hand and rest it on your lap." } : {}),
     ...(cfg.id === "ex_h2m" ? { mouthPoint: { x: 0.5, y: 0.3 } } : {}) };
 }
 

@@ -133,9 +133,9 @@ export type Geo = Record<"tx" | "ty" | "tz" | "hx" | "hy" | "hz" | "shoulderTilt
    * length, the other ankle in the picture and the other knee's 3D angle. */
   kneeImgX?: number; kneeImgY?: number; kneeShin?: number; ankleImgX?: number; ankleImgY?: number;
   otherAnkleImgX?: number; otherAnkleImgY?: number; otherKnee?: number;
-  /** Seated Toe Lift (toe-target.ts toeGeo): the affected toes (foot index) and hip in the picture, the other toes'
-   * height, and the affected knee's 3D angle. */
-  toeImgX?: number; toeImgY?: number; hipImgX?: number; hipImgY?: number; otherToeImgY?: number; toeKnee?: number;
+  /** Seated Toe Lift (toe-target.ts toeGeo): the affected toes (foot index), heel and hip in the picture, how far the
+   * foot reaches across the picture (frame heights), and the other toes' height. */
+  toeImgX?: number; toeImgY?: number; heelImgX?: number; heelImgY?: number; footAcross?: number; hipImgX?: number; hipImgY?: number; otherToeImgY?: number;
 };
 
 /** Apparent face size in the image. Both dimensions must grow to indicate camera approach.

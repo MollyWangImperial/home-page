@@ -6,8 +6,8 @@ import { reachDemoState } from "./reach-demo";
 import { exerciseScreenPreview } from "./screen-preview";
 import { ExerciseSession, simFrame, type Snapshot } from "./session";
 import {
-  toeDemoDuration, toeDemoState, toeDialCircle, toeDialDegrees, toeFrame, toeGhostContact, toeGhostTarget, toeGuide, ToeLiftFilter,
-  toeLiftRaw, toePracticeGoal, toeRestCheck, ToeTarget, TOE_DIAL_GOAL_DEG, TOE_EASE_MS, TOE_EASED_LIFT, TOE_HYSTERESIS, TOE_PRACTICE_LIFT,
+  heelIndex, toeDemoDuration, toeDemoState, toeDialCircle, toeDialDegrees, toeFrame, toeGhostContact, toeGhostTarget, toeGuide, ToeLiftFilter,
+  toeInSetupView, toeLiftRaw, toePracticeGoal, toeRebase, toeRestCheck, toeRestShiftOk, ToeTarget, toeTrueLift, TOE_DIAL_GOAL_DEG, TOE_EASE_MS, TOE_EASED_LIFT, TOE_HYSTERESIS, TOE_PRACTICE_LIFT,
 } from "./toe-target";
 
 const ASPECT = 4 / 3;
@@ -18,13 +18,14 @@ const ID = "ex_ankle_dorsiflexion";
 
 type P3 = [number, number, number];
 /**
- * The seated posture: the toes turned up about the heel (degrees), the other foot's likewise, the heel raised off
- * the floor (metres), the lower leg swung forward about the knee (a kick, degrees), the whole foot slid forward
- * (metres), the thigh lifted (degrees) or the whole leg raised level (metres), the knee moved out from the body
- * (metres), the other knee's angle, the other foot moved, and trunk leans.
+ * The seated posture: how far the exercising foot is turned out about its heel (degrees, 60 by default; 0 points at
+ * the camera), its toes turned up about the heel (degrees), the other foot's toes likewise, the heel raised (metres),
+ * the lower leg swung forward about the knee (a kick, degrees), the whole foot slid forward (metres), the thigh lifted
+ * (degrees) or the whole leg raised level (metres), the knee moved out from the body (metres), the other knee's angle,
+ * the other foot moved, and trunk leans.
  */
 type Posture = {
-  dorsi?: number; otherDorsi?: number; heelUp?: number; kick?: number; slide?: number; thighLift?: number; legUp?: number; kneeOut?: number;
+  turn?: number; dorsi?: number; otherDorsi?: number; heelUp?: number; kick?: number; slide?: number; thighLift?: number; legUp?: number; kneeOut?: number;
   otherKnee?: number; otherFoot?: P3; lean?: number; camera?: { y: number; z: number };
 };
 
@@ -36,20 +37,27 @@ const UPPER: Record<number, P3> = {
   // Hands resting on the thighs.
   15: [0.16, 0.06, 0.3], 16: [-0.16, 0.06, 0.3], 17: [0.17, 0.04, 0.36], 18: [-0.17, 0.04, 0.36], 19: [0.15, 0.04, 0.37], 20: [-0.15, 0.04, 0.37], 21: [0.13, 0.06, 0.33], 22: [-0.13, 0.06, 0.33],
 };
-/** Turn (y, z) about the x axis by `deg`, about a pivot: positive turns a point in front of the pivot up (the toes lifting about the heel, the thigh lifting about the hip). */
+/** Turn (y, z) about the x axis by `deg`, about a pivot: positive turns a point in front of the pivot up (the thigh lifting about the hip), and one below it toward the camera (the lower leg swinging forward). */
 const pitch = ([x, y, z]: P3, [, py, pz]: P3, deg: number): P3 => {
   const a = deg * Math.PI / 180, dy = y - py, dz = z - pz;
   return [x, py + dy * Math.cos(a) + dz * Math.sin(a), pz - dy * Math.sin(a) + dz * Math.cos(a)];
 };
 const plus = (p: P3, d: P3): P3 => [p[0] + d[0], p[1] + d[1], p[2] + d[2]];
 type Leg = Record<"hip" | "knee" | "ankle" | "heel" | "toe", P3>;
-/** One leg from its hip: the thigh level forward to the knee, the lower leg straight down, the foot flat with the toes turned up `dorsi` about the heel. */
-function leg(hipX: number, out: number, posture: { dorsi?: number; heelUp?: number; kick?: number; slide?: number; thighLift?: number; legUp?: number; kneeOut?: number; knee?: number } = {}): Leg {
+/**
+ * One leg from its hip: the thigh level forward to the knee, the lower leg straight down, the heel on the floor and the
+ * foot (20 cm, heel to toes) turned `turn` degrees out (toward `out` in x) with its toes `dorsi` degrees up.
+ */
+function leg(hipX: number, out: number, posture: { turn?: number; dorsi?: number; heelUp?: number; kick?: number; slide?: number; thighLift?: number; legUp?: number; kneeOut?: number; knee?: number } = {}): Leg {
   const hip: P3 = [hipX, 0, 0];
   const knee: P3 = [hipX + out * (posture.kneeOut ?? 0), 0, 0.45];
-  const foot = (p: P3): P3 => [p[0], p[1], p[2] + (posture.slide ?? 0)];
-  const heel = foot([hipX, -0.47 + (posture.heelUp ?? 0), 0.4]);
-  const points: Leg = { hip, knee, ankle: foot([hipX, -0.42 + (posture.heelUp ?? 0), 0.45]), heel, toe: pitch(foot([hipX, -0.47, 0.6]), heel, posture.dorsi ?? 0) };
+  const lift = posture.heelUp ?? 0, slide = posture.slide ?? 0;
+  const heel: P3 = [hipX, -0.47 + lift, 0.4 + slide];
+  const turn = (posture.turn ?? 0) * Math.PI / 180, up = (posture.dorsi ?? 0) * Math.PI / 180;
+  // With the heel raised the toes stay on the floor, so the foot tips down toward them.
+  const length = 0.2, rise = Math.sin(up) * length - lift;
+  const toe: P3 = [hipX + out * Math.sin(turn) * Math.cos(up) * length, -0.47 + lift + rise, 0.4 + slide + Math.cos(turn) * Math.cos(up) * length];
+  const points: Leg = { hip, knee, ankle: [hipX, -0.42 + lift, 0.45 + slide], heel, toe };
   // The knee straightening (the other knee's angle, or a kick) swings the lower leg forward about the knee, the foot with it.
   const swing = (posture.knee !== undefined ? posture.knee - 90 : 0) + (posture.kick ?? 0);
   if (swing) for (const key of ["ankle", "heel", "toe"] as const) points[key] = pitch(points[key], knee, swing);
@@ -62,14 +70,14 @@ function leg(hipX: number, out: number, posture: { dorsi?: number; heelUp?: numb
 function toeBody(side: Side, posture: Posture = {}): PoseInput {
   const camera = posture.camera ?? { y: 0, z: 2.2 };
   const affectedX = side === "left" ? 0.1 : -0.1;
-  const mine = leg(affectedX, Math.sign(affectedX), posture);
+  const mine = leg(affectedX, Math.sign(affectedX), { ...posture, turn: posture.turn ?? 60 });
   const theirs = leg(-affectedX, -Math.sign(affectedX), { dorsi: posture.otherDorsi, knee: posture.otherKnee });
   if (posture.otherFoot) for (const key of ["ankle", "heel", "toe"] as const) theirs[key] = plus(theirs[key], posture.otherFoot);
   const j = poseJoints(side);
   const points: Record<number, P3> = { ...UPPER };
   const set = (index: number, otherIndex: number, key: keyof Leg) => { points[index] = mine[key]; points[otherIndex] = theirs[key]; };
   set(j.hip, j.hipOther, "hip"); set(j.knee, j.kneeOther, "knee"); set(j.ankle, j.ankleOther, "ankle"); set(j.foot, j.footOther, "toe");
-  set(side === "left" ? 29 : 30, side === "left" ? 30 : 29, "heel");
+  set(heelIndex(side), side === "left" ? 30 : 29, "heel");
   const landmarks: Pt[] = [], world: Pt[] = [];
   for (let index = 0; index < 33; index++) {
     // The trunk leans about the hips: forward (positive) toward the camera.
@@ -84,70 +92,88 @@ function toeBody(side: Side, posture: Posture = {}): PoseInput {
 const lift = (side: Side, posture: Posture = {}) => toeLiftRaw(toeBody(side, posture), side, ASPECT)!;
 
 describe("Seated Toe Lift on the shared target flow", () => {
-  it("runs on the target flow with the approved checks, seated head to feet", () => {
+  it("runs on the target flow with the approved checks, seated head to feet with the foot turned out", () => {
     expect(usesTargetFlow(ID)).toBe(true);
     expect(usesSeatedTargets(ID)).toBe(false);
     expect(EXERCISES[ID].compensations.map(item => item.id)).toEqual(["heel_lift", "knee_motion", "knee_sideways", "other_leg", "trunk_forward", "trunk_lean"]);
     for (const item of EXERCISES[ID].compensations) expect(item.steps, item.id).toEqual([0]);
+    // Not the other knee's 3D angle, which wanders with the leg still.
+    expect(EXERCISES[ID].compensations.find(item => item.id === "other_leg")!.alternative).toBeUndefined();
     expect(EXERCISES[ID].cycle.map(step => step.kind)).toEqual(["reach", "return"]);
     expect(EXERCISES[ID].framing).toMatch(/seated, head to feet/);
+    expect(EXERCISES[ID].framing).toMatch(/turned out/);
+    expect(EXERCISES[ID].calibrationInstruction).toMatch(/out to the side/);
   });
-  it.each(SIDES)("measures the toes rising above the ankle as they turn up about the heel (%s side)", side => {
+  it.each(SIDES)("measures the turned-out foot's angle, rising as the toes turn up about the heel (%s side)", side => {
     const rest = lift(side);
-    expect(rest).toBeLessThan(-15);
-    // Steadily higher with the turn, roughly one percent of the lower leg a degree.
+    expect(Math.abs(rest)).toBeLessThan(15);
+    // Steadily higher with the turn, roughly a degree a degree.
     const lifts = [5, 10, 20, 30].map(dorsi => lift(side, { dorsi }) - rest);
     lifts.reduce((low, high) => { expect(high).toBeGreaterThan(low); return high; }, 0);
-    expect(lifts[2]).toBeGreaterThan(14);
-    expect(lifts[2]).toBeLessThan(24);
+    expect(lifts[2]).toBeGreaterThan(15);
+    expect(lifts[2]).toBeLessThan(30);
   });
   it.each(SIDES)("does not count moving the whole foot or leg as lifting the toes (%s side)", side => {
     const rest = lift(side);
     for (const posture of [{ slide: 0.05 }, { slide: -0.05 }, { legUp: 0.05 }, { kneeOut: 0.05 }] as Posture[]) {
       expect(Math.abs(lift(side, posture) - rest), JSON.stringify(posture)).toBeLessThan(EXERCISES[ID].romSteps[0].learnedFloor!);
     }
-    expect(toeLiftRaw({ ...toeBody(side), landmarks: toeBody(side).landmarks.map((p, index) => (index === poseJoints(side).foot ? { ...p, visibility: 0.1 } : p)) }, side, ASPECT)).toBeUndefined();
+    // The heel or the toes out of view: nothing measured.
+    for (const hidden of [heelIndex(side), poseJoints(side).foot]) {
+      const pose = toeBody(side);
+      expect(toeLiftRaw({ ...pose, landmarks: pose.landmarks.map((p, index) => (index === hidden ? { ...p, visibility: 0.1 } : p)) }, side, ASPECT)).toBeUndefined();
+    }
   });
   it("steadies the measure over the last few frames, dropping a single jump", () => {
     const filter = new ToeLiftFilter();
-    for (const [t, value] of [[0, -20], [50, -20], [100, -5], [150, -20], [200, -20]] as const) filter.push(t, value);
-    expect(filter.push(250, -20)).toBe(-20);
+    for (const [t, value] of [[0, -5], [50, -5], [100, 20], [150, -5], [200, -5]] as const) filter.push(t, value);
+    expect(filter.push(250, -5)).toBe(-5);
     // An old sample drops out after 250 ms; a lost frame reads nothing.
     expect(filter.push(260, undefined)).toBeUndefined();
-    expect(filter.push(1000, -10)).toBe(-10);
+    expect(filter.push(1000, 10)).toBe(10);
   });
-  it.each(SIDES)("learns the resting foot once the seated body and the toes are in view, the foot flat (%s side)", side => {
+  it.each(SIDES)("learns the resting foot once the seated body is in view with the foot turned out, toes down (%s side)", side => {
     const pose = toeBody(side), j = poseJoints(side);
     const rest = toeRestCheck(pose, side, ASPECT);
     expect(rest.lapRest).toBeDefined();
     expect(rest.lapRest!.x).toBeCloseTo(pose.landmarks[j.ankle].x);
+    // A smaller turn out still counts.
+    expect(toeRestCheck(toeBody(side, { turn: 35 }), side, ASPECT).lapRest).toBeDefined();
+    // Pointing at the camera, or barely turned: asked to turn the foot out.
+    const turnOut = `Turn your ${side} foot out to the side, toes pointing away from your other foot, heel on the floor.`;
+    expect(toeRestCheck(toeBody(side, { turn: 0 }), side, ASPECT).lapMissing).toBe(turnOut);
+    expect(toeRestCheck(toeBody(side, { turn: 10 }), side, ASPECT).lapMissing).toBe(turnOut);
+    // Turned in, toward the other foot.
+    expect(toeRestCheck(toeBody(side, { turn: -60 }), side, ASPECT).lapMissing).toBe(turnOut);
     // The toes already up.
-    expect(toeRestCheck(toeBody(side, { dorsi: 20 }), side, ASPECT).lapMissing).toBe("Rest your foot flat on the floor, toes down.");
-    // The toes hidden, or at the bottom edge of the picture (the camera a little high).
-    const hidden = { ...pose, landmarks: pose.landmarks.map((p, index) => (index === j.foot ? { ...p, visibility: 0.1 } : p)) };
-    expect(toeRestCheck(hidden, side, ASPECT).lapMissing).toBe("Tilt the camera down a little so I can see your toes.");
-    expect(toeRestCheck(toeBody(side, { camera: { y: 0.3, z: 2.2 } }), side, ASPECT).lapMissing).toBe("Tilt the camera down a little so there is space below your feet.");
-    // Too far away for the toes' small rise to show.
+    expect(toeRestCheck(toeBody(side, { dorsi: 25 }), side, ASPECT).lapMissing).toBe("Rest your toes on the floor, heel down.");
+    // The heel hidden.
+    const hidden = { ...pose, landmarks: pose.landmarks.map((p, index) => (index === heelIndex(side) ? { ...p, visibility: 0.1 } : p)) };
+    expect(toeRestCheck(hidden, side, ASPECT).lapMissing).toBe(`Tilt the camera down a little so I can see your ${side} heel and toes.`);
+    // Too far away for the foot's turn to show.
     expect(toeRestCheck(toeBody(side, { camera: { y: 0, z: 5 } }), side, ASPECT).lapMissing).toBe("Move the camera a little closer, keeping your feet in view.");
     // The knee's own set-up checks still apply.
     expect(toeRestCheck(toeBody(side, { camera: { y: 0, z: 1.1 } }), side, ASPECT).lapMissing).toBeDefined();
     expect(toeRestCheck(null, side, ASPECT).lapMissing).toBeDefined();
   });
-  it.each(SIDES)("points the arrow up beside the resting toes, on the dial's side, inside the picture (%s side)", side => {
+  it.each(SIDES)("curves the arrow up about the heel from just beyond the resting toes, inside the picture (%s side)", side => {
     const pose = toeBody(side), j = poseJoints(side);
     const geo = toeFrame({ pose }, side, 0, ASPECT, null).geo!;
     const dial = kneeDial(pose, side, ASPECT)!;
     const guide = toeGuide(geo, dial, ASPECT)!;
-    const toe = pose.landmarks[j.foot];
-    expect((guide.start.x - toe.x) * dial.out).toBeGreaterThan(0);
-    expect(guide.end.x).toBeCloseTo(guide.start.x);
-    expect(guide.end.y).toBeLessThan(guide.start.y);
-    expect(guide.start.y).toBeLessThanOrEqual(toe.y);
+    const toe = pose.landmarks[j.foot], heel = pose.landmarks[heelIndex(side)];
+    // The toes point out from the body, as the dial does; the arrow starts beyond them and rises.
+    expect(guide.out).toBe(dial.out);
+    expect((guide.start.x - toe.x) * guide.out).toBeGreaterThan(0);
+    expect(guide.end.y).toBeLessThan(guide.start.y - 0.03);
+    // Every point about the same distance from the heel (an arc), a little more than the foot's length.
+    const foot = Math.hypot((toe.x - heel.x) * ASPECT, toe.y - heel.y);
+    for (const p of [guide.start, guide.end]) expect(Math.hypot((p.x - heel.x) * ASPECT, p.y - heel.y)).toBeCloseTo(1.15 * foot, 2);
     for (const p of [guide.start, guide.control, guide.end]) { expect(p.x).toBeGreaterThan(0); expect(p.x).toBeLessThan(1); }
     expect(toeGuide(null, dial, ASPECT)).toBeNull();
     expect(toeGuide(geo, null, ASPECT)).toBeNull();
   });
-  it.each(SIDES)("draws the dial's circle beside the shoulder, the goal above the resting toes and turned toward the body (%s side)", side => {
+  it.each(SIDES)("draws the dial's circle beside the shoulder, the goal above the resting toes (%s side)", side => {
     const dial = kneeDial(toeBody(side), side, ASPECT)!;
     const goal = toeDialCircle(dial, false, 640, 480), down = toeDialCircle(dial, true, 640, 480);
     expect(goal.y).toBeLessThan(down.y);
@@ -157,8 +183,45 @@ describe("Seated Toe Lift on the shared target flow", () => {
     expect(toeDialDegrees(1)).toBe(TOE_DIAL_GOAL_DEG);
     expect(toeDialDegrees(Number.NaN)).toBe(0);
   });
+  it.each(SIDES)("reports the foot's real lift, though the picture shows a partly turned foot lift further (%s side)", side => {
+    for (const turn of [40, 60, 90]) {
+      const ref = toeFrame({ pose: toeBody(side, { turn }) }, side, 0, ASPECT, null).geo!;
+      const shown = lift(side, { turn, dorsi: 20 }) - lift(side, { turn });
+      if (turn === 40) expect(shown).toBeGreaterThan(25);
+      expect(Math.abs(toeTrueLift(shown, ref) - 20), String(turn)).toBeLessThan(4);
+    }
+  });
+  it("takes a lift's resting foot angle only when the toes are plausibly resting", () => {
+    // Set down a little more side-on (higher) or more toward the camera (lower): yes; toes already up: no.
+    expect(toeRestShiftOk(6)).toBe(true);
+    expect(toeRestShiftOk(-15)).toBe(true);
+    expect(toeRestShiftOk(14)).toBe(false);
+    expect(toeRestShiftOk(-25)).toBe(false);
+  });
   it("sets a modest practice goal from the resting toes", () => {
-    expect(toePracticeGoal(-22)).toBe(-22 + TOE_PRACTICE_LIFT);
+    expect(toePracticeGoal(-4)).toBe(-4 + TOE_PRACTICE_LIFT);
+  });
+  it("judges the checks from where the legs rest before each lift, keeping the rest of the set-up reference", () => {
+    const setup = toeFrame({ pose: toeBody("right") }, "right", 0, ASPECT, null).geo!;
+    const moved = toeFrame({ pose: toeBody("right", { slide: 0.08, otherFoot: [0.05, 0, 0.05] }) }, "right", 0, ASPECT, null).geo!;
+    const ref = toeRebase(setup, moved);
+    expect(ref.heelImgY).toBe(moved.heelImgY);
+    expect(ref.otherAnkleImgX).toBe(moved.otherAnkleImgX);
+    expect(ref.kneeShin).toBe(setup.kneeShin);
+    expect(ref.shoulderWidth).toBe(setup.shoulderWidth);
+    // The set-up foot's turn stays: the session judges every lift as that foot would show it.
+    expect(ref.footAcross).toBe(setup.footAcross);
+  });
+  it("shows a lift as the set-up foot would: the same when turned alike, smaller from a foot less side-on", () => {
+    const geo = (turn: number) => toeFrame({ pose: toeBody("right", { turn }) }, "right", 0, ASPECT, null).geo!;
+    const setup = geo(60), less = geo(35);
+    expect(toeInSetupView(14, 4, -5, setup.footAcross, setup.footAcross, setup.kneeShin)).toBeCloseTo(5);
+    // Below rest: as it is.
+    expect(toeInSetupView(1, 4, -5, less.footAcross, setup.footAcross, setup.kneeShin)).toBeCloseTo(-8);
+    // The real 20 degree lift seen from the less side-on foot shows larger; in the set-up foot's view, as the set-up foot shows it.
+    const shownLess = lift("right", { turn: 35, dorsi: 20 }) - lift("right", { turn: 35 }), shownSetup = lift("right", { dorsi: 20 }) - lift("right");
+    expect(shownLess).toBeGreaterThan(shownSetup + 5);
+    expect(Math.abs(toeInSetupView(shownLess, 0, 0, less.footAcross, setup.footAcross, setup.kneeShin) - shownSetup)).toBeLessThan(2.5);
   });
 });
 
@@ -172,15 +235,8 @@ describe("the toe lift's checks from camera landmarks", () => {
     const measured = comps(side, { dorsi: 15 });
     for (const item of EXERCISES[ID].compensations) expect(measured[item.metric], item.id).toBeDefined();
   });
-  it.each(SIDES)("a knee kick lifts the toes in the picture, and is caught as the heel lifting (%s side)", side => {
-    // A 10 degree kick reads as a typical scored lift, with the knee itself still.
-    expect(lift(side, { kick: 10 }) - lift(side)).toBeGreaterThan(4);
-    expect(comps(side, { kick: 10 }).thigh_lift_pct).toBeCloseTo(0);
-    expect(over(side, { kick: 10 })).toEqual(["heel_lift"]);
-  });
   it.each([
-    ["heel_lift", { heelUp: 0.04 }],
-    ["heel_lift", { kick: 12 }],
+    ["heel_lift", { heelUp: 0.05 }],
     ["knee_motion", { thighLift: 15 }],
     // Lifting the whole foot off the floor, level: the knee rises with it.
     ["knee_motion", { legUp: 0.05 }],
@@ -196,8 +252,8 @@ describe("the toe lift's checks from camera landmarks", () => {
     for (const side of SIDES) expect(over(side, { dorsi: 15, ...posture }), side).toEqual([id]);
   });
   it.each([
-    ["heel_lift", { heelUp: 0.01 }],
-    ["heel_lift", { kick: 4 }],
+    ["heel_lift", { heelUp: 0.015 }],
+    ["heel_lift", { kick: 5 }],
     ["knee_motion", { thighLift: 2 }],
     ["knee_sideways", { kneeOut: 0.02 }],
     ["other_leg", { otherKnee: 100 }],
@@ -207,56 +263,68 @@ describe("the toe lift's checks from camera landmarks", () => {
   ] as const)("lets a small %s pass (%j)", (_id, posture) => {
     for (const side of SIDES) expect(over(side, { dorsi: 15, ...posture }), side).toEqual([]);
   });
-  it("leaves a check unmeasured when its body part is out of view, and the lift when the leg is", () => {
+  it.each(SIDES)("reads a knee kick as much less lift than a toe lift of the same size (%s side)", side => {
+    // From the front a kick hardly moves the heel in the picture (it comes toward the camera as it rises), and no
+    // check catches a small one; but with the foot turned out it turns the foot up only about half as far.
+    const rest = lift(side);
+    expect(lift(side, { kick: 20 }) - rest).toBeLessThan(0.6 * (lift(side, { dorsi: 20 }) - rest));
+  });
+  it("leaves a check unmeasured when its body part is out of view, and the lift when the foot is", () => {
     const pose = toeBody("right", { dorsi: 15 });
     const hidden = { ...pose, landmarks: pose.landmarks.map((p, index) => (index <= 12 ? { ...p, visibility: 0.1 } : p)) };
     const frame = toeFrame({ pose: hidden }, "right", 0, ASPECT, reference("right"));
     expect(frame.comps.trunk_retreat_pct).toBeUndefined();
     expect(frame.comps.trunk_approach_pct).toBeUndefined();
     expect(frame.visible).toBe(true);
-    const noToes = { ...pose, landmarks: pose.landmarks.map((p, index) => (index === poseJoints("right").foot ? { ...p, visibility: 0.1 } : p)) };
-    const lost = toeFrame({ pose: noToes }, "right", 0, ASPECT, reference("right"));
+    const noHeel = { ...pose, landmarks: pose.landmarks.map((p, index) => (index === heelIndex("right") ? { ...p, visibility: 0.1 } : p)) };
+    const lost = toeFrame({ pose: noHeel }, "right", 0, ASPECT, reference("right"));
     expect(lost.visible).toBe(false);
     expect(lost.values.toe_lift).toBeUndefined();
+    expect(lost.comps.heel_lift_pct).toBeUndefined();
     expect(lost.missing).toBe("Keep your knees and feet in view of the camera.");
   });
 });
 
 describe("the toes' targets", () => {
-  const base = { rest: -22, goal: -10, lowering: false, armed: true, practice: false, t: 0 };
+  const base = { rest: -4, goal: 16, lowering: false, armed: true, practice: false, t: 0 };
   it("is on the lift target at the goal, and stays on it until the toes sag a little", () => {
     const target = new ToeTarget();
-    expect(target.update("a", { ...base, value: -10.5 }).contact).toBe(false);
-    expect(target.update("a", { ...base, value: -10 }).contact).toBe(true);
-    expect(target.update("a", { ...base, value: -10 - TOE_HYSTERESIS + 0.1 }).contact).toBe(true);
-    expect(target.update("a", { ...base, value: -10 - TOE_HYSTERESIS - 0.1 }).contact).toBe(false);
-    expect(target.update("a", { ...base, value: -11 }).contact).toBe(false);
-    expect(target.update("a", { ...base, value: -16 }).progress).toBeCloseTo(0.5);
+    expect(target.update("a", { ...base, value: 15.5 }).contact).toBe(false);
+    expect(target.update("a", { ...base, value: 16 }).contact).toBe(true);
+    expect(target.update("a", { ...base, value: 16 - TOE_HYSTERESIS + 0.1 }).contact).toBe(true);
+    expect(target.update("a", { ...base, value: 16 - TOE_HYSTERESIS - 0.1 }).contact).toBe(false);
+    expect(target.update("a", { ...base, value: 15 }).contact).toBe(false);
+    expect(target.update("a", { ...base, value: 6 }).progress).toBeCloseTo(0.5);
     expect(target.update("a", { ...base, value: undefined }).contact).toBe(false);
   });
   it("is on the lower target with the toes most of the way down, and a little higher after a while lowering", () => {
     const target = new ToeTarget(), lowering = { ...base, lowering: true };
-    // The goal is 12 above rest: down within 30% of that (3.6).
-    expect(target.update("b", { ...lowering, value: -18 }).contact).toBe(false);
-    expect(target.update("b", { ...lowering, value: -18.5 }).contact).toBe(true);
-    expect(target.update("b", { ...lowering, value: -17.2 }).contact).toBe(true);
+    // The goal is 20 above rest: down within 30% of that (6).
+    expect(target.update("b", { ...lowering, value: 3 }).contact).toBe(false);
+    expect(target.update("b", { ...lowering, value: 1.5 }).contact).toBe(true);
+    expect(target.update("b", { ...lowering, value: 4 }).contact).toBe(true);
     const late = new ToeTarget();
-    expect(late.update("c", { ...lowering, value: -17, t: 0 }).contact).toBe(false);
-    expect(late.update("c", { ...lowering, value: -17, t: 10500 }).contact).toBe(true);
-    // A small goal (the learned floor): after a while, toes settled within the rest calibration's 5% still count.
-    const small = new ToeTarget(), floor = { ...lowering, goal: -22 + 3.5 };
-    expect(small.update("d", { ...floor, value: -17.5, t: 0 }).contact).toBe(false);
-    expect(small.update("d", { ...floor, value: -17.5, t: 10500 }).contact).toBe(true);
-    expect(small.update("e", { ...floor, value: -16, t: 20000 }).contact).toBe(false);
+    expect(late.update("c", { ...lowering, value: 5, t: 0 }).contact).toBe(false);
+    expect(late.update("c", { ...lowering, value: 5, t: 10500 }).contact).toBe(true);
+    // A small goal (the learned floor): after a while, toes settled within the rest calibration's 8 degrees still count.
+    const small = new ToeTarget(), floor = { ...lowering, goal: -4 + 6 };
+    expect(small.update("d", { ...floor, value: 3, t: 0 }).contact).toBe(false);
+    expect(small.update("d", { ...floor, value: 3, t: 10500 }).contact).toBe(true);
+    expect(small.update("e", { ...floor, value: 6, t: 20000 }).contact).toBe(false);
+    // Lifted well past the goal, then set down resting higher than before: half the way down from the top counts, after a while.
+    const high = new ToeTarget();
+    expect(high.update("f", { ...lowering, value: 26, t: 0 }).contact).toBe(false);
+    expect(high.update("f", { ...lowering, value: 14, t: 5000 }).contact).toBe(false);
+    expect(high.update("f", { ...lowering, value: 14, t: 10500 }).contact).toBe(true);
   });
   it("brings a practice goal closer when it is not reached for a while, but never a scored one", () => {
-    const target = new ToeTarget(), practice = { ...base, practice: true, goal: toePracticeGoal(-22) };
-    expect(target.update("p", { ...practice, value: -17.5, t: 0 }).contact).toBe(false);
-    expect(target.update("p", { ...practice, value: -17.5, t: TOE_EASE_MS - 10 }).contact).toBe(false);
-    expect(target.update("p", { ...practice, value: -17.5, t: TOE_EASE_MS + 10 })).toMatchObject({ contact: true, eased: true, goal: -22 + TOE_EASED_LIFT });
+    const target = new ToeTarget(), practice = { ...base, practice: true, goal: toePracticeGoal(-4) };
+    expect(target.update("p", { ...practice, value: 5, t: 0 }).contact).toBe(false);
+    expect(target.update("p", { ...practice, value: 5, t: TOE_EASE_MS - 10 }).contact).toBe(false);
+    expect(target.update("p", { ...practice, value: 5, t: TOE_EASE_MS + 10 })).toMatchObject({ contact: true, eased: true, goal: -4 + TOE_EASED_LIFT });
     const scored = new ToeTarget();
-    expect(scored.update("s", { ...base, value: -17.5, t: 0 }).contact).toBe(false);
-    expect(scored.update("s", { ...base, value: -17.5, t: TOE_EASE_MS * 2 }).contact).toBe(false);
+    expect(scored.update("s", { ...base, value: 5, t: 0 }).contact).toBe(false);
+    expect(scored.update("s", { ...base, value: 5, t: TOE_EASE_MS * 2 }).contact).toBe(false);
   });
 });
 
@@ -270,21 +338,21 @@ describe("Seated Toe Lift demonstration, simulator and previews", () => {
     expect(toeGhostContact(returning ? 0 : 1, returning)).toBe(true);
     expect(toeGhostContact(0.5, returning)).toBe(false);
   });
-  it("shows the circle on the demonstration's ankle dial beside the shoulder, mirrored for the other side, not at the foot", () => {
+  it("shows the circle on the demonstration's ankle dial, up beside the close-up foot, mirrored for the other side", () => {
     const right = toeGhostTarget(300, 270, false, "right"), left = toeGhostTarget(300, 270, false, "left");
     expect(left.x).toBeCloseTo(300 - right.x);
     expect(right.x).toBeGreaterThan(200);
-    expect(right.y).toBeLessThan(150);
+    expect(right.y).toBeLessThan(120);
     // The goal circle is above the resting one.
     expect(toeGhostTarget(300, 270, true, "right").y).toBeGreaterThan(right.y);
     // The circle is reached as the demonstration's dial toes get there, before the hold.
     expect(toeDemoState(toeDemoDuration(false) - 1, false).target[0]).toBeCloseTo(right.x);
-    expect(toeDemoState(0, false).instruction).toMatch(/heel down/);
+    expect(toeDemoState(0, false).instruction).toMatch(/turned out and your heel down/);
   });
-  it("previews its two steps, the set-up checks with the toes and the lighting, and the results", () => {
+  it("previews its two steps, the set-up checks with the heel and toes and the lighting, and the results", () => {
     expect(exerciseScreenPreview("warm-reach", 1, "right", ID).snapshot).toMatchObject({ kind: "reach", stepIndex: 0, stepCount: 2 });
     expect(exerciseScreenPreview("reps-return", 1, "right", ID).snapshot).toMatchObject({ kind: "return", stepIndex: 1 });
-    expect(exerciseScreenPreview("setup", 1, "left", ID).bodyChecks.map(check => check.label)).toEqual(["Face", "Both shoulders", "Both hips", "Both knees", "Both feet", "Left toes", "Foot flat, heel down, space around you", "Lighting"]);
+    expect(exerciseScreenPreview("setup", 1, "left", ID).bodyChecks.map(check => check.label)).toEqual(["Face", "Both shoulders", "Both hips", "Both knees", "Both feet", "Left heel and toes", "Foot turned out, heel down, space around you", "Lighting"]);
     const results = exerciseScreenPreview("results", 1, "right", ID).snapshot.record!;
     const ids = EXERCISES[ID].compensations.map(item => item.id);
     for (const id of Object.keys(results.compensation_counts)) expect(ids).toContain(id);
@@ -309,29 +377,43 @@ describe("Seated Toe Lift demonstration, simulator and previews", () => {
  * lower circle is. options.always: a posture kept through the whole of the scored repetitions; repLift: how far the
  * scored lifts go (degrees).
  */
-function toePatient(side: Side, scored: (dorsi: number) => Posture = () => ({}), options: { reps?: number; lift?: number; repLift?: number; fastReps?: boolean; always?: Posture } = {}) {
+/**
+ * eager: in the scored repetitions, the patient starts to lift as the cue begins, before the circle is active.
+ * perRep: a posture kept through one scored repetition (by its number, from 1).
+ */
+function toePatient(side: Side, scored: (dorsi: number) => Posture = () => ({}), options: { reps?: number; lift?: number; repLift?: number; fastReps?: boolean; always?: Posture; perRep?: (rep: number) => Posture; speechMs?: number; eager?: boolean } = {}) {
   const said: string[] = [];
-  const session = new ExerciseSession({ exerciseId: ID, rung: 1, side, repsOverride: options.reps ?? 2, reviewBetweenReps: true }, { say: text => said.push(text), busy: () => false, stop() {} });
+  // speechMs: each line keeps the voice busy this long (0: speech takes no time).
+  let now = 0, speakingUntil = 0;
+  const session = new ExerciseSession({ exerciseId: ID, rung: 1, side, repsOverride: options.reps ?? 2, reviewBetweenReps: true }, {
+    say: text => { said.push(text); speakingUntil = now + (options.speechMs ?? 0); }, busy: at => at < speakingUntil, stop() { speakingUntil = 0; },
+  });
   const target = new ToeTarget(), filter = new ToeLiftFilter();
   let t = 0, dorsi = 0;
   session.start(t);
-  for (let n = 0; n < 20000 && session.snapshot().phase !== "done"; n++) {
-    t += 50;
+  for (let n = 0; n < 40000 && session.snapshot().phase !== "done"; n++) {
+    t += 50; now = t;
     const snap: Snapshot = session.snapshot();
     const live = (snap.phase === "warm" || snap.phase === "reps") && !snap.review;
     const high = snap.phase === "reps" ? options.repLift ?? options.lift ?? 20 : options.lift ?? 20;
-    const want = live && snap.targetArmed ? (snap.kind === "return" ? 0 : high) : dorsi;
+    const moving = live && (snap.targetArmed || (options.eager === true && snap.phase === "reps" && snap.kind === "reach"));
+    const want = moving ? (snap.kind === "return" ? 0 : high) : dorsi;
     const speed = options.fastReps && snap.phase === "reps" ? 150 : 20;
     dorsi += Math.sign(want - dorsi) * Math.min(Math.abs(want - dorsi), speed * 0.05);
-    const extra = { ...(snap.phase === "reps" ? options.always : {}), ...(live && snap.phase === "reps" && snap.kind === "reach" ? scored(dorsi) : {}) };
+    // A scored posture starts with the movement.
+    // A repetition's own posture is taken up during the countdown before it.
+    const repNumber = snap.review === "countdown" ? snap.repIndex + 1 : snap.repIndex;
+    const extra = { ...(snap.phase === "reps" ? { ...options.always, ...options.perRep?.(repNumber) } : {}), ...(moving && snap.phase === "reps" && snap.kind === "reach" ? scored(dorsi) : {}) };
     const frame = toeFrame({ pose: toeBody(side, { dorsi, ...extra }) }, side, t, ASPECT, session.reference, filter);
     if (live) {
       const rest = session.restValues().toe_lift;
       const goal = snap.phase === "reps" ? session.targets().toe_lift : toePracticeGoal(rest);
+      // Judged from where this lift's foot rested, and on target only once the circle is active, as the page does.
+      const value = session.toeValue(frame.values.toe_lift);
       const result = target.update(`${snap.phase}:${snap.repIndex}:${snap.stepIndex}`, {
-        value: frame.values.toe_lift, rest, goal, lowering: snap.kind === "return", armed: snap.targetArmed, practice: snap.phase === "warm", t,
+        value, rest, goal, lowering: snap.kind === "return", armed: snap.targetArmed, practice: snap.phase === "warm", t,
       });
-      frame.targetContact = frame.visible && result.contact;
+      frame.targetContact = frame.visible && snap.targetArmed && result.contact;
       frame.targetProgress = frame.targetContact ? 1 : Math.max(0, Math.min(0.98, result.progress));
     }
     session.push(frame);
@@ -349,10 +431,10 @@ describe("Seated Toe Lift session from camera landmarks", () => {
     // The rest learned at set-up, and the scored goal just inside the practice hold (rest + 0.9 x the lift).
     const rest = lift(side), held = lift(side, { dorsi: 20 });
     expect(session.restValues().toe_lift).toBeCloseTo(rest, 0);
-    expect(Math.abs(session.learnedValue("toe_lift")! - (rest + 0.9 * (held - rest)))).toBeLessThan(1);
-    // The best is read out as the lift from rest, in about-degrees: near the 20 degrees lifted.
-    expect(snap.record?.best_value).toBeGreaterThan(17);
-    expect(snap.record?.best_value).toBeLessThan(24);
+    expect(Math.abs(session.learnedValue("toe_lift")! - (rest + 0.9 * (held - rest)))).toBeLessThan(1.5);
+    // The best is read out as the lift from rest, in degrees: near the 20 degrees lifted.
+    expect(snap.record?.best_value).toBeGreaterThan(15);
+    expect(snap.record?.best_value).toBeLessThan(30);
     // The full instructions once in practice (with the dial moving with the foot), the short cues in each scored repetition, and no "slowly" reminder.
     const [up, down] = EXERCISES[ID].cycle;
     expect(said.filter(line => line === up.voice)).toHaveLength(1);
@@ -361,10 +443,8 @@ describe("Seated Toe Lift session from camera landmarks", () => {
     expect(said).not.toContain(EXERCISES[ID].speedCue!.lift);
   });
   it.each([
-    // The heel up lowers the toes against the ankle, so this patient lifts them further to reach the circle.
-    ["heel_lift", { heelUp: 0.04 }, 30],
-    // A kick: the knee straightens as the toes lift.
-    ["heel_lift", (dorsi: number) => ({ kick: 0.6 * dorsi }), 20],
+    // The heel coming up as the toes lift (which lowers the toes, so this patient lifts them further to reach).
+    ["heel_lift", (dorsi: number) => ({ heelUp: 0.05 * Math.min(1, dorsi / 10) }), 35],
     ["knee_motion", { legUp: 0.05 }, 20],
     ["knee_sideways", { kneeOut: 0.06 }, 20],
     // Mirror movement: the other foot's toes lift along with the affected ones.
@@ -379,7 +459,7 @@ describe("Seated Toe Lift session from camera landmarks", () => {
     }
   });
   it("flags a heel that comes up before the toes reach their circle", () => {
-    const reps = toePatient("right", () => ({ heelUp: 0.04 }), { reps: 1 }).session.snapshot().reps;
+    const reps = toePatient("right", () => ({ heelUp: 0.05 }), { reps: 1 }).session.snapshot().reps;
     expect(reps[0].compensations).toEqual(["heel_lift"]);
   });
   it("does not count the other foot moved between repetitions as the other leg helping", () => {
@@ -387,11 +467,38 @@ describe("Seated Toe Lift session from camera landmarks", () => {
     expect(session.snapshot().reps.map(rep => rep.compensations)).toEqual([[], []]);
     expect(session.snapshot().record?.repetition_scores).toEqual([100, 100]);
   });
-  it("does not count the foot set down further forward between repetitions as a kick", () => {
-    // 10 cm forward opens the knee about 13 degrees, kept still through each lift (which goes a little higher to reach).
-    const { session } = toePatient("right", () => ({}), { always: { slide: 0.1 }, repLift: 25 });
+  it("does not count the foot or knee set down differently between repetitions as a check", () => {
+    // The foot 8 cm further forward and the knee a little further out, kept still through each lift.
+    const { session } = toePatient("right", () => ({}), { always: { slide: 0.08, kneeOut: 0.05 } });
     expect(session.snapshot().reps.map(rep => rep.compensations)).toEqual([[], []]);
     expect(session.snapshot().record?.repetition_scores).toEqual([100, 100]);
+  });
+  it.each([35, 85])("judges each lift from where its foot rests, as the set-up foot would show it, though turned differently (%s degrees)", turn => {
+    // Set up and practised at 60 degrees lifting 20; each scored lift starts with the foot turned differently, so it
+    // rests at another angle and shows the same real lift larger or smaller. The same real lift still reaches the circle.
+    const { session } = toePatient("right", () => ({}), { always: { turn }, repLift: 20 });
+    expect(session.snapshot().reps.map(rep => rep.compensations)).toEqual([[], []]);
+    expect(session.snapshot().record?.repetition_scores).toEqual([100, 100]);
+    // A much smaller real lift does not, though the less side-on foot shows it larger.
+    if (turn === 35) expect(toePatient("right", () => ({}), { always: { turn }, repLift: 11, reps: 1 }).session.snapshot().reps[0].hold).toBe("none");
+  });
+  it("judges each lift from its own resting foot from the start, never the last one's", () => {
+    // A weak patient; the foot is set down turned less for the first scored lift and back where it was set up for the
+    // second (each during the countdown before it), with the cue taking its time as spoken.
+    const { session } = toePatient("right", () => ({}), { lift: 9, repLift: 9, perRep: rep => (rep === 1 ? { turn: 30 } : {}), speechMs: 1200 });
+    expect(session.snapshot().reps.map(rep => rep.hold)).toEqual(["full", "full"]);
+    expect(session.snapshot().record?.repetition_scores).toEqual([100, 100]);
+  });
+  it("re-checks where the legs rest once per lift, not again when a reminder mid-lift re-arms it", () => {
+    // Speech takes time, so the "slowly" reminder during a quick lift pauses the circle; the knee is moving out by then.
+    const { session, said } = toePatient("right", dorsi => ({ kneeOut: 0.07 * Math.min(1, dorsi / 12) }), { fastReps: true, speechMs: 800, repLift: 24 });
+    expect(said).toContain(EXERCISES[ID].speedCue!.lift);
+    for (const rep of session.snapshot().reps) expect(rep.compensations).toEqual(["knee_sideways"]);
+  });
+  it("judges where the legs rest from the start of the instruction, before the patient moves with it", () => {
+    // Speech takes time and the patient starts lifting, knee moving out, as soon as the cue begins.
+    const { session } = toePatient("right", dorsi => ({ kneeOut: 0.07 * Math.min(1, dorsi / 12) }), { speechMs: 1500, repLift: 24, eager: true });
+    for (const rep of session.snapshot().reps) expect(rep.compensations).toEqual(["knee_sideways"]);
   });
   it("leaves the checks unjudged, not unmeasured, when the toes hardly lift", () => {
     // Practice learns a 20 degree lift; in the scored repetition the toes only turn up 3 degrees and never hold the circle.
