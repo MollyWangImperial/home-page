@@ -56,19 +56,28 @@ export class SteadyPoint {
 
 /** The drawn body's settings: the body model may run every other frame, so its readings step and jitter. */
 export const POSE_STEADY: SteadyOptions = { minCutoff: 1.2, beta: 0.5, speedCutoff: 1, glide: 3 };
+/**
+ * The elbows' second pass. The body model's elbow shakes far more than the rest of the drawn body (replaying the
+ * user's warm-up recording: about 9 times the shoulder's shake after the first pass), so each elbow is steadied twice:
+ * the second pass takes out about two thirds of that shake, for about 60 ms more trail while the arm moves.
+ */
+export const ELBOW_STEADY: SteadyOptions = { minCutoff: 1.5, beta: 1, speedCutoff: 1, glide: 3 };
+/** Second passes for single landmarks: the elbows (13 left, 14 right). */
+const POSE_SECOND: Record<number, SteadyOptions> = { 13: ELBOW_STEADY, 14: ELBOW_STEADY };
 /** After this long without a body, the drawing starts afresh rather than gliding from where it was, ms. */
 const POSE_LOST_MS = 1000;
 
 /**
- * The drawn body: each landmark steadied (SteadyPoint), with `override` points (the hand model's wrist, which sits on
- * the real wrist and updates every frame) drawn in place of the body model's own, and shown even where the body model
- * was unsure of them. scale: a body size in frame heights (the shoulder width), for the speeds.
+ * The drawn body: each landmark steadied (SteadyPoint; the elbows twice, ELBOW_STEADY), with `override` points (the
+ * hand model's wrist, which sits on the real wrist and updates every frame) drawn in place of the body model's own,
+ * and shown even where the body model was unsure of them. scale: a body size in frame heights (the shoulder width),
+ * for the speeds.
  */
 export class SteadyPose {
-  private points: SteadyPoint[] = [];
+  private points: SteadyPoint[][] = [];
   private lastT = -Infinity;
 
-  constructor(private readonly options: SteadyOptions = POSE_STEADY) {}
+  constructor(private readonly options: SteadyOptions = POSE_STEADY, private readonly second: Record<number, SteadyOptions> = POSE_SECOND) {}
 
   reset() { this.points = []; this.lastT = -Infinity; }
 
@@ -79,8 +88,8 @@ export class SteadyPose {
     const landmarks = pose.landmarks.map((p, index) => {
       const own = override[index], source = own ?? p;
       if (!Number.isFinite(source.x) || !Number.isFinite(source.y)) return p;
-      const point = (this.points[index] ??= new SteadyPoint(this.options));
-      const at = point.next(t, { x: source.x, y: source.y }, aspect, scale);
+      const passes = (this.points[index] ??= [this.options, this.second[index]].filter((o): o is SteadyOptions => !!o).map(o => new SteadyPoint(o)));
+      const at = passes.reduce((q, pass) => pass.next(t, q, aspect, scale), { x: source.x, y: source.y });
       return own ? { ...p, x: at.x, y: at.y, visibility: 1 } : { ...p, x: at.x, y: at.y };
     });
     return { landmarks, world: pose.world };

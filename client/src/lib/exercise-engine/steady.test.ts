@@ -49,6 +49,22 @@ describe("steadied drawing (display only)", () => {
     expect(pose!.landmarks[11].visibility).toBe(0.3);
     expect(shown.next(1500, null, ASPECT, SCALE)).toBeNull();
   });
+  it("steadies the elbows twice: their shake cut well below the other points', a real move still followed", () => {
+    const shown = new SteadyPose(), elbow = 14, shoulder = 12, jitter = 0.01;
+    let pose = shown.next(0, body(() => ({ x: 0.5, y: 0.5 })), ASPECT, SCALE)!;
+    for (let t = 33; t < 1000; t += 33) pose = shown.next(t, body(() => ({ x: 0.5, y: 0.5 })), ASPECT, SCALE)!;
+    // Every point read with the same shake: the elbow's drawing moves far less than the shoulder's.
+    let elbowShake = 0, shoulderShake = 0;
+    for (let n = 0; n < 60; n++) {
+      const next = shown.next(1000 + n * 33, body(() => ({ x: 0.5 + (n % 2 ? jitter : -jitter) / ASPECT, y: 0.5 + (n % 4 < 2 ? jitter : -jitter) })), ASPECT, SCALE)!;
+      if (n >= 30) { elbowShake += distance(next.landmarks[elbow], pose.landmarks[elbow]); shoulderShake += distance(next.landmarks[shoulder], pose.landmarks[shoulder]); }
+      pose = next;
+    }
+    expect(elbowShake).toBeLessThan(0.3 * shoulderShake);
+    // Moved a fifth of the picture: the elbow is drawn within a tenth of the move a third of a second later.
+    for (let n = 1; n <= 10; n++) pose = shown.next(3000 + n * 33, body(() => ({ x: 0.7, y: 0.5 })), ASPECT, SCALE)!;
+    expect(Math.abs(pose.landmarks[elbow].x - 0.7)).toBeLessThan(0.1 * 0.2);
+  });
   it("steadies a body read only every other frame (repeated in between), and starts afresh after a long gap", () => {
     const shown = new SteadyPose();
     // The body moving steadily right, read every other frame: the drawing moves every frame, never back.
