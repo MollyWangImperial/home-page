@@ -390,33 +390,25 @@ export function dialCircle(dial: KneeDial, lowering: boolean, width: number, hei
 
 /**
  * Which way the foot goes, from the set-up posture. Straightening, it comes forward toward the camera and a little out
- * to the side: an arrow from just below the knee sweeping out and down, then curling back with its head toward the
- * camera, as a path coming out of the picture is drawn (`lift`, cubic). Lowering: from beside the knee, where the
- * straightened foot shows, back down to where it rested (`lower`, quadratic). Exactly straight at the camera, the
- * camera can hardly see the knee straighten; a little out to the side, it can.
+ * to the side: a long arrow from just out from the resting foot, rising gently out to the side, its head up and away
+ * (`lift`). Lowering: the same path back to the resting foot (`lower`). Exactly straight at the camera, the camera can
+ * hardly see the knee straighten; a little out to the side, it can.
  */
-export type KneeGuide = { lift: { start: P2; control: P2; control2: P2; end: P2 }; lower: { start: P2; control: P2; end: P2 }; shin: number; out: number };
+export type KneeGuide = { lift: { start: P2; control: P2; end: P2 }; lower: { start: P2; control: P2; end: P2 }; shin: number; out: number };
 
-/** The lifting arrow's shape: its points out from the knee and down from it, in lower legs (as on the mirrored view, out from the body). */
-const GUIDE_LIFT = { start: [0.09, 0.17], control: [0.75, 0.45], control2: [1.05, 0.95], end: [0.64, 0.88] } as const;
+/** The lifting arrow's shape: its points out from the resting ankle and down from it, in lower legs (as on the mirrored view, out from the body). */
+const GUIDE_LIFT = { start: [0.4, 0.22], control: [1.2, 0.22], end: [2, -0.55] } as const;
 
 export function kneeGuide(ref: Geo | null, dial: KneeDial | null, aspect: number): KneeGuide | null {
   if (!ref || !dial || ref.kneeImgX === undefined || ref.kneeImgY === undefined || ref.ankleImgX === undefined || ref.ankleImgY === undefined || !ref.kneeShin) return null;
-  const shin = ref.kneeShin, out = dial.out, kneeX = ref.kneeImgX, kneeY = ref.kneeImgY, ankleX = ref.ankleImgX, ankleY = ref.ankleImgY;
+  const shin = ref.kneeShin, out = dial.out, ankleX = ref.ankleImgX, ankleY = ref.ankleImgY;
   // As far out as the picture allows (a phone held upright, or a patient off-centre, has less room on that side).
-  const room = (out > 0 ? 0.96 - kneeX : kneeX - 0.04) * aspect;
-  const reach = clamp((room - 0.02) / (GUIDE_LIFT.control2[0] * shin), 0.3, 1);
-  // Kept inside the picture (a knee low in the picture leaves little room below it for the arrow's curl).
-  const fromKnee = ([across, down]: readonly [number, number]): P2 => ({ x: clamp(kneeX + out * across * reach * shin / aspect, 0.03, 0.97), y: Math.min(kneeY + down * shin, 0.97) });
-  return {
-    lift: { start: fromKnee(GUIDE_LIFT.start), control: fromKnee(GUIDE_LIFT.control), control2: fromKnee(GUIDE_LIFT.control2), end: fromKnee(GUIDE_LIFT.end) },
-    lower: {
-      start: fromKnee([0.45, 0.32]),
-      control: { x: ankleX + out * 0.6 * reach * shin / aspect, y: ankleY - 0.1 * shin },
-      end: { x: ankleX + out * 0.12 * shin / aspect, y: ankleY - 0.06 * shin },
-    },
-    shin, out,
-  };
+  const room = (out > 0 ? 0.96 - ankleX : ankleX - 0.04) * aspect;
+  const reach = clamp((room - 0.02) / (GUIDE_LIFT.end[0] * shin), 0.35, 1);
+  // Kept inside the picture.
+  const fromAnkle = ([across, down]: readonly [number, number]): P2 => ({ x: clamp(ankleX + out * across * reach * shin / aspect, 0.03, 0.97), y: clamp(ankleY + down * shin, 0.03, 0.97) });
+  const lift = { start: fromAnkle(GUIDE_LIFT.start), control: fromAnkle(GUIDE_LIFT.control), end: fromAnkle(GUIDE_LIFT.end) };
+  return { lift, lower: { start: lift.end, control: lift.control, end: lift.start }, shin, out };
 }
 
 /** How long the arrow's bright pulse takes to sweep from the foot to the arrowhead, ms. */
@@ -427,11 +419,16 @@ const along = (a: P2, c: P2, b: P2, k: number, d?: P2): P2 => d
   ? { x: (1 - k) ** 3 * a.x + 3 * (1 - k) ** 2 * k * c.x + 3 * (1 - k) * k ** 2 * d.x + k ** 3 * b.x, y: (1 - k) ** 3 * a.y + 3 * (1 - k) ** 2 * k * c.y + 3 * (1 - k) * k ** 2 * d.y + k ** 3 * b.y }
   : { x: (1 - k) ** 2 * a.x + 2 * (1 - k) * k * c.x + k ** 2 * b.x, y: (1 - k) ** 2 * a.y + 2 * (1 - k) * k * c.y + k ** 2 * b.y };
 
+/** A drawing arrow draws itself along its path over this long, ms, then stays whole for ARROW_GROWN_MS before drawing again. */
+const ARROW_GROW_MS = 1300, ARROW_GROWN_MS = 700;
+
 /**
  * A curved arrow (canvas pixels) with a label, and a dot running along it unless motion is reduced. With
- * `control2`, the curve is cubic (through `control`, then `control2`), for a path that curls back on itself.
+ * `control2`, the curve is cubic (through `control`, then `control2`), for a path that curls back on itself. With
+ * `grow`, it draws itself instead: a solid line growing from its start along the path, the head riding its tip.
  */
-export function drawArrow(ctx: CanvasRenderingContext2D, from: P2, control: P2, to: P2, options: { width: number; label: string; emphasis: boolean; now: number; reducedMotion: boolean; labelAt: P2; fontPx: number; light?: boolean; bounds?: { width: number; height: number }; control2?: P2 }) {
+export function drawArrow(ctx: CanvasRenderingContext2D, from: P2, control: P2, to: P2, options: { width: number; label: string; emphasis: boolean; now: number; reducedMotion: boolean; labelAt: P2; fontPx: number; light?: boolean; bounds?: { width: number; height: number }; control2?: P2; grow?: boolean }) {
+  if (options.grow) return drawGrowingArrow(ctx, from, control, to, options);
   ctx.save();
   ctx.globalAlpha = options.emphasis ? 1 : 0.5;
   ctx.lineCap = "round"; ctx.lineJoin = "round";
@@ -493,6 +490,61 @@ export function drawArrow(ctx: CanvasRenderingContext2D, from: P2, control: P2, 
 }
 
 /**
+ * drawArrow's drawing style: while the patient is asked to make the movement, a solid line draws itself from the
+ * arrow's start along its path, the head riding the line's tip, then the whole arrow stays a moment and draws again.
+ * Whole and still when motion is reduced, faint when not asked.
+ */
+function drawGrowingArrow(ctx: CanvasRenderingContext2D, from: P2, control: P2, to: P2, options: Parameters<typeof drawArrow>[4]) {
+  const control2 = options.control2;
+  const animate = options.emphasis && !options.reducedMotion;
+  const t = animate ? options.now % (ARROW_GROW_MS + ARROW_GROWN_MS) : ARROW_GROW_MS;
+  const k = smooth(unit(t / ARROW_GROW_MS));
+  ctx.save();
+  ctx.globalAlpha = options.emphasis ? 1 : 0.5;
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  // The line so far: whole, through the curve itself; growing, through points along it.
+  const path = () => {
+    ctx.beginPath(); ctx.moveTo(from.x, from.y);
+    if (k >= 1) {
+      if (control2) ctx.bezierCurveTo(control.x, control.y, control2.x, control2.y, to.x, to.y);
+      else ctx.quadraticCurveTo(control.x, control.y, to.x, to.y);
+    } else {
+      const steps = Math.max(2, Math.ceil(k * 32));
+      for (let i = 1; i <= steps; i++) { const p = along(from, control, to, (k * i) / steps, control2); ctx.lineTo(p.x, p.y); }
+    }
+  };
+  if (k > 0.01) {
+    // A soft band under the line, so it shows on any background.
+    ctx.strokeStyle = "rgba(255,254,250,.55)"; ctx.lineWidth = options.width * 2.4;
+    path(); ctx.stroke();
+    ctx.strokeStyle = "#e18e6d"; ctx.lineWidth = options.width;
+    path(); ctx.stroke();
+    // The head at the tip, along the line's direction there.
+    const tip = along(from, control, to, k, control2), back = along(from, control, to, Math.max(0, k - 0.04), control2);
+    const angle = Math.atan2(tip.y - back.y, tip.x - back.x), head = options.width * 3.4;
+    ctx.fillStyle = "#e18e6d"; ctx.strokeStyle = "rgba(255,254,250,.9)"; ctx.lineWidth = Math.max(1.5, options.width * 0.35);
+    ctx.beginPath();
+    ctx.moveTo(tip.x + Math.cos(angle) * head * 0.4, tip.y + Math.sin(angle) * head * 0.4);
+    ctx.lineTo(tip.x + Math.cos(angle + 2.5) * head, tip.y + Math.sin(angle + 2.5) * head);
+    ctx.lineTo(tip.x + Math.cos(angle - 2.5) * head, tip.y + Math.sin(angle - 2.5) * head);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  ctx.font = `800 ${options.fontPx}px Manrope, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.globalAlpha = 1;
+  if (options.light) ctx.fillStyle = "#a14d32";
+  else { ctx.fillStyle = "#fffefa"; ctx.shadowColor = "rgba(0,0,0,.65)"; ctx.shadowBlur = 6; }
+  let { x, y } = options.labelAt;
+  if (options.bounds) {
+    const half = ctx.measureText(options.label).width / 2, margin = 8;
+    x = clamp(x, half + margin, Math.max(half + margin, options.bounds.width - half - margin));
+    y = clamp(y, options.fontPx + margin, options.bounds.height - margin);
+  }
+  ctx.fillText(options.label, x, y);
+  ctx.restore();
+}
+
+/**
  * The arrow on the mirrored camera view: forward toward the camera and a little out while straightening ("Straighten
  * toward the camera"), back down to where the foot rested while lowering ("Foot down here"). Bright while the step is
  * active and the knee is not yet at its goal; faint otherwise.
@@ -501,33 +553,22 @@ export function drawKneeGuide(ctx: CanvasRenderingContext2D, guide: KneeGuide, w
   const px = (p: P2) => ({ x: (1 - p.x) * width, y: p.y * height });
   const lineWidth = Math.max(4, guide.shin * height * 0.05), fontPx = Math.max(14, Math.round(height / 30));
   const bounds = { width, height };
-  if (state.lowering) {
-    const start = px(guide.lower.start), control = px(guide.lower.control), end = px(guide.lower.end);
-    // Below the resting foot, or above it when the foot is near the bottom edge.
-    const below = end.y + lineWidth * 5;
-    drawArrow(ctx, start, control, end, { width: lineWidth, label: "Foot down here", emphasis: state.emphasis, now: state.now, reducedMotion: state.reducedMotion, labelAt: { x: end.x, y: below <= height - 8 ? below : end.y - lineWidth * 3 }, fontPx, bounds });
-  } else {
-    const start = px(guide.lift.start), control = px(guide.lift.control), control2 = px(guide.lift.control2), end = px(guide.lift.end);
-    // The label reads outward from the arrow, clear of the leg (out from the body on the mirrored view is -out in the
-    // raw image) and of the knee dial's practice hint, which sits about level with the knee: under the arrow's curl
-    // where the picture has room below it; otherwise, or when it cannot fit outward there (the patient well off-centre),
-    // just above the arrow's outer bend, below knee height. Shortened, then smaller (down to 12 px), when the full label
-    // has no room outward.
-    const outward = -guide.out, below = Math.max(end.y, control2.y) + lineWidth * 4;
-    ctx.save(); ctx.font = `800 ${fontPx}px Manrope, sans-serif`;
-    const full = "Straighten toward the camera", short = "Toward the camera", fullWidth = ctx.measureText(full).width, shortWidth = ctx.measureText(short).width;
-    ctx.restore();
-    const fit = (x: number) => {
-      const room = outward > 0 ? width - x - 8 : x - 8;
-      const label = fullWidth - lineWidth <= room ? full : short, natural = label === full ? fullWidth : shortWidth;
-      const px = natural - lineWidth <= room ? fontPx : Math.max(12, Math.floor(fontPx * (room + lineWidth) / natural));
-      const labelWidth = natural * px / fontPx;
-      return { label, px, half: labelWidth / 2, fits: labelWidth - lineWidth <= room };
-    };
-    const under = { x: end.x, y: below }, bend = { x: control.x, y: control.y - lineWidth * 2.5 };
-    const anchor = below <= height - 8 && fit(under.x).fits ? under : bend, { label, px: labelPx, half } = fit(anchor.x);
-    drawArrow(ctx, start, control, end, { width: lineWidth, label, emphasis: state.emphasis, now: state.now, reducedMotion: state.reducedMotion, labelAt: { x: anchor.x + outward * (half - lineWidth), y: anchor.y }, fontPx: labelPx, bounds, control2 });
-  }
+  const lowering = state.lowering, path = lowering ? guide.lower : guide.lift;
+  const start = px(path.start), control = px(path.control), end = px(path.end);
+  // The label under the path, reading outward from the foot's end of it (clear of the leg, and of the knee dial's
+  // practice hint about level with the knee), or over it near the bottom edge; shortened, then smaller (down to 12 px),
+  // in a narrow picture. Out from the body on the mirrored view is -out in the raw image.
+  const foot = lowering ? end : start, sag = along(start, control, end, 0.5), below = Math.max(foot.y, sag.y) + lineWidth * 4.5;
+  ctx.save(); ctx.font = `800 ${fontPx}px Manrope, sans-serif`;
+  const full = lowering ? "Foot down here" : "Straighten toward the camera", short = lowering ? "Foot down" : "Toward the camera";
+  const fullWidth = ctx.measureText(full).width, shortWidth = ctx.measureText(short).width;
+  ctx.restore();
+  const room = (guide.out < 0 ? width - foot.x : foot.x) - 8 + lineWidth, label = fullWidth <= room ? full : short, natural = label === full ? fullWidth : shortWidth;
+  const labelPx = natural <= room ? fontPx : Math.max(12, Math.floor((fontPx * room) / natural)), half = (natural * labelPx) / fontPx / 2;
+  drawArrow(ctx, start, control, end, {
+    width: lineWidth, label, emphasis: state.emphasis, now: state.now, reducedMotion: state.reducedMotion, grow: true,
+    labelAt: { x: foot.x - guide.out * (half - lineWidth), y: below <= height - 8 ? below : Math.min(foot.y, sag.y) - lineWidth * 3 }, fontPx: labelPx, bounds,
+  });
 }
 
 // ---------- the demonstration and the no-camera simulator (front view, 300 x 270 drawing space) ----------
@@ -616,20 +657,21 @@ export function drawKneeScene(ctx: CanvasRenderingContext2D, width: number, heig
   const line = (points: [number, number][]) => { ctx.beginPath(); points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); };
   drawSeatedFront(ctx, side);
   const [kx, ky] = P(FRONT.kneeA);
-  // The arrow: forward toward the viewer and a little out while straightening (as on the camera view, a sweep out and
-  // down from below the knee curling back toward the viewer); back down to the floor while lowering.
+  // The arrow, as on the camera view: from just out from the resting foot, rising out to the side, drawing itself
+  // while straightening; the same path back while lowering. A little shorter, to fit the drawing.
   if (state.arrow) {
-    const fromKnee = ([across, down]: readonly [number, number]): P2 => ({ x: kx + dir * across * DEMO_SHIN, y: ky + down * DEMO_SHIN });
+    const [rx, ry] = demoAnkle(0, side);
+    const fromAnkle = ([across, down]: readonly [number, number]): P2 => ({ x: rx + dir * across * 0.75 * DEMO_SHIN, y: Math.min(ry + down * DEMO_SHIN, 254) });
+    const start = fromAnkle(GUIDE_LIFT.start), control = fromAnkle(GUIDE_LIFT.control), end = fromAnkle(GUIDE_LIFT.end);
     if (state.lowering) {
-      const [rx, ry] = demoAnkle(0, side);
-      drawArrow(ctx, fromKnee([0.45, 0.36]), { x: kx + dir * 40, y: 236 }, { x: rx + dir * 6, y: ry - 2 }, {
-        width: 3.4, label: "Foot down", emphasis: state.armed, now: state.now, reducedMotion: state.reducedMotion,
-        labelAt: { x: sideX(226, side), y: 254 }, fontPx: 11, light: true,
+      drawArrow(ctx, end, control, start, {
+        width: 3.4, label: "Foot down", emphasis: state.armed, now: state.now, reducedMotion: state.reducedMotion, grow: true,
+        labelAt: { x: sideX(238, side), y: 266 }, fontPx: 11, light: true,
       });
     } else {
-      drawArrow(ctx, fromKnee(GUIDE_LIFT.start), fromKnee(GUIDE_LIFT.control), fromKnee(GUIDE_LIFT.end), {
-        width: 3.4, label: "Toward the camera", emphasis: state.armed, now: state.now, reducedMotion: state.reducedMotion,
-        labelAt: { x: sideX(248, side), y: 176 }, fontPx: 11, light: true, control2: fromKnee(GUIDE_LIFT.control2),
+      drawArrow(ctx, start, control, end, {
+        width: 3.4, label: "Toward the camera", emphasis: state.armed, now: state.now, reducedMotion: state.reducedMotion, grow: true,
+        labelAt: { x: sideX(238, side), y: 266 }, fontPx: 11, light: true,
       });
     }
   }
