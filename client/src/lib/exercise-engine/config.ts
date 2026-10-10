@@ -193,8 +193,12 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     compensations: [
       // Debugging defaults, measured against the upright setup posture.
       cr("trunk_lean", "trunk lean", "face_approach_pct", 8, 4, 0, "Keep your chest tall and let your arm travel toward the target.", { unit: "%", minConsecutiveMs: 200, alternative: [{ metric: "face_mean_growth_pct", threshold: 4 }, { metric: "shoulder_approach_pct", threshold: 6 }] }),
-      // Allow modest tilt during a normal reach; require a larger, sustained shoulder change.
-      cr("shoulder_hike", "shoulder hike", "shoulder_hike_delta", 12, 4, 0, "Relax the shoulder away from your ear before you reach again.", { minConsecutiveMs: 400, alternative: [{ metric: "shoulder_elevation_pct", threshold: 15 }] }),
+      // Allow modest tilt during a normal reach; require a larger, sustained shoulder change. Measured against the
+      // trunk, so leaning the whole upper body sideways (its own check, below) is not also counted as a shrug.
+      cr("shoulder_hike", "shoulder hike", "shoulder_hike_rel_delta", 12, 4, 0, "Relax the shoulder away from your ear before you reach again.", { minConsecutiveMs: 400, alternative: [{ metric: "shoulder_elevation_pct", threshold: 15 }] }),
+      // Leaning the upper body sideways, toward or away from the reaching arm: the trunk's tilt from set-up, which the
+      // forward lean (face and shoulders coming closer to the camera) cannot see.
+      cr("trunk_side_lean", "leaning sideways", "trunk_side_lean_delta", 8, 4, 0, "Stay upright and centred, and let your arm reach forward.", { minConsecutiveMs: 300 }),
     ],
     cycle: [
       { caption: "Reach forward to the target", voice: "Slowly reach your hand forward, as far as you comfortably can.", kind: "reach", gate: ["shoulder_flexion", "elbow_extension"], holdMs: 1200 },
@@ -203,6 +207,7 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     feedback: [
       { comp: "trunk_lean", say: "I noticed your back leaned forward. On the next repetition, try keeping your spine tall and let your arm do the work." },
       { comp: "shoulder_hike", say: "Your shoulder lifted up toward your ear. Try keeping your shoulder relaxed and dropped down on the next try." },
+      { comp: "trunk_side_lean", say: "I noticed you leaned to the side. On the next repetition, try staying upright and centred, and let your arm reach forward." },
       { attainmentBelow: 0.7, say: "You almost reached the target. On the next try, push gently from your shoulder to extend a little further." },
     ],
     praise: "Beautiful repetition. Keep that smooth, steady motion from start to finish.",

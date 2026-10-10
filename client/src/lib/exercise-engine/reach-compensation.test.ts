@@ -29,7 +29,8 @@ it.each(["left", "right"] as Side[])("allows the recorded normal reach but prese
     const push = (signal?: Signal, elapsed = 100) => {
       const reaching = session.currentStep?.kind === "reach";
       const frame = simFrame(t += elapsed, session.cfg, session.targets(), { level: reaching ? 1 : 0, compensations: [] });
-      if (signal) { frame.comps.shoulder_hike_delta = signal[1]; frame.comps.shoulder_elevation_pct = signal[2]; }
+      // The recordings' shoulder tilt, with the trunk upright (so the tilt against the trunk is the same).
+      if (signal) { frame.comps.shoulder_hike_delta = frame.comps.shoulder_hike_rel_delta = signal[1]; frame.comps.shoulder_elevation_pct = signal[2]; }
       frame.targetContact = signal ? signal[3] : true;
       session.push(frame);
     };

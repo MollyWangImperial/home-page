@@ -113,11 +113,34 @@ describe("sensitive reach compensation signals", () => {
     expect(compensationStatus(elevated, lean).over).toBe(false);
   });
 
+  it.each(["left", "right"] as const)("tells a sideways lean from a shoulder hike (%s side)", side => {
+    const sideLean = rules.find(rule => rule.id === "trunk_side_lean")!;
+    const over = (comps: ReturnType<typeof poseFrameValues>["comps"]) => [lean, hike, sideLean].filter(rule => compensationStatus(comps, rule).over).map(rule => rule.id);
+    // As a front camera sees the patient (the right shoulder on the picture's left), unlike the mirrored pose() above.
+    const seen = () => { const p = pose(); for (const q of [...p.landmarks, ...p.world]) q.x = 1 - q.x; return p; };
+    const ref = geoFrom(seen(), side);
+    // The upper body tipped sideways about the hips, either way: only the sideways lean.
+    for (const deg of [12, -12]) {
+      const leaned = seen(), a = deg * Math.PI / 180;
+      for (let index = 0; index <= 22; index++) {
+        for (const p of [leaned.landmarks[index], leaned.world[index]]) {
+          const dx = p.x - 0.5, dy = p.y - 0.8;
+          Object.assign(p, { x: 0.5 + dx * Math.cos(a) - dy * Math.sin(a), y: 0.8 + dx * Math.sin(a) + dy * Math.cos(a) });
+        }
+      }
+      expect(over(poseFrameValues(leaned, side, ref).comps), String(deg)).toEqual(["trunk_side_lean"]);
+    }
+    // The affected shoulder lifted toward the ear, the trunk upright: only the shoulder hike.
+    const j = poseJoints(side), hiked = seen();
+    hiked.world[j.shoulder].y -= 0.12; hiked.landmarks[j.shoulder].y -= 0.04;
+    expect(over(poseFrameValues(hiked, side, ref).comps)).toEqual(["shoulder_hike"]);
+  });
+
   it("requires face corroboration for shoulder growth and handles missing measurements", () => {
     expect(compensationStatus({ face_approach_pct: 0, face_mean_growth_pct: 0, shoulder_approach_pct: 30 }, lean).over).toBe(false);
     expect(compensationStatus({ face_approach_pct: 8 }, lean).over).toBe(true);
-    expect(compensationStatus({ shoulder_hike_delta: 10.9, shoulder_elevation_pct: 0 }, hike).over).toBe(false);
-    expect(compensationStatus({ shoulder_hike_delta: 12 }, hike).over).toBe(true);
+    expect(compensationStatus({ shoulder_hike_rel_delta: 10.9, shoulder_elevation_pct: 0 }, hike).over).toBe(false);
+    expect(compensationStatus({ shoulder_hike_rel_delta: 12 }, hike).over).toBe(true);
     expect(compensationStatus({ shoulder_elevation_pct: 15 }, hike).over).toBe(true);
     expect(compensationStatus({}, hike).ratio).toBeUndefined();
   });

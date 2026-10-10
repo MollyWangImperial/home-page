@@ -13,8 +13,8 @@
       "speed": 0.95
     }
   },
-  "ready": 616,
-  "total": 616,
+  "ready": 618,
+  "total": 618,
   "clips": {
     "9267c8099078927d73806efc790ab3dbea4432876205dd196f0b7f1ea02809ae.mp3": {
       "phraseIds": [
@@ -823,6 +823,13 @@
       ],
       "text": "Your shoulder lifted up toward your ear. Try keeping your shoulder relaxed and dropped down on the next try.",
       "bytes": 97010
+    },
+    "377353beebbdaa93f9f3ee20bf3887bcac9a47e92a409d33bf42b95ab7fe26cf.mp3": {
+      "phraseIds": [
+        "reach-766fceed"
+      ],
+      "text": "I noticed you leaned to the side. On the next repetition, try staying upright and centred, and let your arm reach forward.",
+      "bytes": 120834
     },
     "5ff154871606123060e01a025d7218b108e50a75f48d295a20c262b05b9acc35.mp3": {
       "phraseIds": [
@@ -4323,6 +4330,13 @@
       ],
       "text": "Your shoulder lifted up toward your ear. Try keeping your shoulder relaxed and dropped down.",
       "bytes": 91577
+    },
+    "6fe5c0b92711727a04668978676f2de194a1d5870b50e5796758546fcd25bf07.mp3": {
+      "phraseIds": [
+        "reach-f4777f5d"
+      ],
+      "text": "I noticed you leaned to the side. Try staying upright and centred, and let your arm reach forward.",
+      "bytes": 84471
     },
     "33dbc5d8929fc122e249a226cb8ed888a47566f7af5f3918c285c0ebeaa57c26.mp3": {
       "phraseIds": [
