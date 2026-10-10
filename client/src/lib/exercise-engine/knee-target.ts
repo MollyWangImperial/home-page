@@ -509,18 +509,23 @@ export function drawKneeGuide(ctx: CanvasRenderingContext2D, guide: KneeGuide, w
   } else {
     const start = px(guide.lift.start), control = px(guide.lift.control), control2 = px(guide.lift.control2), end = px(guide.lift.end);
     // The label reads outward from the arrow, clear of the leg (out from the body on the mirrored view is -out in the
-    // raw image): under the arrow's curl where the picture has room below it, as the knee dial's practice hint sits
-    // about level with the knee when the camera is at hip height; otherwise (the knee low in the picture, the hint
-    // well above it) just above where the arrow starts. Shortened when the full label has no room outward.
+    // raw image) and of the knee dial's practice hint, which sits about level with the knee: under the arrow's curl
+    // where the picture has room below it; otherwise, or when it cannot fit outward there (the patient well off-centre),
+    // just above the arrow's outer bend, below knee height. Shortened, then smaller (down to 12 px), when the full label
+    // has no room outward.
     const outward = -guide.out, below = Math.max(end.y, control2.y) + lineWidth * 4;
-    const anchor = below <= height - 8 ? { x: end.x, y: below } : { x: start.x, y: start.y - lineWidth * 2.5 };
-    const room = outward > 0 ? width - anchor.x - 8 : anchor.x - 8;
     ctx.save(); ctx.font = `800 ${fontPx}px Manrope, sans-serif`;
-    const full = "Straighten toward the camera", label = ctx.measureText(full).width - lineWidth <= room ? full : "Toward the camera";
-    // A narrow (portrait) picture: smaller type, down to 12 px, so the label still reads outward of the legs.
-    const width0 = ctx.measureText(label).width, labelPx = width0 - lineWidth <= room ? fontPx : Math.max(12, Math.floor(fontPx * (room + lineWidth) / width0));
-    const half = width0 * labelPx / fontPx / 2;
+    const full = "Straighten toward the camera", short = "Toward the camera", fullWidth = ctx.measureText(full).width, shortWidth = ctx.measureText(short).width;
     ctx.restore();
+    const fit = (x: number) => {
+      const room = outward > 0 ? width - x - 8 : x - 8;
+      const label = fullWidth - lineWidth <= room ? full : short, natural = label === full ? fullWidth : shortWidth;
+      const px = natural - lineWidth <= room ? fontPx : Math.max(12, Math.floor(fontPx * (room + lineWidth) / natural));
+      const labelWidth = natural * px / fontPx;
+      return { label, px, half: labelWidth / 2, fits: labelWidth - lineWidth <= room };
+    };
+    const under = { x: end.x, y: below }, bend = { x: control.x, y: control.y - lineWidth * 2.5 };
+    const anchor = below <= height - 8 && fit(under.x).fits ? under : bend, { label, px: labelPx, half } = fit(anchor.x);
     drawArrow(ctx, start, control, end, { width: lineWidth, label, emphasis: state.emphasis, now: state.now, reducedMotion: state.reducedMotion, labelAt: { x: anchor.x + outward * (half - lineWidth), y: anchor.y }, fontPx: labelPx, bounds, control2 });
   }
 }

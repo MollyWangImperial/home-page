@@ -325,8 +325,9 @@ describe("Seated Knee Extension demonstration, simulator and previews", () => {
     expect(lowering.texts().some(text => text.text === "Foot down")).toBe(true);
   });
   it.each(SIDES)("labels the camera view's arrow outward from it, clear of the knee dial's practice hint (%s side)", side => {
-    for (const [width, height] of [[640, 480], [1280, 720]]) {
-      const pose = kneeBody(side), geo = kneeFrame({ pose }, side, 0, ASPECT, null).geo!, dial = kneeDial(pose, side, ASPECT)!;
+    // The usual picture, and one with the knee low in it (the camera higher), with no room under the arrow's curl.
+    for (const [width, height, camera] of [[640, 480, undefined], [1280, 720, undefined], [640, 480, { y: 0.3, z: 2.2 }]] as const) {
+      const pose = kneeBody(side, camera ? { camera } : {}), geo = kneeFrame({ pose }, side, 0, ASPECT, null).geo!, dial = kneeDial(pose, side, ASPECT)!;
       const guide = kneeGuide(geo, dial, ASPECT)!;
       const { ctx, calls, texts } = recordingContext();
       drawKneeDial(ctx, dial, width, height, { progress: 0, lowering: false, armed: true, contact: false, hold: 0, label: "Straighten", now: 0, reducedMotion: true, hint: "Moves with your knee" });
