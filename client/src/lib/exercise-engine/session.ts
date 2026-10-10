@@ -652,14 +652,14 @@ export class ExerciseSession {
       if (!frame.visible || !frame.lapRest) {
         const missing = frame.missing ?? frame.lapMissing ?? (this.cfg.id === "ex_handopen" ? `Hold your ${this.opts.side} hand up in the shaded area with your palm facing the camera.`
           : this.cfg.id === PINCH_ID ? `Hold your ${this.opts.side} hand up in the shaded area with your palm facing the camera and your fingers open.`
-          : this.cfg.id === TOE_ID ? "Sit tall with the foot you are exercising turned out to the side, heel down, from your head to your feet in view." : this.cfg.id === KNEE_ID ? "Sit tall with both feet flat on the floor, from your head to your feet in view."
+          : this.cfg.id === TOE_ID ? "Sit tall with your feet in the areas marked on the floor, from your head to your feet in view." : this.cfg.id === KNEE_ID ? "Sit tall with both feet flat on the floor, from your head to your feet in view."
           : this.cfg.id === SLIDE_ID ? slideRestPrompt(this.opts.side, this.opts.armrest ? "armrest" : "table")
           : `Rest your ${this.opts.side} hand on the visible top of your ${this.opts.side} thigh.`);
         if (!this.voice.busy(t)) this.nag(t, missing); else this.prompt = missing;
       } else this.prompt = this.cfg.id === "ex_h2m" && !mouth ? "Keep your face in view and your hand on your lap while I learn the mouth target."
         : this.cfg.id === "ex_handopen" ? "Keep your fingers relaxed and gently curled, palm to the camera, while I learn your starting position."
         : this.cfg.id === PINCH_ID ? "Keep your palm facing the camera with your fingers and thumb open while I learn your starting position."
-        : this.cfg.id === TOE_ID ? "Keep sitting tall, your foot turned out with the heel down, while I learn your starting position."
+        : this.cfg.id === TOE_ID ? "Keep sitting tall, your feet in the marked areas, while I learn your starting position."
         : this.cfg.id === KNEE_ID ? "Keep sitting tall with both feet flat on the floor while I learn your starting position."
         : this.cfg.id === SLIDE_ID ? "Keep sitting tall with your forearm resting beside you while I learn your starting position."
         : "Keep your arm relaxed with your hand on your lap while I learn your starting position.";

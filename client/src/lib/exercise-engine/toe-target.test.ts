@@ -140,7 +140,7 @@ describe("Seated Toe Lift on the shared target flow", () => {
     // A smaller turn out still counts.
     expect(toeRestCheck(toeBody(side, { turn: 35 }), side, ASPECT).lapRest).toBeDefined();
     // Pointing at the camera, or barely turned: asked to turn the foot out.
-    const turnOut = `Keep your ${side} heel under your knee and turn your toes out to the side, onto the outline.`;
+    const turnOut = `Put your ${side} foot in the area marked on the floor: heel under your knee, toes turned out onto the outline.`;
     expect(toeRestCheck(toeBody(side, { turn: 0 }), side, ASPECT).lapMissing).toBe(turnOut);
     expect(toeRestCheck(toeBody(side, { turn: 10 }), side, ASPECT).lapMissing).toBe(turnOut);
     // Turned in, toward the other foot.
@@ -312,8 +312,13 @@ describe("the toe lift's set-up foot guide", () => {
       expect(toeFootGuide(pose, side, ASPECT)!.met, `${side} ${turn}`).toBe(toeRestCheck(pose, side, ASPECT).lapRest !== undefined);
     }
   });
-  it.each(SIDES)("asks for the heel under the knee and the toes out onto the outline, naming the side (%s side)", side => {
-    expect(toeRestCheck(toeBody(side, { turn: 0 }), side, ASPECT).lapMissing).toBe(`Keep your ${side} heel under your knee and turn your toes out to the side, onto the outline.`);
+  it.each(SIDES)("asks for the feet in the areas marked on the floor, naming the side (%s side)", side => {
+    expect(toeRestCheck(toeBody(side, { turn: 0 }), side, ASPECT).lapMissing).toBe(`Put your ${side} foot in the area marked on the floor: heel under your knee, toes turned out onto the outline.`);
+    // The other foot set down further forward than this one, so the feet are not level: both into their areas.
+    expect(toeRestCheck(toeBody(side, { otherFoot: [0, 0, 0.6] }), side, ASPECT).lapMissing).toBe("Put both feet in the areas marked on the floor, side by side.");
+    // The set-up voice and instruction say so too.
+    expect(EXERCISES[ID].calibrationInstruction).toMatch(/areas marked on the floor/);
+    expect(EXERCISES[ID].setupVoice).toMatch(/area on the floor for each foot/);
   });
   it.each(SIDES)("does not send a foot set a little forward back toward the chair: set-up does not judge the knee's 3D angle (%s side)", side => {
     // 40 cm forward of under the knee: the knee reads about 134 degrees open in 3D, past the knee exercise's 130 at rest.
@@ -488,7 +493,7 @@ describe("Seated Toe Lift demonstration, simulator and previews", () => {
   it("previews its two steps, the set-up checks with the heel and toes and the lighting, and the results", () => {
     expect(exerciseScreenPreview("warm-reach", 1, "right", ID).snapshot).toMatchObject({ kind: "reach", stepIndex: 0, stepCount: 2 });
     expect(exerciseScreenPreview("reps-return", 1, "right", ID).snapshot).toMatchObject({ kind: "return", stepIndex: 1 });
-    expect(exerciseScreenPreview("setup", 1, "left", ID).bodyChecks.map(check => check.label)).toEqual(["Face", "Both shoulders", "Both hips", "Both knees", "Both feet", "Left heel and toes", "Foot turned out, heel down, space around you", "Lighting"]);
+    expect(exerciseScreenPreview("setup", 1, "left", ID).bodyChecks.map(check => check.label)).toEqual(["Face", "Both shoulders", "Both hips", "Both knees", "Both feet", "Left heel and toes", "Feet in the floor areas, space around you", "Lighting"]);
     const results = exerciseScreenPreview("results", 1, "right", ID).snapshot.record!;
     const ids = EXERCISES[ID].compensations.map(item => item.id);
     for (const id of Object.keys(results.compensation_counts)) expect(ids).toContain(id);

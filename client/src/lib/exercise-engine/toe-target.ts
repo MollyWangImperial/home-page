@@ -161,7 +161,11 @@ export function toeRestCheck(pose: PoseInput | null, side: Side, aspect: number)
   // leg still, so a foot a little forward would be sent back and forth.
   const knee = kneeRestCheck(pose, side, aspect, { restAngle: false });
   if (!pose) return knee;
-  if (!knee.lapRest) return knee.lapMissing === KNEE_FOOT_HINT ? { lapMissing: `Put your ${side} foot flat on the floor, heel under your knee.` } : knee;
+  // The knee's messages about where the feet are, said as the areas marked on the floor (drawToeFootGuide).
+  if (!knee.lapRest) {
+    return knee.lapMissing === KNEE_FOOT_HINT ? { lapMissing: `Put your ${side} foot in the area marked on the floor, heel under your knee.` }
+      : knee.lapMissing === KNEE_FEET_LEVEL_HINT ? { lapMissing: "Put both feet in the areas marked on the floor, side by side." } : knee;
+  }
   const lm = pose.landmarks, j = poseJoints(side);
   const toe = lm[j.foot], heel = lm[heelIndex(side)], hip = lm[j.hip], hipOther = lm[j.hipOther];
   if (!inView(toe) || !inView(heel)) return { lapMissing: `Tilt the camera down a little so I can see your ${side} heel and toes.` };
@@ -171,12 +175,12 @@ export function toeRestCheck(pose: PoseInput | null, side: Side, aspect: number)
   // Turned out: the toes away from the other foot, and the foot side-on enough that its toes do not point down the
   // picture. The outline on the floor (drawToeFootGuide) shows how far.
   const out = Math.sign(hip.x - hipOther.x) || 1;
-  if (!turnedOut(heel, toe, out, shin, aspect)) return { lapMissing: `Keep your ${side} heel under your knee and turn your toes out to the side, onto the outline.` };
+  if (!turnedOut(heel, toe, out, shin, aspect)) return { lapMissing: `Put your ${side} foot in the area marked on the floor: heel under your knee, toes turned out onto the outline.` };
   if (Math.atan2(heel.y - toe.y, Math.abs(toe.x - heel.x) * aspect) * DEG > TOE_REST_MAX_DEG) return { lapMissing: "Rest your toes on the floor, heel down." };
   return knee;
 }
-/** The knee's set-up message for a foot not below its knee (knee-target.ts kneeRestCheck), said for the toe lift with its side. */
-const KNEE_FOOT_HINT = "Put your foot flat on the floor, below your knee.";
+/** The knee's set-up messages for a foot not below its knee, and for feet not level (knee-target.ts kneeRestCheck). */
+const KNEE_FOOT_HINT = "Put your foot flat on the floor, below your knee.", KNEE_FEET_LEVEL_HINT = "Put both feet flat on the floor, about hip-width apart.";
 /** The lower leg must be at least this long in the picture (frame heights) for the foot's turn to show. */
 const TOE_MIN_SHIN = 0.11;
 /**
