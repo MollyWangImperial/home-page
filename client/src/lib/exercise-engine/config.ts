@@ -535,7 +535,7 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     tracking: "pose",
     ghost: "toe",
     setupVoice: "Welcome. We are going to practise lifting the front of your foot while your heel stays on the floor. Sit in a stable chair with a back, with both feet on the floor, and keep a carer nearby if you need help with balance. Place the camera about two metres in front of you, at about knee height, so I can see you from your head to your feet. Turn the foot you are exercising out to the side, so its toes point away from your other foot, with the heel on the floor: the camera sees your toes lift best from the side. Bare feet or thin flat shoes work best. Stop if you feel cramp, pain or numbness.",
-    calibrationInstruction: "Sit tall with your back against the chair and your hands resting on your thighs. Turn the foot you are exercising out to the side, toes pointing away from your other foot, with your heel on the floor. Make sure the room is well lit, with the light in front of you. Hold still while I learn your starting position.",
+    calibrationInstruction: "Sit tall with your back against the chair and your hands resting on your thighs. Turn the foot you are exercising out to the side, with the heel under your knee and the toes pointing away from your other foot, onto the outline on the floor. Make sure the room is well lit, with the light in front of you. Hold still while I learn your starting position.",
     // The foot's angle in the picture, heel to toes, in degrees above level (toe-target.ts): about level at rest with
     // the foot turned out. The live goal is learned in practice; the levels stay ascending for planning. The best is
     // reported as the lift from rest.

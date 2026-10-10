@@ -80,8 +80,11 @@ const REST_KNEE_MAX_DEG = 130;
 /** Both knees straighter than this (3D, degrees): the patient is standing. */
 const STANDING_KNEE_DEG = 150;
 
-/** What set-up waits for, in the patient's words: head to feet in view with some space round them, both feet flat. */
-export function kneeRestCheck(pose: PoseInput | null, side: Side, aspect: number): { lapRest?: LapRest; lapMissing?: string } {
+/**
+ * What set-up waits for, in the patient's words: head to feet in view with some space round them, both feet flat.
+ * options.restAngle: whether the knee's 3D angle must read bent too (default yes; the toe lift leaves it out).
+ */
+export function kneeRestCheck(pose: PoseInput | null, side: Side, aspect: number, options: { restAngle?: boolean } = {}): { lapRest?: LapRest; lapMissing?: string } {
   if (!pose) return { lapMissing: "Sit in front of the camera so I can see you." };
   const lm = pose.landmarks, j = poseJoints(side);
   const seen = (...indices: number[]) => indices.every(index => inView(lm[index]));
@@ -109,7 +112,7 @@ export function kneeRestCheck(pose: PoseInput | null, side: Side, aspect: number
   if (shin < 0.06) return { lapMissing: "Move the camera a little closer." };
   // Feet flat on the floor: each lower leg hangs down from its knee, and both ankles are level. From the front a foot
   // placed forward still looks below its knee, so the knee's 3D angle (generously, for its jitter) says it is bent.
-  if (ankle.y - knee.y < 0.6 * shin || (bentAngle !== undefined && bentAngle > REST_KNEE_MAX_DEG)) return { lapMissing: "Put your foot flat on the floor, below your knee." };
+  if (ankle.y - knee.y < 0.6 * shin || (options.restAngle !== false && bentAngle !== undefined && bentAngle > REST_KNEE_MAX_DEG)) return { lapMissing: "Put your foot flat on the floor, below your knee." };
   if (Math.abs(ankle.y - otherAnkle.y) > 0.25 * shin) return { lapMissing: "Put both feet flat on the floor, about hip-width apart." };
   return { lapRest: { x: ankle.x, y: ankle.y, bodyScale: shin } };
 }

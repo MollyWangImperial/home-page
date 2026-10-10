@@ -1,5 +1,5 @@
 import type { Side } from "./config";
-import { drawArrow, kneeComps, kneeGeo, kneeRestCheck, sideX, type KneeDial } from "./knee-target";
+import { drawArrow, kneeComps, kneeGeo, kneeRestCheck, shinLength, sideX, type KneeDial } from "./knee-target";
 import { inView, poseFrameValues, poseJoints, type Frame, type Geo, type LapRest, type PoseInput } from "./metrics";
 import { TARGET_COMPLETION_MS, TARGET_HOLD_MS } from "./target-timing";
 import { drawTargetCompletion, drawTestingTarget } from "./target-visual";
@@ -155,21 +155,26 @@ const OTHER_TOES_WEIGHT = 2;
  * affected heel and toes in view with the foot turned out to the side, toes down.
  */
 export function toeRestCheck(pose: PoseInput | null, side: Side, aspect: number): { lapRest?: LapRest; lapMissing?: string } {
-  const knee = kneeRestCheck(pose, side, aspect);
-  if (!pose || !knee.lapRest) return knee;
+  // Not the knee's 3D angle: the toe lift needs only the foot flat, and the angle wanders by up to 20 degrees with the
+  // leg still, so a foot a little forward would be sent back and forth.
+  const knee = kneeRestCheck(pose, side, aspect, { restAngle: false });
+  if (!pose) return knee;
+  if (!knee.lapRest) return knee.lapMissing === KNEE_FOOT_HINT ? { lapMissing: `Put your ${side} foot flat on the floor, heel under your knee.` } : knee;
   const lm = pose.landmarks, j = poseJoints(side);
   const toe = lm[j.foot], heel = lm[heelIndex(side)], hip = lm[j.hip], hipOther = lm[j.hipOther];
   if (!inView(toe) || !inView(heel)) return { lapMissing: `Tilt the camera down a little so I can see your ${side} heel and toes.` };
   if (Math.max(toe.y, heel.y) > 0.94) return { lapMissing: "Tilt the camera down a little so there is space below your feet." };
   const shin = knee.lapRest.bodyScale;
   if (shin < TOE_MIN_SHIN) return { lapMissing: "Move the camera a little closer, keeping your feet in view." };
-  // Turned out: the toes away from the other foot, and the foot side-on enough that its toes do not point down the picture.
+  // Turned out: the toes away from the other foot, and the foot side-on enough that its toes do not point down the
+  // picture. The outline on the floor (drawToeFootGuide) shows how far.
   const out = Math.sign(hip.x - hipOther.x) || 1;
-  const across = (toe.x - heel.x) * aspect * out, angle = Math.atan2(heel.y - toe.y, Math.abs(toe.x - heel.x) * aspect) * DEG;
-  if (across < TOE_TURNED_ACROSS * shin || angle < -TOE_TURNED_MAX_DROP_DEG) return { lapMissing: `Turn your ${side} foot out to the side, toes pointing away from your other foot, heel on the floor.` };
-  if (angle > TOE_REST_MAX_DEG) return { lapMissing: "Rest your toes on the floor, heel down." };
+  if (!turnedOut(heel, toe, out, shin, aspect)) return { lapMissing: `Keep your ${side} heel under your knee and turn your toes out to the side, onto the outline.` };
+  if (Math.atan2(heel.y - toe.y, Math.abs(toe.x - heel.x) * aspect) * DEG > TOE_REST_MAX_DEG) return { lapMissing: "Rest your toes on the floor, heel down." };
   return knee;
 }
+/** The knee's set-up message for a foot not below its knee (knee-target.ts kneeRestCheck), said for the toe lift with its side. */
+const KNEE_FOOT_HINT = "Put your foot flat on the floor, below your knee.";
 /** The lower leg must be at least this long in the picture (frame heights) for the foot's turn to show. */
 const TOE_MIN_SHIN = 0.11;
 /**
@@ -179,6 +184,138 @@ const TOE_MIN_SHIN = 0.11;
 const TOE_TURNED_ACROSS = 0.2, TOE_TURNED_MAX_DROP_DEG = 40;
 /** Resting toes are at most this far above level: further up, they are already lifted. */
 const TOE_REST_MAX_DEG = 15;
+
+/** Whether a foot (heel and toes, raw image) is turned out as set-up needs: toes away from the other foot (`out`), side-on enough. */
+function turnedOut(heel: P2, toe: P2, out: number, shin: number, aspect: number): boolean {
+  const across = (toe.x - heel.x) * aspect * out, angle = Math.atan2(heel.y - toe.y, Math.abs(toe.x - heel.x) * aspect) * DEG;
+  return across >= TOE_TURNED_ACROSS * shin && angle >= -TOE_TURNED_MAX_DROP_DEG;
+}
+
+// ---------- set-up: where the feet go ----------
+
+/**
+ * Where the feet go at set-up, on the floor in the picture (raw image coordinates): the exercising heel under its knee
+ * with the toes turned out to the side, as far as set-up needs with some to spare (`heel`, `toe`), and the other heel
+ * level with it under its own knee (`otherHeel`). From the front the camera sees a foot's left and right and how it
+ * turns, hardly how far forward it is (the heel under the knee is said for that), so that is what the outline shows.
+ * `current`: where the foot is now; `met`: it already matches (turned out as set-up needs, heel under the knee).
+ */
+export type ToeFootGuide = { heel: P2; toe: P2; otherHeel: P2 | null; length: number; current: { heel: P2; toe: P2 } | null; met: boolean };
+
+/** The outline's foot: this share of the lower leg long (a foot side-on shows about 0.47), its toes this far below level (set-up accepts up to 40). */
+const GUIDE_FOOT_SHARE = 0.42, GUIDE_FOOT_DROP_DEG = 22;
+/** The heel counts as under the knee within this share of the lower leg either side. */
+const GUIDE_HEEL_SLACK = 0.3;
+
+export function toeFootGuide(pose: PoseInput | null, side: Side, aspect: number): ToeFootGuide | null {
+  if (!pose) return null;
+  const lm = pose.landmarks, j = poseJoints(side);
+  const knee = lm[j.knee], ankle = lm[j.ankle], hip = lm[j.hip], hipOther = lm[j.hipOther];
+  if (![knee, ankle, hip, hipOther].every(p => inView(p))) return null;
+  const shin = shinLength(knee, ankle, aspect);
+  if (shin < 0.03) return null;
+  const out = Math.sign(hip.x - hipOther.x) || 1;
+  const heelNow = lm[heelIndex(side)], toeNow = lm[j.foot], kneeOther = lm[j.kneeOther];
+  // The floor where the heel rests now (a little below the ankle when the heel is not seen).
+  const floor = inView(heelNow) ? heelNow.y : ankle.y + 0.1 * shin;
+  const heel = { x: knee.x, y: floor }, length = GUIDE_FOOT_SHARE * shin, drop = GUIDE_FOOT_DROP_DEG / DEG;
+  const toe = { x: heel.x + out * Math.cos(drop) * length / aspect, y: heel.y + Math.sin(drop) * length };
+  const current = inView(heelNow) && inView(toeNow) ? { heel: { x: heelNow.x, y: heelNow.y }, toe: { x: toeNow.x, y: toeNow.y } } : null;
+  const met = current !== null && turnedOut(current.heel, current.toe, out, shin, aspect) && Math.abs(current.heel.x - knee.x) * aspect <= GUIDE_HEEL_SLACK * shin;
+  return { heel, toe, otherHeel: inView(kneeOther) ? { x: kneeOther.x, y: floor } : null, length, current, met };
+}
+
+/** The guide followed smoothly from frame to frame (the landmarks jitter); whether the foot matches is this frame's. */
+export function followToeFootGuide(previous: ToeFootGuide | null, next: ToeFootGuide | null, share = 0.3): ToeFootGuide | null {
+  if (!next || !previous) return next ?? previous;
+  const ease = (a: P2, b: P2) => ({ x: a.x + (b.x - a.x) * share, y: a.y + (b.y - a.y) * share });
+  return {
+    ...next, heel: ease(previous.heel, next.heel), toe: ease(previous.toe, next.toe),
+    otherHeel: next.otherHeel && previous.otherHeel ? ease(previous.otherHeel, next.otherHeel) : next.otherHeel,
+    length: previous.length + (next.length - previous.length) * share,
+  };
+}
+
+/**
+ * The guide on the mirrored camera view: an area on the floor where each foot goes (a soft patch, as the floor is seen
+ * from the front), the exercising one with a footprint outline turned out and its heel marked under the knee, labelled
+ * beside it ("Right foot here, toes out"); and, while the foot is not turned out far enough yet, an arrow turning the
+ * toes out from where they point now. Green once the foot matches.
+ */
+export function drawToeFootGuide(ctx: CanvasRenderingContext2D, guide: ToeFootGuide, width: number, height: number, state: { now: number; reducedMotion: boolean; side?: Side }) {
+  const px = (p: P2) => ({ x: (1 - p.x) * width, y: p.y * height });
+  const heel = px(guide.heel), toe = px(guide.toe), length = Math.hypot(toe.x - heel.x, toe.y - heel.y);
+  if (length < 8) return;
+  const met = guide.met;
+  // A gentle pulse while the foot is not in place yet; still when motion is reduced.
+  const pulse = met || state.reducedMotion ? 1 : 0.7 + 0.3 * Math.sin((state.now / 700) * Math.PI);
+  const stroke = met ? "rgba(95,191,143,.95)" : `rgba(255,254,250,${(0.95 * pulse).toFixed(3)})`;
+  const lineWidth = Math.max(3, length * 0.07), fontPx = Math.max(15, Math.round(height / 28));
+  // The area: wide and shallow, as a patch of floor looks from the front; the other foot's a smaller one, level.
+  const centre = { x: (heel.x + toe.x) / 2, y: (heel.y + toe.y) / 2 + length * 0.04 }, rx = length * 1.05, ry = length * 0.5;
+  ctx.save();
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  const patch = (x: number, y: number, a: number, b: number, strong: boolean) => {
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, a);
+    glow.addColorStop(0, met ? `rgba(95,191,143,${strong ? 0.38 : 0.2})` : `rgba(255,214,170,${strong ? 0.34 : 0.18})`);
+    glow.addColorStop(1, "rgba(255,214,170,0)");
+    ctx.save(); ctx.translate(x, y); ctx.scale(1, b / a); ctx.translate(-x, -y);
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(x, y, a, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = met ? "rgba(95,191,143,.85)" : `rgba(255,254,250,${(0.6 * pulse).toFixed(3)})`; ctx.lineWidth = Math.max(2, lineWidth * 0.5);
+    ctx.beginPath(); ctx.ellipse(x, y, a, b, 0, 0, Math.PI * 2); ctx.stroke();
+  };
+  if (guide.otherHeel) {
+    const other = px(guide.otherHeel);
+    patch(other.x, other.y + length * 0.08, rx * 0.6, ry * 0.6, false);
+  }
+  patch(centre.x, centre.y, rx, ry, true);
+  // The footprint: from behind the heel out to the toes, widest at the ball of the foot.
+  ctx.save();
+  ctx.translate(heel.x, heel.y); ctx.rotate(Math.atan2(toe.y - heel.y, toe.x - heel.x));
+  ctx.beginPath();
+  ctx.moveTo(-length * 0.12, 0);
+  ctx.bezierCurveTo(-length * 0.12, -length * 0.16, length * 0.55, -length * 0.24, length * 1.02, -length * 0.11);
+  ctx.bezierCurveTo(length * 1.13, -length * 0.04, length * 1.13, length * 0.04, length * 1.02, length * 0.11);
+  ctx.bezierCurveTo(length * 0.55, length * 0.24, -length * 0.12, length * 0.16, -length * 0.12, 0);
+  ctx.closePath();
+  ctx.fillStyle = met ? "rgba(95,191,143,.4)" : "rgba(225,142,109,.35)"; ctx.fill();
+  ctx.setLineDash(met ? [] : [lineWidth * 1.8, lineWidth * 1.3]); ctx.strokeStyle = stroke; ctx.lineWidth = lineWidth; ctx.stroke();
+  ctx.restore();
+  ctx.setLineDash([]);
+  // The heel's place, under the knee.
+  ctx.fillStyle = stroke;
+  ctx.beginPath(); ctx.arc(heel.x, heel.y, Math.max(5, length * 0.09), 0, Math.PI * 2); ctx.fill();
+  // Not turned out far enough yet: an arrow about the heel, from where the toes point now round to the outline's toes.
+  const current = guide.current;
+  if (!met && current) {
+    const from = px(current.heel), to = px(current.toe);
+    const now = Math.atan2(to.y - from.y, to.x - from.x), target = Math.atan2(toe.y - heel.y, toe.x - heel.x);
+    let turn = target - now;
+    while (turn > Math.PI) turn -= 2 * Math.PI;
+    while (turn < -Math.PI) turn += 2 * Math.PI;
+    const span = Math.min(Math.abs(turn), (150 / 180) * Math.PI);
+    if (span > (12 / 180) * Math.PI) {
+      const sign = Math.sign(turn), reach = length * 1.45;
+      const at = (a: number, r = reach) => ({ x: heel.x + Math.cos(a) * r, y: heel.y + Math.sin(a) * r });
+      const start = now + sign * 0.05, end = now + sign * (span - 0.04), middle = (start + end) / 2;
+      drawArrow(ctx, at(start), at(middle, reach / Math.cos((end - start) / 2)), at(end), {
+        width: lineWidth, label: "", emphasis: true, now: state.now, reducedMotion: state.reducedMotion, labelAt: at(end), fontPx, bounds: { width, height },
+      });
+    }
+  }
+  // The label beside the area on the outer side (where the toes point), clear of the arrow and of the message along the
+  // bottom of the picture: on two short lines, inside the picture.
+  const side = state.side === "left" ? "Left" : state.side === "right" ? "Right" : "";
+  const lines = met ? ["Foot in place"] : [`${side ? `${side} foot` : "Foot"} here,`, "toes out"];
+  ctx.font = `800 ${fontPx}px Manrope, sans-serif`; ctx.textAlign = "center";
+  const half = Math.max(...lines.map(line => ctx.measureText(line).width)) / 2, dir = Math.sign(toe.x - heel.x) || 1;
+  const x = clamp(centre.x + dir * (rx + 10 + half), half + 8, Math.max(half + 8, width - half - 8));
+  const top = centre.y - (lines.length - 1) * fontPx * 0.55 + fontPx / 3;
+  ctx.fillStyle = met ? "#c8f5dd" : "#fffefa"; ctx.shadowColor = "rgba(0,0,0,.75)"; ctx.shadowBlur = 6;
+  lines.forEach((line, index) => ctx.fillText(line, x, top + index * fontPx * 1.1));
+  ctx.restore();
+}
 
 /**
  * One camera frame: the toe lift (steadied by `filter` when given), the six checks and the set-up's resting foot.

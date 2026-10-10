@@ -6,7 +6,7 @@ import { reachDemoState } from "./reach-demo";
 import { exerciseScreenPreview } from "./screen-preview";
 import { ExerciseSession, simFrame, type Snapshot } from "./session";
 import {
-  heelIndex, toeDemoDuration, toeDemoState, toeDialCircle, toeDialDegrees, toeFrame, toeGhostContact, toeGhostTarget, toeGuide, ToeLiftFilter,
+  followToeFootGuide, heelIndex, toeDemoDuration, toeFootGuide, toeDemoState, toeDialCircle, toeDialDegrees, toeFrame, toeGhostContact, toeGhostTarget, toeGuide, ToeLiftFilter,
   toeInSetupView, toeLiftRaw, toePracticeGoal, toeRebase, toeRestCheck, toeRestShiftOk, ToeTarget, toeTrueLift, TOE_DIAL_GOAL_DEG, TOE_EASE_MS, TOE_EASED_LIFT, TOE_HYSTERESIS, TOE_PRACTICE_LIFT,
 } from "./toe-target";
 
@@ -140,7 +140,7 @@ describe("Seated Toe Lift on the shared target flow", () => {
     // A smaller turn out still counts.
     expect(toeRestCheck(toeBody(side, { turn: 35 }), side, ASPECT).lapRest).toBeDefined();
     // Pointing at the camera, or barely turned: asked to turn the foot out.
-    const turnOut = `Turn your ${side} foot out to the side, toes pointing away from your other foot, heel on the floor.`;
+    const turnOut = `Keep your ${side} heel under your knee and turn your toes out to the side, onto the outline.`;
     expect(toeRestCheck(toeBody(side, { turn: 0 }), side, ASPECT).lapMissing).toBe(turnOut);
     expect(toeRestCheck(toeBody(side, { turn: 10 }), side, ASPECT).lapMissing).toBe(turnOut);
     // Turned in, toward the other foot.
@@ -282,6 +282,51 @@ describe("the toe lift's checks from camera landmarks", () => {
     expect(lost.values.toe_lift).toBeUndefined();
     expect(lost.comps.heel_lift_pct).toBeUndefined();
     expect(lost.missing).toBe("Keep your knees and feet in view of the camera.");
+  });
+});
+
+describe("the toe lift's set-up foot guide", () => {
+  it.each(SIDES)("outlines the foot on the floor: heel under the knee, toes turned out as set-up needs (%s side)", side => {
+    const pose = toeBody(side, { turn: 0 }), j = poseJoints(side);
+    const guide = toeFootGuide(pose, side, ASPECT)!;
+    const knee = pose.landmarks[j.knee], heel = pose.landmarks[heelIndex(side)];
+    const out = Math.sign(pose.landmarks[j.hip].x - pose.landmarks[j.hipOther].x);
+    expect(guide.heel.x).toBeCloseTo(knee.x);
+    expect(guide.heel.y).toBeCloseTo(heel.y);
+    // The outline's toes point out from the body, a little below level: turned out as far as set-up needs, with some to spare.
+    expect((guide.toe.x - guide.heel.x) * out).toBeGreaterThan(0);
+    const angle = Math.atan2(guide.heel.y - guide.toe.y, Math.abs(guide.toe.x - guide.heel.x) * ASPECT) * 180 / Math.PI;
+    expect(angle).toBeLessThan(-10);
+    expect(angle).toBeGreaterThan(-35);
+    // The other heel level with it, under the other knee.
+    expect(guide.otherHeel!.x).toBeCloseTo(pose.landmarks[j.kneeOther].x);
+    expect(guide.otherHeel!.y).toBeCloseTo(guide.heel.y);
+    // Pointing at the camera: not in place yet; turned out: in place.
+    expect(guide.met).toBe(false);
+    expect(toeFootGuide(toeBody(side, { turn: 60 }), side, ASPECT)!.met).toBe(true);
+    expect(toeFootGuide(null, side, ASPECT)).toBeNull();
+  });
+  it("shows the foot in place exactly when set-up's own check passes", () => {
+    for (const side of SIDES) for (const turn of [0, 15, 30, 45, 60, 80]) {
+      const pose = toeBody(side, { turn });
+      expect(toeFootGuide(pose, side, ASPECT)!.met, `${side} ${turn}`).toBe(toeRestCheck(pose, side, ASPECT).lapRest !== undefined);
+    }
+  });
+  it.each(SIDES)("asks for the heel under the knee and the toes out onto the outline, naming the side (%s side)", side => {
+    expect(toeRestCheck(toeBody(side, { turn: 0 }), side, ASPECT).lapMissing).toBe(`Keep your ${side} heel under your knee and turn your toes out to the side, onto the outline.`);
+  });
+  it.each(SIDES)("does not send a foot set a little forward back toward the chair: set-up does not judge the knee's 3D angle (%s side)", side => {
+    // 40 cm forward of under the knee: the knee reads about 134 degrees open in 3D, past the knee exercise's 130 at rest.
+    expect(toeRestCheck(toeBody(side, { slide: 0.4 }), side, ASPECT).lapRest).toBeDefined();
+  });
+  it("follows the foot smoothly from frame to frame, but says at once whether it is in place", () => {
+    const before = toeFootGuide(toeBody("right", { turn: 0 }), "right", ASPECT)!, after = toeFootGuide(toeBody("right", { turn: 60, kneeOut: 0.05 }), "right", ASPECT)!;
+    const followed = followToeFootGuide(before, after)!;
+    expect(followed.heel.x).toBeGreaterThan(Math.min(before.heel.x, after.heel.x));
+    expect(followed.heel.x).toBeLessThan(Math.max(before.heel.x, after.heel.x));
+    expect(followed.met).toBe(after.met);
+    expect(followToeFootGuide(null, after)).toBe(after);
+    expect(followToeFootGuide(before, null)).toBe(before);
   });
 });
 

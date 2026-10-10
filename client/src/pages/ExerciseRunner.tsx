@@ -18,7 +18,7 @@ import { affectedHand, drawHandDemo, drawHandZone, drawRingLabel, followZone, ha
 import { CupCarry, GraspWristShown, drawCup, drawGraspDemo, drawGraspGhost, followLayout, graspDemoState, GRASP_STEP, graspFrame, graspGhostContact, graspGhostTarget, graspHand, graspLapRadius, graspLayout, graspPoint, graspRings, graspTarget, type GraspLayout } from "@/lib/exercise-engine/grasp-target";
 import { SteadyPose } from "@/lib/exercise-engine/steady";
 import { dialCircle, drawKneeDemo, drawKneeDial, drawKneeGuide, drawKneeScene, followDial, KNEE_STEP, kneeDemoState, kneeDial, kneeFrame, kneeGhostContact, kneeGhostTarget, kneeGuide, kneePracticeGoal, kneeRestCheck, KneeTarget, type KneeDial } from "@/lib/exercise-engine/knee-target";
-import { drawToeDemo, drawToeDial, drawToeGuide, drawToeScene, TOE_STEP, toeDemoState, toeDialCircle, toeFrame, toeGhostContact, toeGhostTarget, toeGuide, ToeLiftFilter, toePracticeGoal, toeRestCheck, ToeTarget } from "@/lib/exercise-engine/toe-target";
+import { drawToeDemo, drawToeDial, drawToeFootGuide, drawToeGuide, drawToeScene, followToeFootGuide, TOE_STEP, toeDemoState, toeDialCircle, toeFootGuide, toeFrame, toeGhostContact, toeGhostTarget, toeGuide, ToeLiftFilter, toePracticeGoal, toeRestCheck, ToeTarget, type ToeFootGuide } from "@/lib/exercise-engine/toe-target";
 import { drawSlideDemo, drawSlideGhost, drawSlideTargets, OTHER_IN_VIEW_HINT, restCircle, SLIDE_PRACTICE_SPANS, SLIDE_RISE, SLIDE_STEP, slideCanvasCircle, slideDemoState, slideFrame, slideGhostContact, slideGhostTarget, slideOutward, slideRestCheck, slideRestOn, slideRestPrompt, SlideTarget, type SlideSupport } from "@/lib/exercise-engine/slide-target";
 import { drawPeg, drawPegTray, drawPinchDemo, drawPinchGhost, gapOf, imageGap, pegsDropped, pinchCircle, pinchDemoState, PINCH_FINGERS, pinchFinger, pinchFrame, pinchGap, pinchGhostContact, pinchGhostTarget, pinchHand, pinchPracticeGoal, PinchTarget, startGap, tipAlong, TOUCH_CLOSURE, trayPoint, type PinchStep } from "@/lib/exercise-engine/pinch-target";
 import { LightingProbe, type Lighting } from "@/lib/exercise-engine/lighting";
@@ -200,6 +200,8 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
   // Seated Toe Lift reuses the knee's dial placement, shown progress and completion refs, with its own target and filter.
   const toeTarget = useRef(new ToeTarget());
   const toeFilter = useRef(new ToeLiftFilter());
+  // Seated Toe Lift at set-up: where the feet go, on the floor (toe-target.ts toeFootGuide), followed smoothly.
+  const toeFootRef = useRef<ToeFootGuide | null>(null);
   const kneeShown = useRef<{ progress: number; contact: boolean } | null>(null);
   const kneeDone = useRef<{ key: string; step: number; startedAt: number } | null>(null);
   const kneeLast = useRef<{ key: string; step: number } | null>(null);
@@ -427,6 +429,8 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
             else if (slideNow) slideOutRef.current = slideOutward(tracked.pose, opts.side) ?? slideOutRef.current;
             lighting.current = lightingProbe.current.sample(video, tracked.pose, t);
           }
+          // Seated Toe Lift: where the feet go, drawn on the floor during set-up.
+          toeFootRef.current = toeNow && now.phase === "setup" ? followToeFootGuide(toeFootRef.current, toeFootGuide(tracked.pose, opts.side, video.videoWidth / video.videoHeight)) : null;
           // The toe lift's measure is steadied over a few frames (toe-target.ts).
           frame = toeNow ? toeFrame(detection, opts.side, t, video.videoWidth / video.videoHeight, session.reference, toeFilter.current)
             : buildFrame(session, detection, opts.side, t, video.videoWidth / video.videoHeight, { zone: handZoneRef.current, gripAxis: cupCarry.current.grip, support: opts.armrest ? "armrest" : "table" });
@@ -801,6 +805,15 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
           console.warn("Shaded area drawing failed", err);
         }
       }
+      if (!opts.sim && session.cfg.id === TOE_ID && toeFootRef.current && currentSnapshot.phase === "setup" && !currentSnapshot.review) {
+        // Seated Toe Lift at set-up: where the feet go, on the floor (green once the foot is in place).
+        const canvas = overlayRef.current, ctx = canvas?.getContext("2d");
+        try {
+          if (canvas && ctx) drawToeFootGuide(ctx, toeFootRef.current, canvas.width, canvas.height, { now: t, reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches, side: opts.side });
+        } catch (err) {
+          console.warn("Foot guide drawing failed", err);
+        }
+      }
       const pinchZone = handZoneRef.current, shown = pinchShown.current;
       if (!opts.sim && session.cfg.id === PINCH_ID && pinchZone && !currentSnapshot.review && !currentSnapshot.awaitingReady && (currentSnapshot.phase === "warm" || currentSnapshot.phase === "reps")) {
         // Pinch and Peg: the circle round the thumb and fingertip with its label, the peg to pick up (or held until let
@@ -1016,6 +1029,7 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
     kneeTarget.current.reset();
     toeTarget.current.reset();
     toeFilter.current.reset();
+    toeFootRef.current = null;
     kneeShown.current = null;
     kneeDone.current = null;
     kneeLast.current = null;
@@ -1833,7 +1847,7 @@ function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Dete
       { id: "knees", label: "Both knees", visible: both(joints.knee, joints.kneeOther), hint: "Move the camera back so I can see both knees." },
       { id: "feet", label: "Both feet", visible: both(joints.ankle, joints.ankleOther), hint: "Move the camera back, or tilt it down, so I can see both feet." },
       { id: "toes", label: `${side === "right" ? "Right" : "Left"} heel and toes`, visible: inViewCheck(joints.foot) && inViewCheck(side === "left" ? 29 : 30), hint: "Tilt the camera down a little so I can see your heel and toes." },
-      { id: "position", label: "Foot turned out, heel down, space around you", visible: Boolean(position.lapRest) && lightingInfo?.dialFits !== false, hint: position.lapMissing ?? (lightingInfo?.dialFits === false ? KNEE_DIAL_HINT : `Turn your ${side} foot out to the side, heel on the floor.`) },
+      { id: "position", label: "Foot turned out, heel down, space around you", visible: Boolean(position.lapRest) && lightingInfo?.dialFits !== false, hint: position.lapMissing ?? (lightingInfo?.dialFits === false ? KNEE_DIAL_HINT : `Keep your ${side} heel under your knee and turn your toes out onto the outline.`) },
       { id: "lighting", label: lightingInfo?.waived && light && !light.ok ? "Lighting (could be better)" : "Lighting", visible: Boolean(light?.ok || lightingInfo?.waived), hint: light?.hint ?? "Checking the light..." },
     ];
   }
