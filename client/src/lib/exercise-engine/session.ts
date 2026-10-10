@@ -202,6 +202,8 @@ type RepRun = {
   postureFrames: number;
   /** How long the hand has been away from the mouth (hand-to-mouth posture). */
   postureGapMs: number;
+  /** Hand-to-mouth: the hand has left the lap in this repetition, so its shoulder hike is judged from here on. */
+  lifted: boolean;
 };
 
 /** The resting posture each target exercise learns at set-up (the reach's default: shoulder and elbow). */
@@ -238,7 +240,7 @@ const targetCalibrationFor = (id: string) => id === TOE_ID ? new ReachTargetCali
 /** The speed cue compares the measure now with this long ago (a short median at each end steadies it). */
 const SPEED_WINDOW_MS = 200;
 
-const freshRep = (): RepRun => ({ peaks: {}, peakExc: {}, eligible: {}, over: {}, consec: {}, maxConsec: {}, consecMs: {}, maxConsecMs: {}, strongMs: {}, maxStrongMs: {}, holds: [], ended: false, postureFrames: 0, postureGapMs: 0 });
+const freshRep = (): RepRun => ({ peaks: {}, peakExc: {}, eligible: {}, over: {}, consec: {}, maxConsec: {}, consecMs: {}, maxConsecMs: {}, strongMs: {}, maxStrongMs: {}, holds: [], ended: false, postureFrames: 0, postureGapMs: 0, lifted: false });
 /**
  * Hand-to-mouth: leaning the head or trunk, or shrugging, to bring the mouth to the cup happens with the hand
  * near the mouth. Posture counts once the hand is this far along its path from the lap to the mouth target (or
@@ -248,6 +250,14 @@ const freshRep = (): RepRun => ({ peaks: {}, peakExc: {}, eligible: {}, over: {}
 const MOUTH_POSTURE_PROGRESS = 0.6;
 /** ...and a running stretch breaks only once the hand has stayed away this long, not on a one-frame wrist glitch. */
 const MOUTH_POSTURE_GAP_MS = 300;
+/**
+ * A shoulder hike, though, is the arm's own compensation, used to lift the hand toward the mouth: it is judged from
+ * when the hand is this far along its path from the lap (clear of the lap circle), and for the rest of the repetition
+ * (the hand's points jump about once it is by the face). Replayed camera landmarks of a patient hiking the shoulder
+ * showed the hike while the hand was still on its way up, mostly short of MOUTH_POSTURE_PROGRESS, so it was never
+ * counted; from here, both hiked repetitions were flagged and none of the others.
+ */
+const MOUTH_LIFT_PROGRESS = 0.3;
 const worst = (holds: HoldOutcome[]): HoldOutcome => (holds.includes("none") ? "none" : holds.includes("touched") ? "touched" : "full");
 
 export class ExerciseSession {
@@ -1156,11 +1166,13 @@ export class ExerciseSession {
     // Posture while the hand is still far from the mouth (settling back after the review, leaning in to the
     // screen) is not a compensation; once the hand has stayed away, it also breaks a running stretch.
     const postureCounts = this.cfg.id !== "ex_h2m" || frame.targetContact === true || frame.targetUnsure === true || (frame.targetProgress ?? 1) >= MOUTH_POSTURE_PROGRESS;
+    if (this.cfg.id === "ex_h2m" && (postureCounts || (frame.targetProgress ?? 1) >= MOUTH_LIFT_PROGRESS)) run.lifted = true;
     if (postureCounts) { run.postureFrames += 1; run.postureGapMs = 0; } else run.postureGapMs += dt;
     const breakStretch = !postureCounts && run.postureGapMs >= MOUTH_POSTURE_GAP_MS;
     for (const comp of this.cfg.compensations) {
       if (comp.steps && !comp.steps.includes(this.stepIdx)) continue;
-      if (!postureCounts) {
+      // Hand to mouth judges its shoulder hike from when the hand leaves the lap (MOUTH_LIFT_PROGRESS).
+      if (!postureCounts && !(this.cfg.id === "ex_h2m" && comp.id === "shoulder_hike" && run.lifted)) {
         if (breakStretch) { run.consec[comp.id] = 0; run.consecMs[comp.id] = 0; run.strongMs[comp.id] = 0; }
         continue;
       }

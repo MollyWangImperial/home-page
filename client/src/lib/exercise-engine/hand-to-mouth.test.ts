@@ -261,16 +261,31 @@ describe("hand-to-mouth level 1 progression and scoring", () => {
   });
   it("does not count leaning in to the screen while the hand is still far from the mouth", () => {
     const leaning = { head_forward_pct: 40, trunk_approach_pct: 20, shoulder_hike_rel_delta: 12 };
+    const lap = scored();
+    // Two seconds leaning toward the screen, shoulder up too, with the hand still by the lap: nothing counts.
+    for (let n = 0; n < 40; n++) lap.push({ contact: false, progress: 0.1, level: 0.1, comps: leaning });
+    lap.until(() => lap.session.snapshot().review === "complete");
+    expect(lap.session.snapshot().reps[0]).toMatchObject({ compensations: [], score: 100, unmeasured: [] });
+    // With the arm moving and the hand 40% of the way to the mouth, the leans still do not count; the shoulder hike
+    // does, as it lifts the arm.
     const far = scored();
-    // Two seconds leaning toward the screen with the arm moving but the hand only 40% of the way to the mouth.
     for (let n = 0; n < 40; n++) far.push({ contact: false, progress: 0.4, level: 0.6, comps: leaning });
     far.until(() => far.session.snapshot().review === "complete");
-    expect(far.session.snapshot().reps[0]).toMatchObject({ compensations: [], score: 100, unmeasured: [] });
+    expect(far.session.snapshot().reps[0].compensations).toEqual(["shoulder_hike"]);
     // The same lean with the hand most of the way to the mouth is meeting the cup.
     const near = scored();
     for (let n = 0; n < 40; n++) near.push({ contact: false, progress: 0.7, level: 0.6, comps: leaning });
     near.until(() => near.session.snapshot().review === "complete");
     expect(near.session.snapshot().reps[0].compensations.sort()).toEqual(["head_forward", "shoulder_hike", "trunk_forward"]);
+  });
+  it("flags a shoulder hiked on the way up to the mouth, though the hand's points jump about by the face", () => {
+    const hiked = { head_forward_pct: 0, trunk_approach_pct: 0, shoulder_hike_rel_delta: 10 };
+    const p = scored();
+    // As in a replayed camera recording: the hike runs while the hand rises, its reported progress mostly between 25%
+    // and 55% of the way and only now and then past the mouth posture's 60% (too seldom for that alone to count it).
+    for (let n = 0; n < 30; n++) p.push({ contact: false, progress: n % 8 === 0 ? 0.7 : 0.25 + 0.01 * n, level: 0.6, comps: hiked });
+    p.until(() => p.session.snapshot().review === "complete");
+    expect(p.session.snapshot().reps[0].compensations).toEqual(["shoulder_hike"]);
   });
   it("keeps a head lean near the mouth running through a one-frame wrist glitch", () => {
     const leaning = { head_forward_pct: 40, trunk_approach_pct: 0, shoulder_hike_rel_delta: 0 };

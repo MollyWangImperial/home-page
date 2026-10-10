@@ -246,7 +246,8 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
       // against the trunk so a sideways lean of the whole upper body is not called a shrug.
       // Measured on camera: a natural shrug to reach the mouth stays above 7 degrees for well over a second of
       // the hold; normal movement stays within 1-3 and a head-lean repetition under 5. So 7 degrees for 0.3 s
-      // flags a shrug used to reach the mouth without flagging a normal movement.
+      // flags a shrug used to reach the mouth without flagging a normal movement. Judged from when the hand leaves the
+      // lap, not only by the mouth like the leans: the hike lifts the arm (session.ts MOUTH_LIFT_PROGRESS).
       cr("shoulder_hike", "shoulder hike", "shoulder_hike_rel_delta", 7, 4, 0, "Relax the shoulder before bending the elbow again.", { minConsecutiveMs: 300 }),
     ],
     cycle: [
