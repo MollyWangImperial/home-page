@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ALIRA_MESSAGE_STYLE, aliraCharacters, presentAliraMessage } from "./alira-message-style";
+import { ALIRA_MESSAGE_STYLE, aliraCharacters, createAliraHold, presentAliraMessage } from "./alira-message-style";
 
 afterEach(() => vi.useRealTimers());
 describe("Alira message delivery", () => {
@@ -56,6 +56,65 @@ describe("Alira message delivery", () => {
     const events: unknown[] = [];
     await presentAliraMessage("Good rest 🌱", { onThinking: value => events.push(value), onMessage: chars => events.push(chars), onFrame: text => events.push(text) }, new AbortController().signal, true);
     expect(events).toEqual([false, [], "Good rest 🌱"]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+describe("pausing Alira so the patient can ask something", () => {
+  it("does not start a line while paused, and starts it when opened", async () => {
+    vi.useFakeTimers();
+    const hold = createAliraHold();
+    hold.close();
+    const events: (string | boolean)[] = [];
+    let done = false;
+    const flow = presentAliraMessage("Hi", { onThinking: value => events.push(value), onMessage: () => events.push("message") }, new AbortController().signal, false, hold).then(() => { done = true; });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(events).toEqual([]);
+    hold.open();
+    await vi.advanceTimersByTimeAsync(ALIRA_MESSAGE_STYLE.thinkingMs);
+    expect(events).toEqual([true, false, "message"]);
+    await vi.runAllTimersAsync();
+    await flow;
+    expect(done).toBe(true);
+  });
+  it("paused while thinking: the dots go and the line waits to show", async () => {
+    vi.useFakeTimers();
+    const hold = createAliraHold();
+    const events: (string | boolean)[] = [];
+    void presentAliraMessage("Hi", { onThinking: value => events.push(value), onMessage: () => events.push("message") }, new AbortController().signal, false, hold);
+    await vi.advanceTimersByTimeAsync(400);
+    hold.close();
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(events).toEqual([true, false]);
+    hold.open();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(events).toEqual([true, false, "message"]);
+  });
+  it("paused once a line shows: the line finishes, but what follows it waits", async () => {
+    vi.useFakeTimers();
+    const hold = createAliraHold();
+    const message = vi.fn();
+    let done = false;
+    void presentAliraMessage("Rest, Alex.", { onThinking: () => {}, onMessage: message }, new AbortController().signal, false, hold).then(() => { done = true; });
+    await vi.advanceTimersByTimeAsync(ALIRA_MESSAGE_STYLE.thinkingMs + 10);
+    expect(message).toHaveBeenCalledOnce();
+    hold.close();
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(done).toBe(false);
+    hold.open();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(done).toBe(true);
+  });
+  it("leaving while paused cancels the waiting line", async () => {
+    vi.useFakeTimers();
+    const hold = createAliraHold();
+    hold.close();
+    const controller = new AbortController();
+    const flow = presentAliraMessage("Hi", { onThinking: () => {}, onMessage: () => {} }, controller.signal, false, hold);
+    const cancelled = expect(flow).rejects.toBe("page-left");
+    controller.abort("page-left");
+    await cancelled;
+    hold.open();
     expect(vi.getTimerCount()).toBe(0);
   });
 });

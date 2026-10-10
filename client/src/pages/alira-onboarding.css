@@ -113,6 +113,13 @@ html:has(.ao-shell), body:has(.ao-shell) { min-width: 0; }
 .ao-done-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding-top: 4px; }
 
 .ao-composer-area { border-top: 1px solid #ecebe4; }
+/* Pausing Alira part way through her lines, and continuing. */
+.ao-hold { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 12px 20px 0; }
+.ao-hold p { margin: 0; flex: 1; color: #4a5651; font-size: 13px; line-height: 20px; }
+.ao-hold-button { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; flex: 0 0 auto; border: 1px solid var(--ao-line); border-radius: 999px; background: #fff; color: var(--ao-green); font: 600 13px "DM Sans", sans-serif; cursor: pointer; transition: background .2s ease, color .2s ease; }
+.ao-hold-button:hover { background: #eef3ef; }
+.ao-hold.is-held .ao-hold-button { border-color: var(--ao-green); background: var(--ao-green); color: #fff; }
+.ao-hold-button:focus-visible { outline: 2px solid var(--ao-green); outline-offset: 2px; }
 .ao-notice { margin: 0; padding: 12px 20px 0; color: #77513d; font-size: 13px; line-height: 20px; }
 .ao-composer { display: flex; align-items: center; gap: 12px; padding: 16px 20px; }
 .ao-composer input { width: 0; min-width: 0; flex: 1; height: 48px; padding: 0 16px; box-sizing: border-box; border: 1px solid #e0dfd8; border-radius: 12px; background: #fff; font: 400 15px "DM Sans", sans-serif; color: var(--ao-ink); }

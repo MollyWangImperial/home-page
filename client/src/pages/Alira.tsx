@@ -8,6 +8,8 @@ import {
   LoaderCircle,
   MessageCircle,
   Mic,
+  Pause,
+  Play,
   Send,
   Sparkles,
   Square,
@@ -68,7 +70,7 @@ import { MEDALS_PATH, allMedals, earnedLabel, earnedMedals, earnedOn, findMedal,
 import { MedalCoin } from "@/components/MedalCollection";
 import { EXERCISE_JOURNAL_PATH, EXERCISE_MY_TIME_PATH, exerciseCompletionMessages, finishPreviewExercises, loadExerciseCompletion } from "@/lib/exercise-completion";
 import { profileName, profileStore } from "@/lib/profile";
-import { aliraReducedMotion, presentAliraMessage, type AliraCharacter } from "@/lib/alira-message-style";
+import { aliraReducedMotion, createAliraHold, presentAliraMessage, type AliraCharacter } from "@/lib/alira-message-style";
 import { aliraChatContext, aliraChatStore, undeliveredArrivalMessages } from "@/lib/alira-chat-history";
 import { EMPTY_TRANSCRIPT_POSITIONS, type TranscriptPositions } from "@/lib/alira-transcript";
 import { AGENT_EXERCISES, type AgentBlock, type AgentMessage } from "@shared/alira-agent";
@@ -100,6 +102,9 @@ type Dictation = {
   stop: () => void;
   abort: () => void;
 };
+
+/** Alira's own lines, which the patient can pause, or her answers to what the patient asks, which never wait. */
+type Lane = "flow" | "answer";
 
 type Conversation = {
   msgs: Message[];
@@ -287,7 +292,18 @@ export default function Alira() {
   const browserUtterance = useRef<SpeechSynthesisUtterance | null>(null);
   const recognition = useRef<Dictation | null>(null);
   const timers = useRef<number[]>([]);
-  const messageController = useRef<AbortController | null>(null);
+  // Alira's own lines (her flow) and her answers to what the patient asks go in two lanes, each with the line in
+  // progress and what to do once it completes. The patient can pause her flow (the hold) to ask something at once:
+  // her answers never wait for it.
+  const lanes = useRef<Record<Lane, { controller: AbortController | null; done: (() => void) | null }>>({
+    flow: { controller: null, done: null }, answer: { controller: null, done: null },
+  });
+  const hold = useRef(createAliraHold());
+  const [held, setHeld] = useState(false);
+  const [answerTyping, setAnswerTyping] = useState(false);
+  const [flowLive, setFlowLive] = useState(0);
+  // What the patient asked that Alira is still thinking about: a new message joins it.
+  const askedNotAnswered = useRef("");
   const thread = useRef<HTMLDivElement>(null);
   const transcriptPositions = useRef<TranscriptPositions>(restored?.positions ?? EMPTY_TRANSCRIPT_POSITIONS);
   const rememberPositions = useCallback((positions: TranscriptPositions) => { transcriptPositions.current = positions; }, []);
@@ -299,7 +315,6 @@ export default function Alira() {
   const fromHome = useRef(false);
   const nextId = useRef(Math.max(0, ...s.msgs.map(message => message.id)) + 1);
   const randomRequest = useRef<AbortController | null>(null);
-  const typeDone = useRef<(() => void) | null>(null);
   const openSettings = useOptionalSettings();
   // Alira's thinking (Claude, through /api/alira/agent) when the server has it connected.
   const agentReady = useRef(false);
@@ -314,58 +329,102 @@ export default function Alira() {
     patch(p);
   };
   const later = (ms: number, fn: () => void) => {
-    timers.current.push(window.setTimeout(fn, ms));
+    const timer = window.setTimeout(() => {
+      timers.current = timers.current.filter(t => t !== timer);
+      fn();
+    }, ms);
+    timers.current.push(timer);
   };
   const clearTimers = () => {
     timers.current.forEach(t => clearTimeout(t));
     timers.current = [];
-    messageController.current?.abort("cancelled");
-    messageController.current = null;
-    typeDone.current = null;
+    for (const lane of Object.values(lanes.current)) {
+      lane.controller?.abort("cancelled");
+      lane.controller = null;
+      lane.done = null;
+    }
+    // A fresh start: nothing is paused.
+    hold.current.open();
+    setHeld(false);
+    setAnswerTyping(false);
   };
+
+  // ---- pausing Alira --------------------------------------------------------------------------
+
+  /** Alira has lines on their way: one in progress, more to come, or the movement check's conversation. */
+  function flowGoing() {
+    return lanes.current.flow.controller !== null || timers.current.length > 0 || openingPending
+      || planState === "responding" || planState === "planning";
+  }
+
+  /** The patient pauses Alira: the line she is typing shows in full, and nothing after it comes until Continue. */
+  function pauseAlira() {
+    if (hold.current.closed) return;
+    hold.current.close();
+    setHeld(true);
+    stopReading();
+    patch({ typing: false, typingId: null });
+  }
+
+  /** Continue: Alira carries on where she paused, in order. */
+  function continueAlira() {
+    hold.current.open();
+    setHeld(false);
+  }
 
   // ---- conversation -------------------------------------------------------------------------
 
-  async function presentMessage(text: string, signal: AbortSignal, generated = false, localOnly = false) {
+  /** One line: in Alira's flow (which the patient can pause), or an answer to the patient (which never waits). */
+  async function presentMessage(text: string, signal: AbortSignal, generated = false, localOnly = false, lane: Lane = "flow") {
     const id = nextId.current++;
-    await presentAliraMessage(text, {
-      onThinking: typing => patch({ typing }),
-      onMessage: chars => setS(current => ({ ...current, typing: false, typingId: chars.length ? id : null,
-        msgs: [...current.msgs, { id, from: "Alira", text, chars, ...(generated ? { generated } : {}), ...(localOnly ? { localOnly } : {}) }],
-      })),
-    }, signal);
+    const flow = lane === "flow";
+    if (flow) setFlowLive(count => count + 1);
+    try {
+      await presentAliraMessage(text, {
+        onThinking: typing => (flow ? patch({ typing }) : setAnswerTyping(typing)),
+        onMessage: chars => {
+          if (!flow) setAnswerTyping(false);
+          setS(current => ({ ...current, ...(flow ? { typing: false } : {}), typingId: chars.length ? id : null,
+            msgs: [...current.msgs, { id, from: "Alira", text, chars, ...(generated ? { generated } : {}), ...(localOnly ? { localOnly } : {}) }],
+          }));
+        },
+      }, signal, aliraReducedMotion(), flow ? hold.current : undefined);
+    } finally {
+      if (flow) setFlowLive(count => count - 1);
+    }
     setS(current => current.typingId === id ? { ...current, typingId: null } : current);
   }
 
   // Every new line uses the same dots, character reveal, and completion gate.
-  function say(text: string, extra: Partial<Conversation> = {}, onDone?: () => void, generated = false, localOnly = false) {
-    // A line still typing finishes its step first, so a question card is never lost.
-    const pending = messageController.current ? typeDone.current : null;
-    messageController.current?.abort("replaced");
-    typeDone.current = null;
+  function say(text: string, extra: Partial<Conversation> = {}, onDone?: () => void, generated = false, localOnly = false, lane: Lane = "flow") {
+    const slot = lanes.current[lane];
+    // A line still typing in the same lane finishes its step first, so a question card is never lost.
+    const pending = slot.controller ? slot.done : null;
+    slot.controller?.abort("replaced");
+    slot.done = null;
     pending?.();
     patch(extra);
     const controller = new AbortController();
-    messageController.current = controller;
-    typeDone.current = onDone ?? null;
-    void presentMessage(text, controller.signal, generated, localOnly).then(() => {
-      if (messageController.current !== controller) return;
-      messageController.current = null;
-      const done = typeDone.current;
-      typeDone.current = null;
+    slot.controller = controller;
+    slot.done = onDone ?? null;
+    void presentMessage(text, controller.signal, generated, localOnly, lane).then(() => {
+      if (slot.controller !== controller) return;
+      slot.controller = null;
+      const done = slot.done;
+      slot.done = null;
       done?.();
     }).catch(() => { /* Leaving or replacing a message cancels its pending completion. */ });
   }
 
   /** Several lines, one after another. */
-  function sayAll(texts: string[], extra: Partial<Conversation>, onDone: () => void, generated = false, localOnly = false) {
+  function sayAll(texts: string[], extra: Partial<Conversation>, onDone: () => void, generated = false, localOnly = false, lane: Lane = "flow") {
     const [first, ...rest] = texts;
     if (!first) {
       patch(extra);
       onDone();
       return;
     }
-    say(first, extra, () => (rest.length ? later(400, () => sayAll(rest, {}, onDone, generated, localOnly)) : onDone()), generated, localOnly);
+    say(first, extra, () => (rest.length ? later(400, () => sayAll(rest, {}, onDone, generated, localOnly, lane)) : onDone()), generated, localOnly, lane);
   }
 
   function userSays(text: string) {
@@ -512,10 +571,14 @@ export default function Alira() {
     reply("Let's start", copy.start, { started: true }, 1300, () => later(400, beginQuestions));
   }
 
+  // A starter question can be asked at any time, as a typed one can: Alira pauses her lines and answers at once.
   function askStarter(st: Starter) {
-    if (sRef.current.busy || completionBusy) return;
+    if (flowGoing()) pauseAlira();
     const chipsBefore = sRef.current.chips;
-    reply(st.q, st.a, {}, 1500, () => resume(chipsBefore));
+    stopReading();
+    userSays(st.q);
+    later(350, () => setAnswerTyping(true));
+    later(1500, () => say(st.a, {}, () => resume(chipsBefore), false, false, "answer"));
   }
 
   // ---- Alira's tools --------------------------------------------------------------------------
@@ -769,6 +832,8 @@ export default function Alira() {
   /** After Alira's reply: dialogs and settings first, then either another page or the next step here. */
   function applyEffects(outcomes: ToolOutcome[], chipsBefore: Chips) {
     const effects = outcomes.flatMap(outcome => (outcome.effect ? [outcome.effect] : []));
+    // What the patient asked for takes Alira somewhere new: she is no longer paused.
+    if (hold.current.closed && effects.some(effect => effect.kind === "flow" || effect.kind === "leave")) continueAlira();
     effects.filter(effect => effect.kind === "action").forEach(effect => effect.run());
     const away = effects.filter(effect => effect.kind === "leave").at(-1);
     if (away) {
@@ -782,6 +847,12 @@ export default function Alira() {
 
   /** Brings back whatever the patient's message set aside: the question, the done card or the choices. */
   function resume(chipsBefore: Chips) {
+    if (hold.current.closed) {
+      // Paused part way through her lines, Alira brings these back herself once she continues and finishes them, so
+      // they stay after the line that introduces them. Paused with nothing of her own still to come, she need not stay so.
+      if (flowGoing()) return;
+      continueAlira();
+    }
     const cur = sRef.current;
     if (cur.done) patch({ showDone: true });
     else if (cur.paused) patch({ chips: "resume" });
@@ -819,15 +890,17 @@ export default function Alira() {
       done();
       return;
     }
-    later(300, () => patch({ typing: true }));
-    later(900, () => say(line, { typing: false }, done, aliraPhraseId(line) === undefined));
+    later(300, () => setAnswerTyping(true));
+    later(900, () => say(line, {}, done, aliraPhraseId(line) === undefined, false, "answer"));
   }
 
   /** Anything else goes to Claude, who can use the same tools. */
   async function askClaude(text: string, chipsBefore: Chips) {
     const controller = new AbortController();
     agentAbort.current = controller;
-    commit({ busy: true, typing: true });
+    askedNotAnswered.current = text;
+    commit({ busy: true });
+    setAnswerTyping(true);
     const outcomes: ToolOutcome[] = [];
     const notes = agentActivity.current;
     agentActivity.current = [];
@@ -864,21 +937,32 @@ export default function Alira() {
       texts = [outcomes.map(outcome => outcome.say).filter(Boolean).at(-1) ?? agentCopy.trouble];
       generated = aliraPhraseId(texts[0]) === undefined;
     }
+    askedNotAnswered.current = "";
     commit({ busy: false });
-    sayAll(texts, { typing: false }, () => applyEffects(outcomes, chipsBefore), generated);
+    sayAll(texts, {}, () => applyEffects(outcomes, chipsBefore), generated, false, "answer");
   }
 
   /** Without Claude and without a recognised request: a kind word, then back to where things were. */
   function fallbackReply(ctx: RouteContext, chipsBefore: Chips) {
     const line = ctx.question ? agentCopy.notAnswered : sRef.current.started ? copy.noted : copy.keepInMind;
-    later(350, () => patch({ typing: true }));
-    later(1300, () => say(line, { typing: false }, () => resume(chipsBefore)));
+    later(350, () => setAnswerTyping(true));
+    later(1300, () => say(line, {}, () => resume(chipsBefore), false, false, "answer"));
   }
 
+  // The patient can write at any time. If Alira is part way through her lines, she pauses so the question comes
+  // first (Continue brings the rest); a question she is still thinking about is asked again together with this one.
   function send(event: FormEvent) {
     event.preventDefault();
     const text = s.draft.trim();
-    if (!text || sRef.current.busy || completionBusy) return;
+    if (!text) return;
+    if (flowGoing()) pauseAlira();
+    let question = text;
+    if (sRef.current.busy && agentAbort.current) {
+      agentAbort.current.abort("asked again");
+      agentAbort.current = null;
+      if (askedNotAnswered.current) question = `${askedNotAnswered.current}\n\n${text}`;
+      commit({ busy: false });
+    }
     const before = sRef.current;
     const ctx: RouteContext = {
       question: before.qi >= 0 && !before.done && !before.paused ? onboardingQuestions[before.qi] : null,
@@ -894,7 +978,7 @@ export default function Alira() {
     const route = routeLocally(text, ctx);
     if (route?.admin) adminSkip(false);
     else if (route) handleLocal(route, text, before.chips);
-    else if (agentReady.current) void askClaude(text, before.chips);
+    else if (agentReady.current) void askClaude(question, before.chips);
     else fallbackReply(ctx, before.chips);
   }
 
@@ -1271,9 +1355,18 @@ export default function Alira() {
   const isMulti = cur?.type === "multi";
   const starters = [...starterSets[s.starterSet % starterSets.length], concernStarter];
   const placeholder = s.showQ ? "Tap an answer above, or type to Alira" : s.started ? copy.placeholders[0] : copy.placeholders[s.phIndex];
-  const avatarBusy = s.typing || s.typingId !== null;
+  const avatarBusy = s.typing || s.typingId !== null || answerTyping;
   const homePath = onboarding && !assessment ? "/welcome" : "/";
   const completionBusy = openingPending || planState === "testing" || planState === "responding" || planState === "planning";
+  const planPreparing = planState === "responding" || planState === "planning";
+  // Alira is part way through her lines, so the patient may pause her: kept on through the short gaps between lines.
+  const aliraSpeaking = flowLive > 0 || s.typing || openingPending || planPreparing;
+  const [pausable, setPausable] = useState(aliraSpeaking);
+  useEffect(() => {
+    if (aliraSpeaking) { setPausable(true); return; }
+    const timer = window.setTimeout(() => setPausable(false), 900);
+    return () => clearTimeout(timer);
+  }, [aliraSpeaking]);
   const medalGo = medalGuide && medalGuide.next.kind === "go" ? medalGuide.next : null;
   // After the survey, until today's warm-up is done or skipped, its invitation takes the movement check card's place.
   const warmUpInvite = s.showDone && !hasResult && !medalGuide && !warmUpSkipped && warmUpInviteDue(s.answers);
@@ -1519,14 +1612,14 @@ export default function Alira() {
                   )
                 }))} />
 
-              {s.typing && (
+              {((s.typing && !held) || answerTyping) && (
                 <div className="ao-typing ao-rise" role="status">
                   <CompanionMark />
                   <span className="ao-dots" aria-hidden="true"><i /><i /><i /></span>
                   <span>Alira is typing</span>
                 </div>
               )}
-              {planWaiting && (
+              {planWaiting && !held && (
                 <div className="ao-typing ao-rise" role="status">
                   <CompanionMark />
                   <span className="ao-dots" aria-hidden="true"><i /><i /><i /></span>
@@ -1537,6 +1630,17 @@ export default function Alira() {
             </div>
 
             <div className="ao-composer-area">
+              {/* The patient can pause Alira part way through her lines to ask something at once, then continue. */}
+              {held ? (
+                <div className="ao-hold is-held">
+                  <p role="status">Alira has paused. Ask her anything, then press Continue for the rest.{planPreparing ? " Your exercise plan is still being prepared." : ""}</p>
+                  <button type="button" className="ao-hold-button" onClick={continueAlira}><Play size={14} aria-hidden="true" /> Continue</button>
+                </div>
+              ) : pausable && (
+                <div className="ao-hold">
+                  <button type="button" className="ao-hold-button" aria-label="Pause Alira so you can ask something" onClick={pauseAlira}><Pause size={14} aria-hidden="true" /> Pause</button>
+                </div>
+              )}
               {(speechState.error || voiceNotice || isListening) && (
                 <p className="ao-notice" role="status">
                   {isListening ? "Listening… speak your message, then press stop." : voiceNotice || speechState.error}
@@ -1551,14 +1655,13 @@ export default function Alira() {
                   value={s.draft}
                   onChange={event => patch({ draft: event.target.value })}
                   placeholder={placeholder}
-                  disabled={completionBusy}
                   maxLength={2000}
                   autoComplete="off"
                 />
-                <button type="button" className={`ao-mic ${isListening ? "is-listening" : ""}`} aria-label={isListening ? "Stop voice typing" : "Type a message with your voice"} aria-pressed={isListening} disabled={completionBusy} onClick={dictate}>
+                <button type="button" className={`ao-mic ${isListening ? "is-listening" : ""}`} aria-label={isListening ? "Stop voice typing" : "Type a message with your voice"} aria-pressed={isListening} onClick={dictate}>
                   {isListening ? <Square size={16} /> : <Mic size={17} />}
                 </button>
-                <button type="submit" className="ao-send" aria-label="Send message" disabled={!s.draft.trim() || s.busy || completionBusy}>
+                <button type="submit" className="ao-send" aria-label="Send message" disabled={!s.draft.trim()}>
                   <ArrowUp size={18} />
                 </button>
               </form>
