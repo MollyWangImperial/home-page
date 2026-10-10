@@ -9,6 +9,7 @@ import Welcome from "./pages/Welcome";
 import Journey from "./pages/Journey";
 import Alira from "./pages/Alira";
 import Assessment from "./pages/Assessment";
+import NativeAssessment from "./pages/NativeAssessment";
 import FastCheck from "./pages/FastCheck";
 import ExerciseRunner from "./pages/ExerciseRunner";
 import MyTime from "./pages/MyTime";
@@ -34,6 +35,8 @@ function Router() {
       <Route path={"/journey"} component={Journey} />
       <Route path={"/alira"} component={Alira} />
       <Route path={"/warm-up"} component={WarmUp} />
+      {/* The native movement check on the exercise engine, kept for comparison while /assessment uses the original runner. */}
+      <Route path={"/assessment/native"}>{() => <WarmRepGate gate="pre_assessment"><NativeAssessment /></WarmRepGate>}</Route>
       <Route path={"/assessment"}>{() => <WarmRepGate gate="pre_assessment"><Assessment /></WarmRepGate>}</Route>
       <Route path={"/fast-check"} component={FastCheck} />
       <Route path={"/my-time"} component={MyTime} />

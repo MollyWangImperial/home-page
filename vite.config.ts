@@ -13,6 +13,7 @@ import { createMollyProgressRouter } from "./server/molly-progress";
 import { createAliraChannelRouter } from "./server/alira-channel";
 import { createAliraLearningRouter } from "./server/alira-learning";
 import { createAdminAlertsRouter } from "./server/admin-alerts";
+import { createMovementCheckRunnerRouter } from "./server/movement-check-runner";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -283,7 +284,17 @@ const adminAlertsPlugin: Plugin = {
     server.middlewares.use("/api/admin-alerts", createAdminAlertsRouter({ root: PROJECT_ROOT }));
   },
 };
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy(), aliraVoicePlugin, aliraAgentPlugin, exerciseDebugPlugin, mollyProgressPlugin, aliraChannelPlugin, aliraLearningPlugin, adminAlertsPlugin];
+// The movement check's original runner from this origin, so each task's demonstration can come first.
+const movementCheckRunnerPlugin: Plugin = {
+  name: "movement-check-runner",
+  configureServer(server) {
+    server.middlewares.use("/movement-check/runner", createMovementCheckRunnerRouter());
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use("/movement-check/runner", createMovementCheckRunnerRouter());
+  },
+};
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy(), aliraVoicePlugin, aliraAgentPlugin, exerciseDebugPlugin, mollyProgressPlugin, aliraChannelPlugin, aliraLearningPlugin, adminAlertsPlugin, movementCheckRunnerPlugin];
 
 export default defineConfig({
   plugins,

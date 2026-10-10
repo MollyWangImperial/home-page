@@ -10,6 +10,7 @@ import { createMollyProgressRouter } from "./molly-progress";
 import { createAliraChannelRouter } from "./alira-channel";
 import { createAliraLearningRouter } from "./alira-learning";
 import { createAdminAlertsRouter } from "./admin-alerts";
+import { createMovementCheckRunnerRouter } from "./movement-check-runner";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,6 +28,8 @@ async function startServer() {
   app.use("/api/alira/learning", createAliraLearningRouter({ root: path.resolve(__dirname, "..") }));
   app.use("/api/molly-progress", createMollyProgressRouter({ root: path.resolve(__dirname, "..") }));
   app.use("/api/admin-alerts", createAdminAlertsRouter({ root: path.resolve(__dirname, "..") }));
+  // The movement check's original runner, served from this origin so each task's demonstration can come first.
+  app.use("/movement-check/runner", createMovementCheckRunnerRouter());
   app.use(
     "/api/alira/voice",
     createAliraVoiceRouter({ root: path.resolve(__dirname, "..") })

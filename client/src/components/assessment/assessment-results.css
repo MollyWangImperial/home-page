@@ -3,7 +3,7 @@
 .ar-page { --green:#3c8255; --amber:#d49b35; --coral:#e18e6d; --grey:#bcc5b9; --ink:#293f34; --muted:#56705d; --soft-ink:#5a6b5d;
   min-height:100dvh; padding:20px 16px 44px; color:var(--ink); background:#f4f5ee; font:500 14px/1.55 "Manrope",sans-serif; }
 /* Hosted inside the full-window check page (fixed, dark): this page scrolls on its own, on its own background. */
-.assessment-page .ar-page { position:absolute; inset:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.native-assessment-page .ar-page { position:absolute; inset:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
 .ar-page * { box-sizing:border-box; }
 .ar-wrap { display:grid; gap:14px; max-width:1080px; margin:0 auto; }
 .ar-sr { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
