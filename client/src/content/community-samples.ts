@@ -7,17 +7,17 @@
 const art = (id: string) => `/community-art/${id}.svg`;
 
 export type PersonId = "margaret" | "david" | "tomasz" | "anne" | "priya" | "samuel" | "joan" | "liwei";
-export type Person = { id: PersonId; name: string; face: string; tint: string; about: string };
+export type Person = { id: PersonId; name: string; face: string; tint: string; about: string; town: string };
 
 export const people: Record<PersonId, Person> = {
-  margaret: { id: "margaret", name: "Margaret", face: art("e5f035b22084e040992a2bae4853b87a"), tint: "#F3D9CC", about: "Leeds" },
-  david: { id: "david", name: "David", face: art("5ae96ba6c0a7a4ce0abdacea5662d031"), tint: "#CFE2D6", about: "Walks with Biscuit, his dog" },
-  tomasz: { id: "tomasz", name: "Tomasz", face: art("dc2c2621058c2e3cafb744564f6e0b9c"), tint: "#D5E1E6", about: "New this week" },
-  anne: { id: "anne", name: "Anne", face: art("762f84e9e300103ccc005eaa89800ca5"), tint: "#FBEBC2", about: "Bath" },
-  priya: { id: "priya", name: "Priya", face: art("abfddd7f2a1894d89beeac20f7fbbedb"), tint: "#E9E2F4", about: "Leicester" },
-  samuel: { id: "samuel", name: "Samuel", face: art("a9469e8bfd054c29a713033e9eac24f0"), tint: "#DCECF4", about: "One-handed cooks" },
-  joan: { id: "joan", name: "Joan", face: art("d6d1ced4c77f6cb92d063a301a9f70b2"), tint: "#F6DDD3", about: "Garden gang" },
-  liwei: { id: "liwei", name: "Li Wei", face: art("6fae8d2a2b78d33e738f97964301ed6b"), tint: "#E3EFE6", about: "Kitchen singalong" },
+  margaret: { id: "margaret", name: "Margaret", face: art("e5f035b22084e040992a2bae4853b87a"), tint: "#F3D9CC", about: "Leeds", town: "Leeds" },
+  david: { id: "david", name: "David", face: art("5ae96ba6c0a7a4ce0abdacea5662d031"), tint: "#CFE2D6", about: "Walks with Biscuit, his dog", town: "Dover" },
+  tomasz: { id: "tomasz", name: "Tomasz", face: art("dc2c2621058c2e3cafb744564f6e0b9c"), tint: "#D5E1E6", about: "New this week", town: "Dover" },
+  anne: { id: "anne", name: "Anne", face: art("762f84e9e300103ccc005eaa89800ca5"), tint: "#FBEBC2", about: "Bath", town: "Bath" },
+  priya: { id: "priya", name: "Priya", face: art("abfddd7f2a1894d89beeac20f7fbbedb"), tint: "#E9E2F4", about: "Leicester", town: "Leicester" },
+  samuel: { id: "samuel", name: "Samuel", face: art("a9469e8bfd054c29a713033e9eac24f0"), tint: "#DCECF4", about: "One-handed cooks", town: "Cardiff" },
+  joan: { id: "joan", name: "Joan", face: art("d6d1ced4c77f6cb92d063a301a9f70b2"), tint: "#F6DDD3", about: "Garden gang", town: "Whitby" },
+  liwei: { id: "liwei", name: "Li Wei", face: art("6fae8d2a2b78d33e738f97964301ed6b"), tint: "#E3EFE6", about: "Kitchen singalong", town: "Manchester" },
 };
 export const PERSON_IDS: PersonId[] = ["margaret", "david", "tomasz", "anne", "priya", "samuel", "joan", "liwei"];
 
@@ -81,10 +81,13 @@ export type ThemeId = "gardening" | "walking" | "cooking" | "music" | "books" | 
 
 /** A cover is a drawing, or a colour with a letter or a theme's sign on it. */
 export type GroupCover = { image?: string; tint: string; ink: string; initial?: string; icon?: ThemeId };
-export type GroupMessage = { id: string; who: PersonId; text: string; note?: string; photo?: SamplePhoto; hearts: number };
+/** `minutesAgo` dates a message already there when the page opens (the lounge shows its time). */
+export type GroupMessage = { id: string; who: PersonId; text: string; note?: string; photo?: SamplePhoto; hearts: number; minutesAgo?: number };
 export type SampleGroup = {
   id: CommunityGroupId;
   name: string;
+  /** A line about the group, under its name. */
+  about: string;
   cover: GroupCover;
   /** The challenge strip's colour, and the ink drawn on it (dark enough to read on both). */
   tint: string;
@@ -101,13 +104,16 @@ export type SampleGroup = {
   incoming: GroupMessage;
   /** What the feed's "My groups" card shows under the name. */
   preview?: string;
+  /** How long before the page opened its last message was said, for its row in Messages. */
+  lastMinutesAgo: number;
   /** Why a group is suggested. */
   why?: string;
 };
 
 export const sampleGroups: SampleGroup[] = [
   {
-    id: "garden", name: "Garden gang",
+    id: "garden", name: "Garden gang", lastMinutesAgo: 20,
+    about: "For anyone getting their hands back into the soil. Windowsill pots and allotments alike, at whatever pace your hands allow.",
     cover: { image: art("fb2175989c4397ad5f421824e41a5e87"), tint: "#CFE8C9", ink: "#1C4A3C" },
     tint: "#E1F0DC", ink: "#24694B", members: 6, online: 3, faces: ["margaret", "joan", "anne", "samuel"], unread: 3, active: true,
     challenge: { text: "This week: a photo of something growing", done: 4, total: 6 },
@@ -120,7 +126,8 @@ export const sampleGroups: SampleGroup[] = [
     preview: "Margaret: First tomatoes!",
   },
   {
-    id: "walk", name: "Morning walkers",
+    id: "walk", name: "Morning walkers", lastMinutesAgo: 150,
+    about: "Short walks, slow walks and round-the-block walks. We go at the pace of whoever is slowest that day.",
     cover: { image: art("41e5e4e8b1bf6c9bbe7330cc69485ef5"), tint: "#CFE6F2", ink: "#1F4E66" },
     tint: "#DCECF4", ink: "#1F4E66", members: 8, online: 2, faces: ["david", "tomasz", "priya", "liwei"], unread: 0, active: false,
     challenge: { text: "This week: one walk a little further than last week", done: 5, total: 8 },
@@ -132,7 +139,8 @@ export const sampleGroups: SampleGroup[] = [
     preview: "David: 7 tomorrow?",
   },
   {
-    id: "cook", name: "One-handed cooks",
+    id: "cook", name: "One-handed cooks", lastMinutesAgo: 1500,
+    about: "Recipes, tips and gadgets for cooking with one hand. Every kitchen win counts.",
     cover: { image: art("91162a45a080841062c0f9de0b0bc8fd"), tint: "#FBE3B8", ink: "#6B5108" },
     tint: "#FBEBC2", ink: "#6B5108", members: 11, online: 1, faces: ["samuel", "priya", "margaret", "anne"], unread: 0, active: false,
     challenge: { text: "This week: share one recipe you can make one-handed", done: 3, total: 11 },
@@ -143,7 +151,8 @@ export const sampleGroups: SampleGroup[] = [
     incoming: { id: "c3", who: "anne", text: "Does anyone have a good rocker knife to recommend?", hearts: 1 },
   },
   {
-    id: "music", name: "Kitchen singalong",
+    id: "music", name: "Kitchen singalong", lastMinutesAgo: 2900,
+    about: "Singing helps the words come back. A song a day, as loud or as quiet as you like.",
     cover: { image: art("242c86dad4e267c11919a79438078c19"), tint: "#E4DAF3", ink: "#45357A" },
     tint: "#E9E2F4", ink: "#45357A", members: 5, online: 2, faces: ["priya", "joan", "liwei"], unread: 1, active: false,
     challenge: { text: "This week: sing one whole chorus out loud", done: 2, total: 5 },
@@ -157,7 +166,8 @@ export const sampleGroups: SampleGroup[] = [
 
 export const suggestedGroups: SampleGroup[] = [
   {
-    id: "knit", name: "Knit and natter", why: "Joan and 6 others",
+    id: "knit", name: "Knit and natter", why: "Joan and 6 others", lastMinutesAgo: 300,
+    about: "Knitting, crochet and a good natter. Dropped stitches welcome.",
     cover: { tint: "#FBEBC2", ink: "#6B5108", initial: "K" },
     tint: "#FBEBC2", ink: "#6B5108", members: 7, online: 1, faces: ["joan", "anne", "margaret"], unread: 0, active: false,
     challenge: { text: "This week: cast on a few stitches, any colour", done: 2, total: 7 },
@@ -168,7 +178,8 @@ export const suggestedGroups: SampleGroup[] = [
     incoming: { id: "k3", who: "margaret", text: "Bringing my scarf to show you all tomorrow.", hearts: 2 },
   },
   {
-    id: "book", name: "One chapter club", why: "One chapter a week, together",
+    id: "book", name: "One chapter club", why: "One chapter a week, together", lastMinutesAgo: 4300,
+    about: "One chapter a week, in print, large print or as an audiobook.",
     cover: { tint: "#F6DDD3", ink: "#8F3520", initial: "O" },
     tint: "#F6DDD3", ink: "#8F3520", members: 4, online: 1, faces: ["anne", "liwei", "samuel"], unread: 0, active: false,
     challenge: { text: "This week: read one chapter of any book", done: 1, total: 4 },
@@ -337,13 +348,19 @@ export const lounge = {
   /** One event every this many milliseconds, until the script has run. */
   everyMs: 2600,
   starter: "What are you looking forward to this week?",
-  faces: ["margaret", "david", "anne", "priya"] as PersonId[],
+  faces: ["margaret", "david", "anne", "tomasz"] as PersonId[],
   messages: [
-    { id: "l1", who: "margaret", text: "My granddaughter visits on Saturday. I'm going to pour the tea myself.", hearts: 6 },
-    { id: "l2", who: "tomasz", note: "· new here", text: "First week home. A bit scared, if I'm honest.", hearts: 9 },
-    { id: "l3", who: "anne", text: "My first week was the hardest too. It does get lighter, promise.", hearts: 5 },
-    { id: "l4", who: "david", text: "Come walking with us, Tomasz. Biscuit loves new people.", hearts: 4 },
+    { id: "l1", who: "margaret", text: "My granddaughter visits on Saturday. I'm going to pour the tea myself.", hearts: 6, minutesAgo: 9 },
+    { id: "l2", who: "tomasz", note: "New member", text: "First week home. A bit scared, if I'm honest.", hearts: 9, minutesAgo: 6 },
+    { id: "l3", who: "anne", text: "My first week was the hardest too. It does get lighter, promise.", hearts: 5, minutesAgo: 5 },
+    { id: "l4", who: "david", text: "Come walking with us on Wednesday, Tomasz. Seven o'clock by the harbour. Biscuit loves new people.", hearts: 4, minutesAgo: 3 },
   ] as LoungeMessage[],
+  /** The house rules beside the lounge. */
+  rules: [
+    "Be kind. Everyone here is recovering at their own pace.",
+    "Share experience, not medical advice. That stays with your care team.",
+    "Report anything that worries you in one tap. It stays private.",
+  ],
   script: [
     { kind: "typing", who: "priya" },
     { kind: "message", message: { id: "l5", who: "priya", text: "Morning all! Sun's out in Leicester today.", hearts: 2 } },
@@ -357,10 +374,11 @@ export const lounge = {
     { kind: "message", message: { id: "l8", who: "anne", text: "Tomasz, how was your first night home?", hearts: 3 } },
   ] as LoungeEvent[],
   waves: [
-    { who: "tomasz", note: "New this week" },
+    { who: "tomasz", note: "Dover · new this week" },
     { who: "margaret", note: "Leeds" },
     { who: "anne", note: "Bath" },
     { who: "priya", note: "Leicester" },
+    { who: "joan", note: "Whitby" },
   ] as { who: PersonId; note: string }[],
   poll: {
     question: "What's in your mug right now?",
@@ -370,12 +388,13 @@ export const lounge = {
       { id: "cocoa", label: "Hot chocolate", votes: 3, fill: "#E9E2F4" },
     ] as PollOption[],
   },
+  /** `to` is who a reply is for: it is left out while that person is out of sight. */
   quickReplies: [
     { label: "Hello everyone", text: "Hello everyone!", tone: "mint" },
-    { label: "Me too", text: "Me too.", tone: "blue" },
-    { label: "Well done!", text: "Well done!", tone: "amber" },
-    { label: "Thinking of you", text: "Thinking of you.", tone: "lilac" },
-  ] as { label: string; text: string; tone: QuickTone }[],
+    { label: "Welcome, Tomasz", text: "Welcome, Tomasz!", tone: "blue", to: "tomasz" },
+    { label: "Well done, Margaret", text: "Well done, Margaret!", tone: "amber", to: "margaret" },
+    { label: "Thinking of you all", text: "Thinking of you all.", tone: "lilac" },
+  ] as { label: string; text: string; tone: QuickTone; to?: PersonId }[],
 };
 export const POLL_OPTION_IDS = lounge.poll.options.map(option => option.id);
 
@@ -412,12 +431,18 @@ export const circle = {
   hello: "Hello everyone. Glad to be here.",
   /** Things to say about your week with one tap. You can also say it in your own words. */
   shareChoices: ["Seeing my family.", "Getting outside for a bit.", "A good night's sleep."],
+  /**
+   * The circles coming up. Each meets every week on `day` (0 is Sunday) at `hour`, for `minutes`;
+   * "Add to calendar" puts the next one in the person's own calendar.
+   */
   upcoming: [
-    { id: "hand", name: "Hand and arm circle", when: "Tuesday, 3 pm" },
-    { id: "words", name: "Finding words circle", when: "Thursday, 11 am" },
-    { id: "sunday", name: "Next Sunday circle", when: "Sunday, 4 pm" },
+    { id: "hand", name: "Hand and arm circle", when: "Tuesday, 3 pm", detail: "Gentle stretches, together", day: 2, hour: 15, minutes: 45 },
+    { id: "words", name: "Finding words circle", when: "Thursday, 11 am", detail: "A slower pace, captions on", day: 4, hour: 11, minutes: 45 },
+    { id: "sunday", name: "Sunday circle", when: "Sunday, 4 pm", detail: "Hosted by Alira", day: 0, hour: 16, minutes: 60 },
   ],
 };
+/** Every seat in the circle, the person's own included. */
+export const CIRCLE_SEATS = Object.keys(circle.seats).length;
 export const CIRCLE_IDS = circle.upcoming.map(item => item.id);
 
 /* ----------------------------------------------------------------- friends */
@@ -461,6 +486,69 @@ export const friendSuggestions: { who: PersonId; why: string }[] = [
 /** People blocked before this visit. */
 export const startBlocked: { who: MemberId; daysAgo: number }[] = [{ who: "gary", daysAgo: 3 }];
 
+/* ---------------------------------------------------------------- messages */
+
+// Messages between the person and their friends. The friends' words are examples; anything the
+// person writes stays on this device, and a friend's answer is an example too.
+
+/** One line in a conversation, `minutesAgo` before the page opened. A voice note has its words as `text`. */
+export type DirectLine = { id: string; from: "them" | "you"; text: string; minutesAgo: number; voice?: { seconds: number } };
+export type Conversation = {
+  who: PersonId;
+  lines: DirectLine[];
+  /** How many of the newest lines from them are waiting to be read. */
+  unread: number;
+  /** What they say back, a moment after the person writes (once a visit). */
+  reply: string;
+  quickReplies: string[];
+  about: string;
+  memberSince: string;
+  friendsSince: string;
+};
+
+export const conversations: Conversation[] = [
+  {
+    who: "margaret", unread: 2,
+    lines: [
+      { id: "dm-m1", from: "you", text: "Those tomatoes look wonderful. Are you saving any?", minutesAgo: 24 },
+      { id: "dm-m2", from: "them", text: "The rest are going in a tart for Saturday. My granddaughter is helping.", minutesAgo: 13 },
+      { id: "dm-m3", from: "them", text: "I promised you one, so I kept the best one for you.", minutesAgo: 12 },
+    ],
+    reply: "You're very welcome. I'll bring it round on Sunday, with a slice of the tart.",
+    quickReplies: ["Thank you", "That's lovely to hear", "Speak soon"],
+    about: "Gardener, grandmother and proud owner of the first tomatoes of the year.",
+    memberSince: "March 2026", friendsSince: "September 2026",
+  },
+  {
+    who: "david", unread: 1,
+    lines: [
+      { id: "dm-d1", from: "you", text: "How did Biscuit get on at the vet?", minutesAgo: 180 },
+      { id: "dm-d2", from: "them", text: "Biscuit and I are doing the canal walk on Wednesday at seven. Fancy coming along? We'll go slowly.", minutesAgo: 40, voice: { seconds: 18 } },
+    ],
+    reply: "Brilliant. Seven at the park gate, then. Biscuit will be thrilled.",
+    quickReplies: ["Count me in", "Maybe next time", "Thank you"],
+    about: "Walks with Biscuit, his dog, most mornings. Always glad of company at a slow pace.",
+    memberSince: "January 2026", friendsSince: "August 2026",
+  },
+  {
+    who: "anne", unread: 0,
+    lines: [
+      { id: "dm-a1", from: "you", text: "It was so good to talk on Thursday.", minutesAgo: 1500 },
+      { id: "dm-a2", from: "them", text: "Thank you for Thursday. It meant a lot to talk to someone who gets it.", minutesAgo: 1440 },
+    ],
+    reply: "Same time next week? I'll bring the biscuits.",
+    quickReplies: ["Me too", "Same time next week?", "Thinking of you"],
+    about: "Retired teacher from Bath. Crosswords, tea and a bit of gardening.",
+    memberSince: "February 2026", friendsSince: "September 2026",
+  },
+];
+export const CONVERSATION_IDS: PersonId[] = conversations.map(item => item.who);
+/** For a friend with no messages yet: how a new conversation starts. */
+export const newConversation = {
+  reply: "Hello! Lovely to hear from you.",
+  quickReplies: ["Hello!", "How are you doing?", "Thinking of you"],
+};
+
 /* ------------------------------------------------------------------ safety */
 
 export type ReportReason = "money" | "health" | "unkind" | "fake" | "other";
@@ -495,7 +583,7 @@ export const ALERT_IDS: AlertId[] = communityAlerts.map(alert => alert.id);
 
 export type PictureChoice = "drawn" | "photo" | "initial";
 export type RequestsFrom = "everyone" | "friendsOfFriends" | "noOne";
-export type MessagesFrom = "friends" | "friendsAndGroups";
+export type MessagesFrom = "friends" | "friendsAndGroups" | "noOne";
 export type PostsSeenBy = "everyone" | "friends" | "onlyMe";
 export type TextSize = "smaller" | "normal" | "bigger";
 export type BreakChoice = "none" | "day" | "week";
@@ -504,7 +592,7 @@ export type BreakChoice = "none" | "day" | "week";
 export const settingsChoices = {
   picture: [{ id: "drawn", label: "Drawn face" }, { id: "photo", label: "My photo" }, { id: "initial", label: "Initial" }] as { id: PictureChoice; label: string }[],
   requestsFrom: [{ id: "everyone", label: "Everyone" }, { id: "friendsOfFriends", label: "Friends of friends" }, { id: "noOne", label: "No one" }] as { id: RequestsFrom; label: string }[],
-  messagesFrom: [{ id: "friends", label: "Only friends" }, { id: "friendsAndGroups", label: "Friends and my groups" }] as { id: MessagesFrom; label: string }[],
+  messagesFrom: [{ id: "friends", label: "Only friends" }, { id: "friendsAndGroups", label: "Friends and my groups" }, { id: "noOne", label: "No one" }] as { id: MessagesFrom; label: string }[],
   /** Who sees the person's own posts in the feed. */
   postsSeenBy: [{ id: "everyone", label: "Everyone" }, { id: "friends", label: "Friends" }, { id: "onlyMe", label: "Only me" }] as { id: PostsSeenBy; label: string }[],
   /** The size of post text at each choice (normal is the size the feed was designed at). */

@@ -15,6 +15,7 @@ import FindPanel from "./FindPanel";
 import FriendsDrawer from "./FriendsDrawer";
 import { friendsVisit } from "./friends-visit";
 import { myGroups } from "./group-model";
+import { chatById } from "./messages-model";
 import { SafetySheetSteps, type SheetStep } from "./PostMenu";
 import { SafetyPage } from "./SafetyView";
 import SettingsView from "./SettingsView";
@@ -90,9 +91,10 @@ function problemWith(href: string, groups: string[]): string | null {
   if (!APP_PATHS.includes(url.pathname)) return `"${href}" is not a route in App.tsx`;
   if (url.pathname === "/community") {
     const view = communityViewFromQuery(url.search);
-    const again = communityHref(view.space, view.group, { panel: view.panel ?? null, tab: view.tab ?? null, section: view.section ?? null });
+    const again = communityHref(view.space, view.group, { panel: view.panel ?? null, tab: view.tab ?? null, section: view.section ?? null, chat: view.chat ?? null });
     if (again !== href) return `"${href}" has parts the community ignores (it opens ${again})`;
     if (view.space === "groups" && view.group && !groups.includes(view.group)) return `"${href}" names a group that isn't there`;
+    if (view.space === "messages" && view.chat && !chatById(held.memory ?? blankCommunityMemory(), view.chat)) return `"${href}" names a conversation that isn't there`;
   }
   if (url.pathname === "/fast-check" && !url.searchParams.get("returnTo")) return `"${href}" has no way back`;
   return null;
@@ -111,7 +113,11 @@ function deadEnds(drawn: ReturnType<typeof draw>) {
 
 /* ------------------------------------------------------------- the sweep */
 
-const SPACES = ["/community", "/community?space=lounge", "/community?space=circle", "/community?space=groups", "/community?space=groups&group=walk", "/community?space=start", "/community?space=settings", "/community?space=safety"];
+const SPACES = [
+  "/community", "/community?space=lounge", "/community?space=circle", "/community?space=groups", "/community?space=groups&group=walk",
+  "/community?space=messages", "/community?space=messages&chat=david", "/community?space=messages&chat=garden", "/community?space=friends",
+  "/community?space=start", "/community?space=settings", "/community?space=safety",
+];
 
 describe("every control in My community leads somewhere", () => {
   it("on every view, with the toolbar and the Friends drawer at every tab", () => {

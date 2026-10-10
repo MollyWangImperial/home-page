@@ -133,7 +133,7 @@ describe("the Find panel", () => {
     const html = findPanel();
     const text = words(html);
     expect(tagWith(html, "div", 'role="dialog"', 'aria-modal="true"', 'class="cm-dialog cm-dialog-panel cm-al-find"')).toBe(true);
-    expect(html).toMatch(/<h2 id="[^"]+"[^>]*>Find<\/h2>/);
+    expect(html).toMatch(/<h2 id="[^"]+"[^>]*>Search<\/h2>/);
     expect(tagWith(html, "input", 'type="search"', "data-autofocus", 'placeholder="A name, a group or a place"')).toBe(true);
     expect(tagWith(html, "p", 'role="status"', 'class="cm-al-find-count"')).toBe(true);
     for (const href of ["/community", "/community?space=lounge", "/community?space=circle", "/community?space=groups", "/community?space=start", "/community?panel=friends", "/community?space=safety", "/community?space=settings"]) {
@@ -163,14 +163,15 @@ describe("what Find finds", () => {
     expect(findInCommunity(blank, "LI WEI", FEED).people.map(item => item.who)).toEqual(["liwei"]);
     expect(findInCommunity(blank, "quiet", FEED).places.map(place => place.id)).toEqual(["settings"]);
     expect(findInCommunity(blank, "blocked", FEED).places.map(place => place.id)).toEqual(["friends-blocked", "safety"]);
-    expect(findInCommunity(blank, "friends", FEED).places.map(place => place.id)).toEqual(["friends", "friends-list"]);
+    expect(findInCommunity(blank, "friends", FEED).places.map(place => place.id)).toEqual(["friends", "friends-list", "privacy"]);
+    expect(findInCommunity(blank, "messages", FEED).places.map(place => place.id)).toContain("messages");
     const joan = findInCommunity(blank, "joan", FEED);
     expect(joan.people.map(item => item.who)).toEqual(["joan"]);
     expect(joan.suggested.map(group => group.id)).toEqual(["knit"]);
     const none = findInCommunity(blank, "zzz", FEED);
     expect(none.total).toBe(0);
     expect(foundLabel(none)).toBe("Nothing found");
-    expect(findInCommunity(blank, "   ", FEED).browse.map(place => place.id)).toEqual(["feed", "lounge", "circle", "groups", "start", "friends", "safety", "settings"]);
+    expect(findInCommunity(blank, "   ", FEED).browse.map(place => place.id)).toEqual(["feed", "lounge", "circle", "groups", "messages", "start", "friends", "safety", "settings"]);
   });
 
   it("never finds someone blocked, and Gary is not one of the people to find", () => {
@@ -209,7 +210,7 @@ describe("what Find finds", () => {
 
     const nothing = results("zzz");
     expect(words(nothing)).toContain("Nothing found for “zzz”");
-    expect(tags(nothing, "a", "cm-al-find-place")).toHaveLength(8);
+    expect(tags(nothing, "a", "cm-al-find-place")).toHaveLength(9);
 
     const lounge = results("lounge", LOUNGE, "/community?space=lounge");
     expect(tagWith(lounge, "a", 'href="/community?space=lounge"', 'aria-current="page"')).toBe(true);

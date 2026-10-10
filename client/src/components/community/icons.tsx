@@ -50,6 +50,12 @@ export const ClockIcon = (props: IconProps) => <Icon {...props}><circle cx="12" 
 export const MoonIcon = (props: IconProps) => <Icon {...props}><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" /></Icon>;
 export const SpeakerIcon = (props: IconProps) => <Icon {...props}><path d="M11 5 6 9H3v6h3l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /></Icon>;
 export const ChevronDownIcon = (props: IconProps) => <Icon strokeWidth={2} {...props}><path d="m6 9 6 6 6-6" /></Icon>;
+export const ChevronUpIcon = (props: IconProps) => <Icon strokeWidth={2} {...props}><path d="m6 15 6-6 6 6" /></Icon>;
+/* Messages and the circle's calendar. */
+export const PenIcon = (props: IconProps) => <Icon {...props}><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z" /><path d="m14.5 7.5 3 3" /></Icon>;
+export const CalendarIcon = (props: IconProps) => <Icon {...props}><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></Icon>;
+export const BellOffIcon = (props: IconProps) => <Icon {...props}><path d="M3 3l18 18" /><path d="M8.6 3.9A6 6 0 0 1 18 8c0 3 .6 5.1 1.3 6.5M17 17H3s3-2 3-9c0-.5 0-1 .2-1.5" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></Icon>;
+export const DownloadIcon = (props: IconProps) => <Icon {...props}><path d="M12 4v11" /><path d="m7 10 5 5 5-5" /><path d="M5 20h14" /></Icon>;
 export const MinusIcon = (props: IconProps) => <Icon strokeWidth={2.2} {...props}><path d="M5 12h14" /></Icon>;
 export const QuestionIcon = (props: IconProps) => <Icon {...props}><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.5" /><circle cx="12" cy="17" r=".6" /></Icon>;
 export const PauseCircleIcon = (props: IconProps) => <Icon {...props}><circle cx="12" cy="12" r="9" /><path d="M10 9v6M14 9v6" /></Icon>;

@@ -3,7 +3,7 @@ import { Link, useSearch } from "wouter";
 import { people, type PersonId, type SampleGroup, type SuggestedGroupId } from "@/content/community-samples";
 import { communityHref, communityStore, friendsHref, leadsHere, relationship, useCommunity, type CommunityPlace, type Relationship } from "@/lib/community-store";
 import { friendChangeNote, highlight, type FindResults, type Place, type PlaceId } from "./alerts-helpers";
-import { BlockIcon, ChatIcon, CheckIcon, ClockIcon, CupIcon, HandIcon, HeartIcon, NextIcon, PlusIcon, RingIcon, ShieldIcon, SlidersIcon, UsersIcon } from "./icons";
+import { BlockIcon, ChatIcon, CheckIcon, ClockIcon, CupIcon, HandIcon, HeartIcon, LockIcon, NextIcon, PenIcon, PlusIcon, RingIcon, ShieldIcon, SlidersIcon, UsersIcon } from "./icons";
 import { Cover, Face, FriendButton } from "./parts";
 
 // What Find shows under its search box (FindPanel.tsx). Before anything is typed: the places in
@@ -16,11 +16,13 @@ const placeLook: Record<PlaceId, { tone: string; icon: ReactNode }> = {
   lounge: { tone: "rose", icon: <CupIcon size={20} /> },
   circle: { tone: "circle", icon: <RingIcon size={20} /> },
   groups: { tone: "mint", icon: <ChatIcon size={20} /> },
+  messages: { tone: "lilac", icon: <PenIcon size={20} /> },
   start: { tone: "start", icon: <PlusIcon size={20} /> },
   friends: { tone: "blue", icon: <UsersIcon size={20} /> },
   "friends-sent": { tone: "blue", icon: <ClockIcon size={20} /> },
   "friends-list": { tone: "blue", icon: <HandIcon size={20} /> },
   "friends-blocked": { tone: "amber", icon: <BlockIcon size={20} /> },
+  privacy: { tone: "blue", icon: <LockIcon size={20} /> },
   safety: { tone: "rose", icon: <ShieldIcon size={20} /> },
   settings: { tone: "lilac", icon: <SlidersIcon size={20} /> },
 };

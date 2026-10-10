@@ -5,26 +5,30 @@
    (cm-al-, for Alerts and Find). Overlays render in .cm-layer, beside the page, so it shares the
    page's colours and sizes. */
 
+/* The colours: a deep, premium green with gold lettering, on warm cream and white cards. */
 .cm-page, .cm-layer {
-  --cm-ink: #1E2A26;
-  --cm-muted: #5F6B66;
-  --cm-soft-ink: #4F5A55;
-  --cm-card: #FDFCF9;
-  --cm-line: #E6E2DA;
-  --cm-chip-line: #DDD7CB;
-  --cm-cream: #F5F3EE;
-  --cm-bubble: #F1EEE6;
-  --cm-green: #1C4A3C;
-  --cm-green-2: #2B5B4B;
+  --cm-ink: #1B2A24;
+  --cm-muted: #5E6A64;
+  --cm-soft-ink: #4A5751;
+  --cm-card: #FFFFFF;
+  --cm-line: #ECE6DA;
+  --cm-chip-line: #DED7C8;
+  --cm-cream: #F6F2EA;
+  --cm-bubble: #F4F0E7;
+  --cm-deep: #143628;
+  --cm-green: #173D2F;
+  --cm-green-2: #24503F;
   --cm-ok: #2E7D5B;
-  --cm-mint: #E3EFE6;
+  --cm-mint: #E5EEE7;
   --cm-sage: #CFE2D6;
-  --cm-gold: #EBCB93;
+  --cm-gold: #D9BA73;
+  --cm-gold-soft: #F6EEDB;
+  --cm-gold-ink: #7A5C22;
   --cm-rust: #B5522E;
   --cm-rust-dark: #8F3520;
   --cm-live: #C8553A;
-  --cm-placeholder: #5F6B66;
-  --cm-shadow: 0 6px 20px rgba(30, 42, 38, .05);
+  --cm-placeholder: #5E6A64;
+  --cm-shadow: 0 10px 30px rgba(20, 54, 40, .06);
   --cm-serif: "Instrument Serif", Georgia, serif;
   --cm-post: 19px;
   --cm-message: 17px;
@@ -38,59 +42,60 @@
 :is(.cm-page, .cm-layer) :where(a) { text-decoration: none; }
 .cm-sr, .cm-page .chat-sr { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-/* Focus stays visible on the dark green panels too (and on the light bar that sits on one). */
-.cm-page :is(.cm-stage, .cm-circle-card) :focus-visible { outline-color: var(--cm-gold) !important; }
+/* Focus stays visible on the deep green panels too (and on the light bar that sits on one). */
+:is(.cm-page, .cm-layer) :is(.cm-head, .cm-circle-card, .cm-circle-note, .cm-fp-safety, .cm-dock-head, .cm-dock-bar) :focus-visible,
+.cm-layer .cm-dock-bar:focus-visible { outline: 3px solid var(--cm-gold) !important; outline-offset: 3px; }
 .cm-page .cm-stage .cm-turn :focus-visible { outline-color: #159A8E !important; }
 
 /* ---------------------------------------------------------------- heading */
 
-.cm-head { display: grid; gap: 14px; margin-bottom: 18px; }
-.cm-head-row { display: flex; align-items: center; justify-content: space-between; gap: 16px 20px; flex-wrap: wrap; }
+/* The header: a deep green band with the title, how many friends, groups and people in the lounge
+   there are, the toolbar and the tabs, and a faint line drawn across it like hills, or a pulse. */
+.cm-head { position: relative; display: grid; gap: 24px; margin-bottom: 22px; padding: 28px 32px 24px; overflow: hidden; border-radius: 28px; background: var(--cm-deep); color: #FFFFFF; box-shadow: 0 18px 40px rgba(20, 54, 40, .16); }
+.cm-head-art { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: rgba(255, 255, 255, .13); stroke-width: 1.5; pointer-events: none; }
+.cm-head-row { position: relative; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px 20px; flex-wrap: wrap; }
+.cm-head-titles { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .cm-title { font: 400 48px/1.05 var(--cm-serif); letter-spacing: -0.01em; color: var(--cm-ink); }
+.cm-head .cm-title { color: #FFFFFF; font-size: 52px; }
 .cm-title:focus-visible { outline-offset: 6px; }
+.cm-head-sub { color: rgba(255, 255, 255, .74); font-size: 15.5px; line-height: 1.4; }
 
-/* The community look: a dotted page, so My community feels like its own place in the app. */
-.recovery-shell.cm-shell { background-color: #F5F3EE; background-image: radial-gradient(rgba(30, 42, 38, .075) 1.1px, transparent 1.3px); background-size: 22px 22px; }
+/* The community look: warm cream, so My community feels like its own place in the app. */
+.recovery-shell.cm-shell { background-color: #F3EFE7; background-image: none; }
 @media (min-width: 621px) { .recovery-shell.cm-shell .recovery-topbar { background: transparent; } }
 
-/* The three-circle mark beside the title. */
-.cm-brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.cm-mark { position: relative; flex-shrink: 0; width: 46px; height: 34px; }
-.cm-mark i { position: absolute; width: 22px; height: 22px; border-radius: 999px; }
-.cm-mark i:nth-child(1) { left: 0; top: 6px; background: #E8795A; opacity: .9; }
-.cm-mark i:nth-child(2) { left: 12px; top: 0; background: #F2C14E; opacity: .9; mix-blend-mode: multiply; }
-.cm-mark i:nth-child(3) { left: 24px; top: 8px; background: #2E7D5B; opacity: .85; mix-blend-mode: multiply; }
+/* The toolbar: Search, Alerts, Friends, Safety, Settings. Each is a round icon with its name under it. */
+.cm-tools { display: flex; align-items: flex-start; gap: 4px; }
+.cm-tool { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 62px; padding: 0; border: 0; border-radius: 16px; background: none; color: #FFFFFF; font: inherit; cursor: pointer; }
+.cm-tool-icon { position: relative; display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border: 1.5px solid rgba(255, 255, 255, .28); border-radius: 999px; background: rgba(255, 255, 255, .04); color: #FFFFFF; transition: background .2s ease, border-color .2s ease, color .2s ease; }
+.cm-tool-label { color: rgba(255, 255, 255, .88); font-size: 12.5px; font-weight: 600; line-height: 1.2; }
+.cm-tool:hover .cm-tool-icon { border-color: rgba(255, 255, 255, .55); background: rgba(255, 255, 255, .1); }
+.cm-tool.is-on .cm-tool-icon { border-color: #F4EFE4; background: #F4EFE4; color: var(--cm-deep); }
+.cm-tool.is-on .cm-tool-label { color: #FFFFFF; font-weight: 700; }
+.cm-tool:hover, .cm-tool:focus-visible { color: #FFFFFF; }
+.cm-tool-badge { position: absolute; top: -5px; right: -6px; display: flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border: 2px solid var(--cm-deep); border-radius: 999px; background: var(--cm-rust); color: #FFFFFF; font-size: 12px; font-weight: 700; line-height: 1; }
 
-/* The toolbar: Find, Alerts, Friends, Safety, Settings. Each is a round icon with its name under it. */
-.cm-tools { display: flex; align-items: flex-start; gap: 6px; }
-.cm-tool { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 62px; padding: 0; border: 0; border-radius: 16px; background: none; color: var(--cm-ink); font: inherit; cursor: pointer; }
-.cm-tool-icon { position: relative; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; border: 1.5px solid var(--cm-chip-line); border-radius: 999px; background: var(--cm-card); color: var(--cm-green); transition: background .2s ease, border-color .2s ease, color .2s ease; }
-.cm-tool-label { color: var(--cm-ink); font-size: 13px; font-weight: 600; line-height: 1.2; }
-.cm-tool:hover .cm-tool-icon { border-color: #BDB5A5; background: #FFFFFF; }
-.cm-tool.is-on .cm-tool-icon { border-color: var(--cm-green); background: var(--cm-green); color: #FFFFFF; }
-.cm-tool.is-on .cm-tool-label { font-weight: 700; }
-.cm-tool:hover, .cm-tool:focus-visible { color: var(--cm-ink); }
-.cm-tool-badge { position: absolute; top: -5px; right: -6px; display: flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border: 2px solid var(--cm-cream); border-radius: 999px; background: var(--cm-rust); color: #FFFFFF; font-size: 12.5px; font-weight: 700; line-height: 1; }
+/* The tabs, along the bottom of the header. The open one is cream. */
+.cm-tabs { position: relative; display: flex; flex-wrap: wrap; gap: 10px; }
+.cm-tab { display: inline-flex; align-items: center; gap: 9px; height: 46px; padding: 0 18px; border-radius: 999px; border: 1.5px solid rgba(255, 255, 255, .26); background: transparent; color: #FFFFFF; font-size: 15.5px; font-weight: 600; white-space: nowrap; transition: background .2s ease, border-color .2s ease; }
+.cm-tab:hover { border-color: rgba(255, 255, 255, .55); background: rgba(255, 255, 255, .07); color: #FFFFFF; }
+.cm-tab.is-active { border-color: #F4EFE4; background: #F4EFE4; color: var(--cm-ink); font-weight: 700; }
+.cm-tab.is-active:hover { color: var(--cm-ink); }
+.cm-tab-note { font-size: 13.5px; font-weight: 700; }
+.cm-tab-note-rust { color: #F4A68A; }
+.cm-tab-note-gold { color: #E2C47E; }
+.cm-tab.is-active .cm-tab-note-rust { color: var(--cm-rust-dark); }
+.cm-tab.is-active .cm-tab-note-gold { color: var(--cm-gold-ink); }
 
-
-.cm-tabs { display: flex; flex-wrap: wrap; gap: 10px; }
-.cm-tab { display: inline-flex; align-items: center; gap: 9px; height: 48px; padding: 0 18px; border-radius: 999px; border: 1.5px solid var(--cm-chip-line); background: var(--cm-card); color: var(--cm-ink); font-size: 16.5px; font-weight: 600; white-space: nowrap; transition: background .2s ease, border-color .2s ease; }
-.cm-tab:first-child { padding: 0 20px; }
-.cm-tab:hover { border-color: #BDB5A5; color: var(--cm-ink); }
-.cm-tab.is-active { border-color: var(--cm-green); background: var(--cm-green); color: #FFFFFF; font-weight: 700; }
-.cm-tab-note { font-size: 14px; font-weight: 700; }
-.cm-tab-note-rust { color: var(--cm-rust-dark); }
-.cm-tab-note-amber { color: #6B5108; }
-.cm-tab.is-active .cm-tab-note-rust { color: #FBE3DB; }
-.cm-tab.is-active .cm-tab-note-amber { color: var(--cm-gold); }
-
-.cm-badge { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: var(--cm-rust); color: #FFFFFF; font-size: 13.5px; font-weight: 700; }
+.cm-badge { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: var(--cm-rust); color: #FFFFFF; font-size: 13px; font-weight: 700; }
 
 /* ----------------------------------------------------------------- layout */
 
-.cm-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+.cm-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
 .cm-lane, .cm-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .cm-card { border: 1px solid var(--cm-line); border-radius: 24px; background: var(--cm-card); box-shadow: var(--cm-shadow); }
+/* Room for the Messages window at the bottom of the page. */
+.cm-page { padding-bottom: 76px; }
 
 @container cm (max-width: 760px) {
   .cm-layout { grid-template-columns: minmax(0, 1fr); }
@@ -138,6 +143,10 @@
 .cm-overline { color: var(--cm-ok); font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
 .cm-overline-dark { color: #24694B; }
 .cm-overline-rust { color: var(--cm-rust); }
+.cm-overline-gold { color: var(--cm-gold-ink); }
+/* A card's title, in the serif. */
+:is(.cm-page, .cm-layer) .cm-side-title { color: var(--cm-ink); font: 400 25px/1.1 var(--cm-serif); }
+.cm-side-title:focus-visible { outline-offset: 4px; }
 .cm-card-note { color: var(--cm-muted); font-size: 13.5px; line-height: 1.45; }
 .cm-status { color: var(--cm-green); font-size: 15px; font-weight: 600; line-height: 1.45; }
 .cm-status:not(:empty) { margin-top: 10px; }
@@ -150,7 +159,10 @@
 .cm-btn-small { min-height: 44px; padding: 0 16px; font-size: 15.5px; }
 .cm-btn-large { min-height: 56px; padding: 0 24px; border-radius: 16px; font-size: 18px; }
 .cm-btn-green { background: var(--cm-green); color: #FFFFFF; }
-.cm-btn-green:hover { background: #163C31; color: #FFFFFF; }
+.cm-btn-green:hover { background: #0F2C21; color: #FFFFFF; }
+.cm-btn-gold { background: var(--cm-gold); color: var(--cm-deep); }
+.cm-btn-gold:hover { background: #E4C988; color: var(--cm-deep); }
+.cm-btn-wide { width: 100%; }
 .cm-btn-rust { background: var(--cm-rust); color: #FFFFFF; }
 .cm-btn-rust:hover { background: #A04626; color: #FFFFFF; }
 .cm-btn-quiet { border: 1.5px solid var(--cm-chip-line); background: transparent; color: var(--cm-green); }
@@ -173,6 +185,9 @@
 .cm-quick-lilac { background: #E9E2F4; color: #45357A; }
 .cm-quick-rose { background: #FBE3DB; color: var(--cm-rust-dark); }
 .cm-quick-plain { border: 1.5px solid #CFC9BC; background: transparent; color: var(--cm-ink); }
+/* A quick reply as a white chip with a fine edge, whatever its colour elsewhere. */
+.cm-quick.cm-quick-chip { border: 1.5px solid var(--cm-chip-line); background: var(--cm-card); color: var(--cm-ink); font-weight: 600; }
+.cm-quick.cm-quick-chip:hover { border-color: #BDB5A5; background: var(--cm-bubble); }
 .cm-quick[aria-pressed="true"] { box-shadow: inset 0 0 0 2px currentColor; }
 .cm-love { display: grid; place-items: center; flex-shrink: 0; width: 46px; height: 46px; margin-left: auto; border: 0; border-radius: 999px; background: #FBE3DB; color: var(--cm-live); cursor: pointer; }
 
@@ -180,15 +195,18 @@
 .cm-chat-input { display: flex; flex-direction: column; gap: 8px; }
 .cm-chat-row { display: flex; align-items: center; gap: 12px; }
 .cm-chat-field { display: flex; flex: 1; min-width: 0; }
-.cm-chat-field input { width: 100%; min-width: 0; height: 56px; padding: 0 20px; border: 1px solid var(--cm-line); border-radius: 999px; background: var(--cm-cream); color: var(--cm-ink); font: 400 17.5px "DM Sans", system-ui, sans-serif; }
+.cm-chat-field input { width: 100%; min-width: 0; height: 56px; padding: 0 22px; border: 1.5px solid #E3DCCD; border-radius: 999px; background: #FFFFFF; color: var(--cm-ink); font: 400 17.5px "DM Sans", system-ui, sans-serif; }
 .cm-chat-field input::placeholder { color: var(--cm-placeholder); opacity: 1; }
 .cm-round { display: grid; place-items: center; flex-shrink: 0; width: 56px; height: 56px; border: 0; border-radius: 999px; cursor: pointer; }
 .cm-round-small { width: 48px; height: 48px; }
 .cm-round-voice { background: var(--cm-rust); color: #FFFFFF; }
 .cm-round-voice.is-on { background: var(--cm-rust-dark); box-shadow: 0 0 0 4px #FBE3DB; }
-.cm-round-photo { background: #DCECF4; color: #1F4E66; }
+.cm-round-photo { border: 1.5px solid #E3DCCD; background: #FFFFFF; color: var(--cm-green); }
 .cm-round-send { background: var(--cm-green); color: #FFFFFF; }
-.cm-round-send:hover { background: #163C31; }
+.cm-round-send:hover { background: #0F2C21; }
+/* "Send", written on the button where there is room. */
+.cm-send-pill { flex-shrink: 0; height: 56px; padding: 0 28px; border: 0; border-radius: 999px; background: var(--cm-green); color: #FFFFFF; font-size: 16.5px; font-weight: 700; cursor: pointer; }
+.cm-send-pill:hover { background: #0F2C21; }
 .cm-attached { position: relative; align-self: flex-start; width: 120px; }
 .cm-attached img { display: block; width: 100%; height: 90px; border-radius: 12px; object-fit: cover; }
 .cm-attached .cm-icon-button { position: absolute; top: -10px; right: -12px; }
@@ -406,22 +424,33 @@
 .cm-group-text > b { font-size: 16.5px; font-weight: 700; }
 .cm-group-text > span { overflow: hidden; color: var(--cm-muted); font-size: 14px; white-space: nowrap; text-overflow: ellipsis; }
 .cm-group-text > a { align-self: flex-start; margin: -13px 0; padding: 13px 0; font-size: 14px; }
-.cm-start-link { display: flex; align-items: center; justify-content: center; gap: 8px; height: 50px; margin-top: 2px; border: 1.5px dashed var(--cm-rust); border-radius: 14px; color: var(--cm-rust-dark); font-size: 16px; font-weight: 700; }
-.cm-start-link:hover { background: #FBF0EB; color: var(--cm-rust-dark); }
+.cm-start-link { display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; margin-top: 4px; border: 1.5px solid var(--cm-chip-line); border-radius: 999px; color: var(--cm-ink); font-size: 15.5px; font-weight: 700; }
+.cm-start-link:hover { border-color: #BDB5A5; background: var(--cm-bubble); color: var(--cm-ink); }
 
-/* The Sunday circle card in the feed. */
-.cm-circle-card { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 16px 18px 18px; overflow: hidden; border-radius: 22px; background: var(--cm-green); color: #FFFFFF; }
-.cm-mini-circle { position: relative; align-self: center; width: 264px; height: 112px; }
-.cm-mini-glow { position: absolute; left: 62px; top: -14px; width: 140px; height: 140px; border-radius: 999px; background: radial-gradient(circle, rgba(232, 184, 106, .34) 0%, rgba(232, 184, 106, 0) 68%); animation: cm-glow 5s ease-in-out infinite; }
-.cm-mini-ring { position: absolute; left: 28px; top: 18px; width: 208px; height: 76px; border: 1.5px dashed rgba(255, 255, 255, .26); border-radius: 50%; }
-.cm-mini-seat { position: absolute; width: 34px; height: 34px; }
-.cm-mini-face { box-shadow: 0 0 0 2px var(--cm-green-2); }
-.cm-empty-seat { position: relative; display: block; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 999px; background: transparent; }
-.cm-seat-pulse { position: absolute; inset: 0; border-radius: 999px; background: var(--cm-gold); animation: cm-seat 2s ease-out infinite; }
-.cm-empty-plus { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; border: 2px dashed var(--cm-gold); border-radius: 999px; background: var(--cm-green); color: var(--cm-gold); }
-.cm-circle-card-text h3 { color: #FFFFFF; font: 400 27px/1.1 var(--cm-serif); }
-.cm-circle-card-text p { margin-top: 3px; color: var(--cm-sage); font-size: 14.5px; }
+/* The lounge card in the feed: a line from the lounge, and the way in. */
+.cm-quote { padding: 14px 16px; border-radius: 16px; background: var(--cm-bubble); }
+.cm-quote blockquote { margin: 0; color: var(--cm-ink); font-size: 15.5px; line-height: 1.45; }
+.cm-quote figcaption { margin-top: 6px; color: var(--cm-muted); font-size: 13.5px; }
+
+/* The Sunday circle card in the feed: deep green, with gold. */
+.cm-circle-card { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 20px 20px 20px; overflow: hidden; border-radius: 24px; background: var(--cm-deep); color: #FFFFFF; box-shadow: 0 14px 30px rgba(20, 54, 40, .16); }
+.cm-circle-card-over { display: flex; align-items: center; gap: 8px; color: var(--cm-gold); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.cm-circle-card-text h3 { color: #FFFFFF; font: 400 32px/1.05 var(--cm-serif); }
+.cm-circle-card-text p { margin-top: 6px; color: rgba(255, 255, 255, .86); font-size: 16.5px; line-height: 1.4; }
+.cm-seat-meter { display: flex; flex-direction: column; gap: 8px; color: rgba(255, 255, 255, .78); font-size: 13.5px; }
+.cm-seat-bar { display: block; height: 6px; overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, .18); }
+.cm-seat-bar > span { display: block; height: 100%; border-radius: 999px; background: var(--cm-gold); }
 .cm-circle-card .cm-btn { margin-top: 2px; }
+.cm-empty-seat { position: relative; display: block; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 999px; background: transparent; }
+.cm-empty-plus { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; border: 2px dashed #C9AE6E; border-radius: 999px; background: var(--cm-gold-soft); color: var(--cm-gold-ink); }
+
+/* People you may know, and the small print under the side column. */
+.cm-people { display: flex; flex-direction: column; gap: 10px; padding: 0; list-style: none; }
+.cm-people li { display: flex; align-items: center; gap: 12px; }
+.cm-people .cm-friend { height: 40px; min-height: 44px; padding: 0 14px; border-color: var(--cm-chip-line); color: var(--cm-ink); font-size: 14px; }
+.cm-people .cm-friend.is-on { border-color: var(--cm-green); background: var(--cm-green); color: #FFFFFF; }
+.cm-side-foot { display: flex; flex-direction: column; gap: 6px; padding: 0 6px; color: var(--cm-muted); font-size: 13.5px; line-height: 1.45; }
+.cm-side-foot .cm-inline-link { align-self: flex-start; font-size: 13.5px; text-decoration: underline; text-underline-offset: 3px; }
 
 /* ------------------------------------------------------------- animation */
 
@@ -480,18 +509,22 @@
 }
 
 @media (max-width: 620px) {
-  .cm-title { font-size: 40px; }
+  .cm-title, .cm-head .cm-title { font-size: 40px; }
+  .cm-head { gap: 18px; padding: 22px 16px 16px; border-radius: 22px; }
+  .cm-head-sub { font-size: 14.5px; }
   .cm-tools { justify-content: space-between; width: 100%; gap: 2px; }
   .cm-tool { width: 60px; }
-  .cm-tabs { gap: 8px; }
-  .cm-tab, .cm-tab:first-child { height: 46px; padding: 0 14px; gap: 7px; font-size: 15.5px; }
+  /* The tabs slide sideways rather than stacking up. */
+  .cm-tabs { flex-wrap: nowrap; gap: 8px; margin: 0 -16px; padding: 2px 16px 4px; overflow-x: auto; scrollbar-width: none; }
+  .cm-tabs::-webkit-scrollbar { display: none; }
+  .cm-tab { flex-shrink: 0; height: 44px; padding: 0 14px; gap: 7px; font-size: 15px; }
   .cm-side-card, .cm-composer { padding: 16px; }
   .cm-page { --cm-post: 18px; }
 }
 
 @media (max-width: 360px) {
-  .cm-tool { width: 56px; }
-  .cm-tool-icon { width: 46px; height: 46px; }
+  .cm-tool { width: 54px; }
+  .cm-tool-icon { width: 44px; height: 44px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

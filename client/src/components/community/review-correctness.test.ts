@@ -4,8 +4,14 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { Router } from "wouter";
 import { createCommunityStore, type CommunityMemory } from "@/lib/community-store";
 import CircleView from "./Circle";
+import { calendarPage, circleIcs, googleCalendarUrl, nextMeeting, outlookCalendarUrl } from "./circle-calendar";
 import FeedView from "./Feed";
+import FriendsPage from "./FriendsPage";
 import GroupsView from "./Groups";
+import LoungeView from "./Lounge";
+import MessagesView from "./Messages";
+import MessagesDock from "./MessagesDock";
+import { unreadMessages } from "./messages-model";
 import StartGroupView from "./StartGroup";
 
 // Review checks for the My community toolbar features (Find, Alerts, Friends, Safety, Settings).
@@ -49,7 +55,7 @@ describe("a blocked person stays out of sight across My community", () => {
     const text = render("/community?space=circle", createElement(CircleView, { active: false, name: "Zak" }));
     expect(text).not.toContain("Margaret");
     expect(text).toContain("Eight of us here. One seat is yours.");
-    expect(text).toContain("8 here");
+    expect(text).not.toContain("My granddaughter");
   });
 
   // Someone whose posts are hidden keeps their seat (only their words are hidden).
@@ -78,6 +84,109 @@ describe("a blocked person stays out of sight across My community", () => {
 
   it("guard: the feed's My groups card quotes Margaret while she is in sight", () => {
     expect(render("/community", createElement(FeedView, { name: "Zak", here: 14, onMore: () => {} }))).toContain("Margaret: First tomatoes!");
+  });
+
+  // The lounge's one-tap replies name people: one to someone blocked would reach nobody.
+  it("leaves out the lounge's quick reply to someone blocked", () => {
+    const lounge = () => render("/community?space=lounge", createElement(LoungeView, { active: false, here: 14, onHere: () => {} }));
+    expect(lounge()).toContain("Welcome, Tomasz");
+    store.block("tomasz");
+    const text = lounge();
+    expect(text).not.toContain("Welcome, Tomasz");
+    expect(text).toContain("Well done, Margaret");
+  });
+
+  // Messages: a blocked friend's conversation goes, and so does their unread count.
+  it("leaves a blocked friend's conversation out of Messages and its count", () => {
+    const messages = () => render("/community?space=messages", createElement(MessagesView, { active: false, chat: null, onPersonMenu: () => {} }));
+    expect(messages()).toContain("Margaret");
+    expect(unreadMessages(store.load())).toBe(2);
+    store.block("margaret");
+    expect(messages()).not.toContain("Margaret");
+    expect(unreadMessages(store.load())).toBe(1);
+    expect(render("/community?space=messages&chat=margaret", createElement(MessagesView, { active: false, chat: "margaret", onPersonMenu: () => {} }))).not.toContain("I kept the best one");
+  });
+});
+
+describe("Messages, the Messages window and Friends", () => {
+  it("counts a conversation until it is read, and not at all while it is muted", () => {
+    expect(unreadMessages(store.load())).toBe(2);
+    store.markChatRead("margaret");
+    expect(unreadMessages(store.load())).toBe(1);
+    store.toggleChatMuted("david");
+    expect(unreadMessages(store.load())).toBe(0);
+    expect(render("/community?space=messages&chat=david", createElement(MessagesView, { active: false, chat: "david", onPersonMenu: () => {} }))).toContain("Notifications muted");
+  });
+
+  it("keeps what the person writes, in order, and lets them remove it", () => {
+    const note = store.addDirect("anne", { text: "See you on Thursday." }, Date.now());
+    expect(note).not.toBeNull();
+    const text = render("/community?space=messages&chat=anne", createElement(MessagesView, { active: false, chat: "anne", onPersonMenu: () => {} }));
+    expect(text).toContain("Thank you for Thursday.");
+    expect(text.indexOf("Thank you for Thursday.")).toBeLessThan(text.indexOf("See you on Thursday."));
+    expect(text).toContain("Remove your message");
+    store.removeDirect("anne", note!.id);
+    expect(store.load().direct.anne).toBeUndefined();
+  });
+
+  it("says so when messages are off, and offers the way to change it", () => {
+    store.updateSettings({ messagesFrom: "noOne" });
+    const text = render("/community?space=messages&chat=margaret", createElement(MessagesView, { active: false, chat: "margaret", onPersonMenu: () => {} }));
+    expect(text).toContain("Messages to you are off");
+    expect(text).toContain("Change who can message you");
+  });
+
+  it("shows the Messages window while a message waits, and leaves it away once everything is read", () => {
+    const dock = (space: "feed" | "messages") => render("/community", createElement(MessagesDock, { space }));
+    expect(dock("feed")).toContain("Messages 2 unread Margaret: I promised you one");
+    expect(dock("messages")).toBe("");
+    store.markChatRead("margaret");
+    store.markChatRead("david");
+    expect(dock("feed")).toBe("");
+  });
+
+  it("Friends: each privacy choice shows what is chosen, and what it means", () => {
+    store.updateSettings({ messagesFrom: "noOne", postsSeenBy: "everyone", showOnline: false });
+    given.memory = store.load();
+    const html = renderToStaticMarkup(createElement(Router, { ssrPath: "/community?space=friends", children: createElement(FriendsPage, { onPersonMenu: () => {} }) }));
+    const text = words(html);
+    expect(text).toContain("No one can message you.");
+    expect(text).toContain("Everyone in My community sees what you share.");
+    expect(html).toMatch(/aria-pressed="true">No one</);
+    expect(html).toMatch(/aria-pressed="true">Everyone</);
+    expect(html).toMatch(/role="switch"[^>]*aria-checked="false"/);
+  });
+});
+
+/* ------------------------------------------------------- the circle's calendar */
+
+describe("adding a circle to the person's own calendar", () => {
+  const hand = { id: "hand", name: "Hand and arm circle", detail: "Gentle stretches, together", day: 2, hour: 15, minutes: 45 };
+
+  it("finds the next meeting, a week on once today's has started", () => {
+    // Tuesday 6 October 2026, midday: today's 3 pm circle is next. At 4 pm it is next week's.
+    expect(nextMeeting(hand, new Date(2026, 9, 6, 12, 0))).toEqual(new Date(2026, 9, 6, 15, 0));
+    expect(nextMeeting(hand, new Date(2026, 9, 6, 16, 0))).toEqual(new Date(2026, 9, 13, 15, 0));
+    expect(nextMeeting({ day: 0, hour: 16 }, new Date(2026, 9, 10, 9, 0))).toEqual(new Date(2026, 9, 11, 16, 0));
+    expect(calendarPage(new Date(2026, 9, 13, 15, 0))).toEqual({ day: "TUE", date: "13" });
+  });
+
+  it("fills in Google and Outlook with the circle's name and time, and nothing about the person", () => {
+    const start = new Date(Date.UTC(2026, 9, 13, 14, 0));
+    const google = new URL(googleCalendarUrl(hand, start, "https://rehyn.test"));
+    expect(google.origin).toBe("https://calendar.google.com");
+    expect(google.searchParams.get("text")).toBe("Hand and arm circle");
+    expect(google.searchParams.get("dates")).toBe("20261013T140000Z/20261013T144500Z");
+    expect(google.searchParams.get("recur")).toBe("RRULE:FREQ=WEEKLY");
+    const outlook = new URL(outlookCalendarUrl(hand, start));
+    expect(outlook.searchParams.get("subject")).toBe("Hand and arm circle");
+    expect(outlook.searchParams.get("startdt")).toBe("2026-10-13T14:00:00.000Z");
+    for (const url of [google, outlook]) expect(url.search).not.toMatch(/zak|@/i);
+  });
+
+  it("writes a calendar file that repeats weekly and reminds half an hour before", () => {
+    const file = circleIcs({ ...hand, name: "Hand, arm; circle" }, new Date(Date.UTC(2026, 9, 13, 14, 0)), "", new Date(Date.UTC(2026, 9, 6, 11, 0)));
+    expect(file.split("\r\n")).toEqual(expect.arrayContaining(["BEGIN:VCALENDAR", "DTSTART:20261013T140000Z", "DTEND:20261013T144500Z", "RRULE:FREQ=WEEKLY", "SUMMARY:Hand\\, arm\\; circle", "TRIGGER:-PT30M", "END:VCALENDAR"]));
   });
 });
 

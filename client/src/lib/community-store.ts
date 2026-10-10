@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import {
   ALERT_IDS,
   BREAK_CHOICES,
+  circle,
   CIRCLE_IDS,
   communityAlerts,
   FEED_POST_IDS,
@@ -33,6 +34,7 @@ import {
   THEME_IDS,
   type AlertId,
   type BreakChoice,
+  type CircleSeat,
   type CommunityAlert,
   type FeelingId,
   type FriendsTab,
@@ -59,8 +61,8 @@ import {
 
 /* ------------------------------------------------------------------ views */
 
-export type CommunitySpace = "feed" | "lounge" | "circle" | "groups" | "start" | "settings" | "safety";
-const namedSpaces: CommunitySpace[] = ["lounge", "circle", "groups", "start", "settings", "safety"];
+export type CommunitySpace = "feed" | "lounge" | "circle" | "groups" | "messages" | "friends" | "start" | "settings" | "safety";
+const namedSpaces: CommunitySpace[] = ["lounge", "circle", "groups", "messages", "friends", "start", "settings", "safety"];
 /** Something that opens over a view. Only the Friends drawer has an address of its own. */
 export type CommunityPanel = "friends";
 /** The sections of Community settings, in the order the page shows them. */
@@ -69,11 +71,12 @@ export const SETTINGS_SECTIONS: SettingsSection[] = ["appear", "friends", "see",
 /**
  * The view an address points at. `panel` and `tab` are there only while the Friends drawer is open
  * (`tab` is then always set: "requests" unless the address names another). `section` is there only
- * on Community settings, when a link names the setting it is about ("Quiet time: Change").
+ * on Community settings, when a link names the setting it is about ("Quiet time: Change"). `chat`
+ * is there only on Messages, when a link names the conversation to open (a friend or a group).
  */
-export type CommunityView = { space: CommunitySpace; group: string | null; panel?: CommunityPanel; tab?: FriendsTab; section?: SettingsSection };
+export type CommunityView = { space: CommunitySpace; group: string | null; panel?: CommunityPanel; tab?: FriendsTab; section?: SettingsSection; chat?: string };
 /** A view without anything open over it. */
-export type CommunityPlace = { space: CommunitySpace; group: string | null };
+export type CommunityPlace = { space: CommunitySpace; group: string | null; chat?: string | null };
 
 const ID = /^[a-z0-9-]{1,48}$/;
 const cleanId = (value: unknown): string | null => (typeof value === "string" && ID.test(value) ? value : null);
@@ -86,6 +89,8 @@ const isSettingsSection = (value: unknown): value is SettingsSection => typeof v
  *   /community?space=lounge                      the lounge
  *   /community?space=circle                      the Sunday circle
  *   /community?space=groups&group=walk           my groups, with one of them open
+ *   /community?space=messages&chat=margaret      messages, with a conversation open
+ *   /community?space=friends                     friends: requests, friends, privacy and blocked
  *   /community?space=start                       starting a group
  *   /community?space=settings                    community settings
  *   /community?space=settings&section=quiet      community settings, at Quiet times
@@ -99,6 +104,8 @@ export function communityViewFromQuery(search: string): CommunityView {
   const view: CommunityView = { space, group: space === "groups" ? cleanId(query.get("group")) : null };
   const section = query.get("section");
   if (space === "settings" && isSettingsSection(section)) view.section = section;
+  const chat = space === "messages" ? cleanId(query.get("chat")) : null;
+  if (chat) view.chat = chat;
   if (query.get("panel") === "friends") {
     const tab = query.get("tab");
     view.panel = "friends";
@@ -109,16 +116,18 @@ export function communityViewFromQuery(search: string): CommunityView {
 
 /**
  * A link to a view. With `panel: "friends"` the Friends drawer opens over that view, at `tab`. On
- * Community settings, `section` opens the section a link is about. Existing calls
- * (`communityHref()`, `communityHref("groups", "walk")`) are unchanged.
+ * Community settings, `section` opens the section a link is about; on Messages, `chat` opens a
+ * conversation. Existing calls (`communityHref()`, `communityHref("groups", "walk")`) are unchanged.
  */
-export function communityHref(space?: CommunitySpace | null, group?: string | null, open?: { panel?: CommunityPanel | null; tab?: FriendsTab | null; section?: SettingsSection | null }): string {
+export function communityHref(space?: CommunitySpace | null, group?: string | null, open?: { panel?: CommunityPanel | null; tab?: FriendsTab | null; section?: SettingsSection | null; chat?: string | null }): string {
   const params: string[] = [];
   if (space && space !== "feed" && namedSpaces.includes(space)) params.push(`space=${space}`);
   const id = space === "groups" ? cleanId(group) : null;
   if (id) params.push(`group=${id}`);
   const section = open?.section;
   if (space === "settings" && isSettingsSection(section)) params.push(`section=${section}`);
+  const chat = space === "messages" ? cleanId(open?.chat) : null;
+  if (chat) params.push(`chat=${chat}`);
   if (open?.panel === "friends") {
     params.push("panel=friends");
     if (open.tab && open.tab !== "requests" && isFriendsTab(open.tab)) params.push(`tab=${open.tab}`);
@@ -128,7 +137,7 @@ export function communityHref(space?: CommunitySpace | null, group?: string | nu
 
 /** The address of a view, written the one way `communityHref` writes it. */
 export function viewHref(view: CommunityView): string {
-  return communityHref(view.space, view.group, { panel: view.panel ?? null, tab: view.tab ?? null, section: view.section ?? null });
+  return communityHref(view.space, view.group, { panel: view.panel ?? null, tab: view.tab ?? null, section: view.section ?? null, chat: view.chat ?? null });
 }
 
 /**
@@ -141,17 +150,22 @@ export function leadsHere(href: string, search: string): boolean {
   if ((at < 0 ? href : href.slice(0, at)) !== "/community") return false;
   const there = communityViewFromQuery(at < 0 ? "" : href.slice(at + 1));
   const here = communityViewFromQuery(search);
-  return there.space === here.space && there.group === here.group && there.panel === here.panel && there.tab === here.tab;
+  return there.space === here.space && there.group === here.group && there.chat === here.chat && there.panel === here.panel && there.tab === here.tab;
 }
 
 /** The Friends drawer at a tab, open over a view (the feed, unless another is given). */
 export function friendsHref(tab?: FriendsTab | null, over?: CommunityPlace | null): string {
-  return communityHref(over?.space ?? "feed", over?.group ?? null, { panel: "friends", tab: tab ?? null });
+  return communityHref(over?.space ?? "feed", over?.group ?? null, { panel: "friends", tab: tab ?? null, chat: over?.chat ?? null });
 }
 
 /** The same view with the drawer closed. */
 export function placeOf(view: CommunityView): CommunityPlace {
-  return { space: view.space, group: view.group };
+  return view.chat ? { space: view.space, group: view.group, chat: view.chat } : { space: view.space, group: view.group };
+}
+
+/** A conversation in Messages: with a friend, or in one of the person's groups. */
+export function messagesHref(chat?: string | null): string {
+  return communityHref("messages", null, { chat: chat ?? null });
 }
 
 /** Where an alert leads. Friends alerts open the drawer over the view the person is on. */
@@ -236,6 +250,12 @@ export type CommunityMemory = {
   posts: OwnPost[];
   replies: Record<string, OwnNote[]>;
   messages: Record<string, OwnNote[]>;
+  /** Messages the person wrote to each friend, newest last. */
+  direct: Record<string, OwnNote[]>;
+  /** Conversations opened, so their unread lines have been read. */
+  chatsRead: PersonId[];
+  /** Conversations whose notifications are muted: they add nothing to the Messages badge. */
+  chatsMuted: PersonId[];
   /** Answers to the friend requests waiting for the person. A request with no answer is still waiting. */
   answers: Partial<Record<IncomingRequestId, RequestAnswer>>;
   /** Requests sent before this visit (`startSent`) that the person has cancelled. */
@@ -260,6 +280,7 @@ export const LIMITS = { posts: 40, notes: 60, started: 20, postText: 600, noteTe
 export function blankCommunityMemory(): CommunityMemory {
   return {
     reactions: [], hearts: [], friends: [], waves: [], vote: null, seated: false, reminders: [], joined: [], challenges: [], read: [], started: [], posts: [], replies: {}, messages: {},
+    direct: {}, chatsRead: [], chatsMuted: [],
     answers: {}, cancelled: [], sentAt: {}, blocks: {}, muted: {}, hiddenPosts: {}, reports: [], seenAlerts: [], settings: defaultCommunitySettings(),
   };
 }
@@ -425,6 +446,9 @@ export function parseCommunityMemory(raw: string | null): CommunityMemory {
   memory.challenges = strings(saved.challenges, (value): value is string => isId(value) && groupIds.includes(value));
   memory.messages = notesByKey(saved.messages, key => groupIds.includes(key));
   memory.replies = notesByKey(saved.replies, key => FEED_POST_IDS.includes(key));
+  memory.direct = notesByKey(saved.direct, key => (PERSON_IDS as string[]).includes(key));
+  memory.chatsRead = strings(saved.chatsRead, oneOf(PERSON_IDS));
+  memory.chatsMuted = strings(saved.chatsMuted, oneOf(PERSON_IDS));
 
   if (Array.isArray(saved.posts)) {
     (saved.posts as unknown[]).forEach(item => {
@@ -471,8 +495,11 @@ export type GroupDraft = { name: string; theme: ThemeId; friends: PersonId[]; op
 export type ReportDraft = { who: MemberId; postId?: string | null; reason: ReportReason; note?: string; alsoBlock?: boolean };
 /** Who the hide, block or report sheet is about: a post's writer (with the post), or a person on their own. */
 export type SafetyTarget = { who: MemberId; postId: string | null };
-/** Opens that sheet. `opener` is the ··· button pressed; the focus goes back to it when the sheet closes. */
-export type OpenSafetyMenu = (target: SafetyTarget, opener: HTMLElement) => void;
+/**
+ * Opens that sheet. `opener` is the ··· button pressed; the focus goes back to it when the sheet
+ * closes. `startAt: "block"` opens it at "Block them?", for a Block button.
+ */
+export type OpenSafetyMenu = (target: SafetyTarget, opener: HTMLElement, startAt?: "block") => void;
 const DAY = 86_400_000;
 const removeKey = <K extends string>(record: Partial<Record<K, number>>, key: K): Partial<Record<K, number>> => {
   const next = { ...record };
@@ -559,6 +586,8 @@ export function createCommunityStore(access: () => CommunityStorage | null) {
       seatTakenAt = Date.now();
       return { ...current, seated: true };
     }),
+    /** "Leave quietly": the seat is given up. It can be taken again at any time. */
+    leaveSeat: () => change(current => (current.seated ? { ...current, seated: false } : current)),
     /** True for a few seconds after the seat was taken, so the circle can welcome the person in. */
     justSeated: (now = Date.now()) => seatTakenAt > 0 && now - seatTakenAt < 4000,
     toggleReminder: (id: string) => change(current => (CIRCLE_IDS.includes(id) ? { ...current, reminders: flip(current.reminders, id) } : current)),
@@ -629,6 +658,27 @@ export function createCommunityStore(access: () => CommunityStorage | null) {
       if (kept.length) messages[groupId] = kept; else delete messages[groupId];
       return { ...current, messages };
     }),
+
+    /* --------------------------------------------------------- messages */
+
+    /** A message to a friend. Nothing is sent anywhere: it is kept on this device. */
+    addDirect(who: PersonId, draft: NoteDraft, now = Date.now()): OwnNote | null {
+      if (!PERSON_IDS.includes(who)) return null;
+      const message = note(draft, now, "dm");
+      if (!message) return null;
+      change(current => ({ ...current, direct: { ...current.direct, [who]: [...(current.direct[who] ?? []), message].slice(-LIMITS.notes) } }));
+      return message;
+    },
+    removeDirect: (who: PersonId, id: string) => change(current => {
+      const kept = (current.direct[who] ?? []).filter(message => message.id !== id);
+      const direct = { ...current.direct };
+      if (kept.length) direct[who] = kept; else delete direct[who];
+      return { ...current, direct };
+    }),
+    /** Opening a conversation reads what was waiting in it. */
+    markChatRead: (who: PersonId) => change(current => (PERSON_IDS.includes(who) && !current.chatsRead.includes(who) ? { ...current, chatsRead: [...current.chatsRead, who] } : current)),
+    /** "Mute notifications": the conversation stays, but adds nothing to the Messages badge. */
+    toggleChatMuted: (who: PersonId) => change(current => (PERSON_IDS.includes(who) ? { ...current, chatsMuted: flip(current.chatsMuted, who) } : current)),
 
     /* ---------------------------------------------------------- friends */
 
@@ -746,6 +796,11 @@ export const useCommunity = (): CommunityMemory => useSyncExternalStore(subscrib
 
 /* ---------------------------------------------------------------- helpers */
 
+/** Seats taken in the Sunday circle: Alira's, everyone's still in sight, and the person's once they sit down. */
+export function circleSeatsTaken(memory: CommunityMemory): number {
+  return (Object.keys(circle.seats) as CircleSeat[]).filter(who => who === "alira" || (who === "you" ? memory.seated : !isBlocked(memory, who))).length;
+}
+
 /** Unread messages waiting across the example groups, until each group is opened. */
 export function unreadCount(memory: CommunityMemory): number {
   return sampleGroups.reduce((sum, group) => sum + (memory.read.includes(group.id as SampleGroupId) ? 0 : group.unread), 0);
@@ -765,6 +820,26 @@ export function timeAgo(then: number, now = Date.now()): string {
   if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
   if (hours < 48) return "Yesterday";
   return new Date(then).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+}
+
+/** The time of day a message was said: "2:41 pm". */
+export function clockLabel(then: number): string {
+  const date = new Date(then);
+  const hour = date.getHours();
+  return `${hour % 12 === 0 ? 12 : hour % 12}:${String(date.getMinutes()).padStart(2, "0")} ${hour < 12 ? "am" : "pm"}`;
+}
+
+/** When a conversation last moved, for its row: "Now", "12 min", "3 hr", "Yesterday", then the day ("Tue"). */
+export function shortWhen(then: number, now = Date.now()): string {
+  const minutes = Math.max(0, Math.round((now - then) / 60000));
+  if (minutes < 1) return "Now";
+  if (minutes < 60) return `${minutes} min`;
+  const day = (time: number) => { const date = new Date(time); return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / DAY; };
+  const days = Math.round(day(now) - day(then));
+  if (days === 0) return `${Math.round(minutes / 60)} hr`;
+  if (days === 1) return "Yesterday";
+  if (days < 7) return new Date(then).toLocaleDateString("en-GB", { weekday: "short" });
+  return new Date(then).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
 /** Names in a sentence: "Margaret", "Margaret and Joan", "Margaret, Joan and Anne". */

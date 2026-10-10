@@ -7,9 +7,12 @@ import CommunityHeader from "@/components/community/CommunityHeader";
 import FeedView from "@/components/community/Feed";
 import FindPanel from "@/components/community/FindPanel";
 import FriendsDrawer from "@/components/community/FriendsDrawer";
+import FriendsPage from "@/components/community/FriendsPage";
 import GroupsView from "@/components/community/Groups";
 import { BackIcon } from "@/components/community/icons";
 import LoungeView from "@/components/community/Lounge";
+import MessagesView from "@/components/community/Messages";
+import MessagesDock from "@/components/community/MessagesDock";
 import PostMenu from "@/components/community/PostMenu";
 import SafetyView from "@/components/community/SafetyView";
 import SettingsView from "@/components/community/SettingsView";
@@ -26,15 +29,19 @@ import "./community-friends.css";
 import "./community-settings.css";
 import "./community-safety.css";
 import "./community-alerts.css";
+import "./community-messages.css";
 
-// My community: a feed where everybody posts, with the lounge, the Sunday circle and the person's
-// groups beside it, and a toolbar to find people, see alerts, friends, safety and settings. It is
-// a preview: the people in it are examples, and nothing leaves the device.
+// My community: a feed where everybody posts, with the lounge, the Sunday circle, groups, messages
+// and friends as tabs beside it, and a toolbar to search, see alerts, friends, safety and settings.
+// A little Messages window waits at the bottom of each page when a friend has written. It is a
+// preview: the people in it are examples, and nothing leaves the device.
 // The address says which view is open, so every button that opens a page is a link and Back works:
 //   /community                           the feed
 //   /community?space=lounge              the lounge
 //   /community?space=circle              the Sunday circle
 //   /community?space=groups&group=walk   my groups, with one open
+//   /community?space=messages&chat=anne  messages, with a conversation open
+//   /community?space=friends             friends: requests, friends, privacy and blocked
 //   /community?space=start               start a group
 //   /community?space=settings            community settings (&section=quiet opens a section)
 //   /community?space=safety              safety: reports, blocked and hidden people
@@ -52,7 +59,7 @@ export default function Community() {
   const [visited, setVisited] = useState<CommunitySpace[]>(() => [view.space]);
   const [findOpen, setFindOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
-  const [menu, setMenu] = useState<{ target: SafetyTarget; opener: HTMLElement } | null>(null);
+  const [menu, setMenu] = useState<{ target: SafetyTarget; opener: HTMLElement; startAt?: "block" } | null>(null);
   const page = useRef<HTMLDivElement>(null);
   const findButton = useRef<HTMLButtonElement>(null);
   const alertsButton = useRef<HTMLButtonElement>(null);
@@ -70,9 +77,9 @@ export default function Community() {
 
   useEffect(() => { setVisited(list => (list.includes(view.space) ? list : [...list, view.space])); }, [view.space]);
 
-  // Each new space starts at the top of the page; another group brings its chat into view. If what
-  // was pressed has gone from sight (or was in a drawer or panel that has closed), the focus moves
-  // to the new view's heading, so a keyboard or screen reader carries on from there.
+  // Each new space starts at the top of the page; another group or conversation brings its chat into
+  // view. If what was pressed has gone from sight (or was in a drawer or panel that has closed), the
+  // focus moves to the new view's heading, so a keyboard or screen reader carries on from there.
   useEffect(() => {
     if (firstView.current) { firstView.current = false; return; }
     const root = page.current;
@@ -80,15 +87,16 @@ export default function Community() {
     if (lastSpace.current !== view.space) window.scrollTo({ top: 0, behavior: "instant" });
     else {
       const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-      root.querySelector<HTMLElement>(`[data-space="${view.space}"] .cm-chat`)?.scrollIntoView({ block: "nearest", behavior: still ? "instant" : "smooth" });
+      root.querySelector<HTMLElement>(`[data-space="${view.space}"] :is(.cm-chat, .cm-dm)`)?.scrollIntoView({ block: "nearest", behavior: still ? "instant" : "smooth" });
     }
     lastSpace.current = view.space;
     const focused = document.activeElement as HTMLElement | null;
-    if (overlayWasOpen.current || !focused || focused === document.body || !root.contains(focused) || focused.closest("[hidden]")) {
+    // On a phone, the conversation list hides once a conversation opens: what was pressed is out of sight.
+    if (overlayWasOpen.current || !focused || focused === document.body || !root.contains(focused) || focused.closest("[hidden]") || !focused.getClientRects().length) {
       const heading = root.querySelector<HTMLElement>(`[data-space="${view.space}"] [data-view-heading]`) ?? root.querySelector<HTMLElement>("[data-page-heading]");
       heading?.focus({ preventScroll: true });
     }
-  }, [view.space, view.group]);
+  }, [view.space, view.group, view.chat]);
 
   // After the effect above, so it can tell that a drawer or panel was open before this change.
   useEffect(() => { overlayWasOpen.current = overlayOpen; });
@@ -118,7 +126,7 @@ export default function Community() {
     const current = viewNow.current;
     navigate(communityHref(current.space, current.group, { panel: "friends", tab }), { replace: true });
   }, [navigate]);
-  const openMenu = useCallback((target: SafetyTarget, opener: HTMLElement) => setMenu({ target, opener }), []);
+  const openMenu = useCallback((target: SafetyTarget, opener: HTMLElement, startAt?: "block") => setMenu({ target, opener, startAt }), []);
 
   const textSize = memory.settings.textSize === "normal" ? "" : `cm-text-${memory.settings.textSize}`;
 
@@ -142,6 +150,8 @@ export default function Community() {
         {isOpen("lounge") && <div className="cm-space" data-space="lounge" hidden={view.space !== "lounge"}><LoungeView active={view.space === "lounge"} here={here} onHere={setHere} /></div>}
         {isOpen("circle") && <div className="cm-space" data-space="circle" hidden={view.space !== "circle"}><CircleView active={view.space === "circle"} name={name} /></div>}
         {isOpen("groups") && <div className="cm-space" data-space="groups" hidden={view.space !== "groups"}><GroupsView active={view.space === "groups"} requested={view.group} /></div>}
+        {isOpen("messages") && <div className="cm-space" data-space="messages" hidden={view.space !== "messages"}><MessagesView active={view.space === "messages"} chat={view.chat ?? null} onPersonMenu={openMenu} /></div>}
+        {isOpen("friends") && <div className="cm-space" data-space="friends" hidden={view.space !== "friends"}><FriendsPage onPersonMenu={openMenu} /></div>}
         {isOpen("settings") && <div className="cm-space" data-space="settings" hidden={view.space !== "settings"}><SettingsView name={name} section={view.section ?? null} /></div>}
         {isOpen("safety") && <div className="cm-space" data-space="safety" hidden={view.space !== "safety"}><SafetyView name={name} warningSignsHref={fastCheckPath(location, search)} onPersonMenu={openMenu} /></div>}
         {isOpen("start") && (
@@ -161,7 +171,8 @@ export default function Community() {
         {friendsOpen && <FriendsDrawer tab={view.tab ?? "requests"} onTab={showTab} onClose={closeFriends} onPersonMenu={openMenu} fallbackFocus={friendsButton} name={name} />}
         {findOpen && <FindPanel onClose={() => setFindOpen(false)} anchor={findButton.current} over={placeOf(view)} fallbackFocus={headingNow} />}
         {alertsOpen && <AlertsPanel onClose={() => setAlertsOpen(false)} anchor={alertsButton.current} over={placeOf(view)} fallbackFocus={headingNow} />}
-        {menu && <PostMenu target={menu.target} name={name} onClose={() => setMenu(null)} returnFocus={menu.opener} fallbackFocus={headingNow} />}
+        {menu && <PostMenu target={menu.target} name={name} onClose={() => setMenu(null)} returnFocus={menu.opener} fallbackFocus={headingNow} startAt={menu.startAt} />}
+        <MessagesDock space={view.space} />
       </div>
     </RecoveryShell>
   );

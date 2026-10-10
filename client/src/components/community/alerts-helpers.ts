@@ -34,6 +34,7 @@ import {
   type Relationship,
 } from "@/lib/community-store";
 import { myGroups, type GroupModel } from "./group-model";
+import { unreadMessages } from "./messages-model";
 
 // The logic behind the toolbar's Alerts and Find panels (AlertsPanel.tsx, FindPanel.tsx and
 // CommunitySearch.tsx), kept apart from the markup so it can be tested on its own. Everything
@@ -208,7 +209,7 @@ export function highlight(name: string, query: string): NamePiece[] {
 }
 
 /** A place in My community that Find can open: a space, a page, or a tab of the Friends drawer. */
-export type PlaceId = "feed" | "lounge" | "circle" | "groups" | "start" | "friends" | "friends-sent" | "friends-list" | "friends-blocked" | "safety" | "settings";
+export type PlaceId = "feed" | "lounge" | "circle" | "groups" | "messages" | "start" | "friends" | "friends-sent" | "friends-list" | "friends-blocked" | "privacy" | "safety" | "settings";
 export type Place = {
   id: PlaceId;
   label: string;
@@ -231,11 +232,13 @@ export function communityPlaces(memory: CommunityMemory, over: CommunityPlace): 
   const sent = sentList(memory).length;
   const friends = friendList(memory).length;
   const blocked = blockedList(memory).length;
+  const letters = unreadMessages(memory);
   return [
     { id: "feed", label: "Feed", note: "Posts from everyone", href: communityHref(), words: ["feed", "posts", "home", "news", "write", "share"], browse: true, space: "feed" },
     { id: "lounge", label: "The lounge", note: "Drop in for a chat", href: communityHref("lounge"), words: ["lounge", "chat", "talk", "live", "tea", "poll"], browse: true, space: "lounge" },
     { id: "circle", label: "Sunday circle", note: memory.seated ? "You have your seat" : "Open now", href: communityHref("circle"), words: ["circle", "sunday", "teacup", "seat", "share", "talk"], browse: true, space: "circle" },
     { id: "groups", label: "My groups", note: unread ? count(unread, "unread message", "unread messages") : "Your group chats", href: communityHref("groups"), words: ["groups", "group", "chats", "messages", "challenge"], browse: true, space: "groups" },
+    { id: "messages", label: "Messages", note: letters ? `${count(letters, "conversation", "conversations")} waiting` : "Messages with friends", href: communityHref("messages"), words: ["messages", "message", "inbox", "write", "reply", "private"], browse: true, space: "messages" },
     { id: "start", label: "Start a group", note: "A corner for your people", href: communityHref("start"), words: ["start", "new group", "create", "make", "begin"], browse: true, space: "start" },
     { id: "friends", label: "Friends", note: waiting ? `${count(waiting, "request", "requests")} waiting` : "Friends and requests", href: friendsHref(null, over), words: ["friends", "friend requests", "requests", "for you", "people you may know", "accept"], browse: true },
     { id: "safety", label: "Safety", note: "Reports, blocked and hidden", href: communityHref("safety"), words: ["safety", "report", "reports", "block", "blocked", "unblock", "hide", "hidden", "scam", "help"], browse: true, space: "safety" },
@@ -243,6 +246,7 @@ export function communityPlaces(memory: CommunityMemory, over: CommunityPlace): 
     { id: "friends-sent", label: "Requests you sent", note: sent ? `${sent} waiting for a yes` : "None waiting", href: friendsHref("sent", over), words: ["sent", "requests sent", "friend requests", "cancel", "waiting"], browse: false },
     { id: "friends-list", label: "Your friends", note: count(friends, "friend", "friends"), href: friendsHref("friends", over), words: ["friends", "my friends", "wave", "online"], browse: false },
     { id: "friends-blocked", label: "Blocked people", note: blocked ? `${blocked} blocked` : "No one blocked", href: friendsHref("blocked", over), words: ["blocked", "block", "unblock"], browse: false },
+    { id: "privacy", label: "Who can reach you", note: "Your privacy, in Friends", href: communityHref("friends"), words: ["privacy", "who can message", "message me", "who sees", "online", "town"], browse: false, space: "friends" },
   ];
 }
 

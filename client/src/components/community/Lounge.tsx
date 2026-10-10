@@ -1,14 +1,49 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "wouter";
-import { lounge, people, type LoungeMessage, type PersonId } from "@/content/community-samples";
-import { canSee, communityHref, communityStore, isBlocked, useCommunity, type NoteDraft } from "@/lib/community-store";
+import { CIRCLE_SEATS, lounge, people, type LoungeMessage, type PersonId } from "@/content/community-samples";
+import { canSee, circleSeatsTaken, clockLabel, communityHref, communityStore, isBlocked, useCommunity, type NoteDraft } from "@/lib/community-store";
 import { useBursts, useLater, usePinnedToEnd } from "./hooks";
-import { ChatIcon, HandIcon, HeartIcon, NextIcon, RingIcon } from "./icons";
-import { AliraMark, ChatInput, Face, FloatingHearts, LiveDot, MyMessage, TheirMessage, toneClass, TypingRow } from "./parts";
+import { CloseIcon, HandIcon, HeartIcon, PulseIcon } from "./icons";
+import { OnlineFace } from "./Messages";
+import { ChatInput, Face, FloatingHearts, LiveDot, MyFace, toneClass, TypingRow, VoiceNote } from "./parts";
 
-type Line = { kind: "theirs"; message: LoungeMessage } | { kind: "mine"; id: string; note: Required<Pick<NoteDraft, "text">> & { voice: boolean } };
+/** A line in the lounge: someone's message (with when it was said), or the person's own. */
+type Line =
+  | { kind: "theirs"; at: number; message: LoungeMessage }
+  | { kind: "mine"; at: number; id: string; text: string; voice: boolean; to: PersonId | null };
 
-function WaveCard() {
+/** Someone's message: who and when, the words, then a heart and Reply. */
+function LoungeLine({ message, at, onReply }: { message: LoungeMessage; at: number; onReply: (who: PersonId) => void }) {
+  const memory = useCommunity();
+  const heartKey = `lounge:${message.id}`;
+  const on = memory.hearts.includes(heartKey);
+  const counts = memory.settings.showHeartCounts;
+  const hearts = message.hearts + (on ? 1 : 0);
+  const name = people[message.who].name;
+  return (
+    <li className="cm-lounge-line cm-msg-in">
+      <Face who={message.who} size={44} />
+      <div className="cm-lounge-body">
+        <p className="cm-lounge-meta">
+          <b>{name}</b>
+          {message.note && <span className="cm-new-pill">{message.note}</span>}
+          <span className="cm-lounge-time">{clockLabel(at)}</span>
+        </p>
+        {message.photo && <img className="cm-lounge-photo" src={message.photo.src} alt={message.photo.alt} style={{ backgroundColor: message.photo.tint }} loading="lazy" />}
+        <p className="cm-lounge-text">{message.text}</p>
+        <div className="cm-lounge-acts">
+          <button type="button" className={`cm-lounge-heart ${on ? "is-on" : ""}`} aria-pressed={on} aria-label={`Heart for ${name}'s message${counts ? `, ${hearts}` : ""}`} onClick={() => communityStore.toggleHeart(heartKey)}>
+            <HeartIcon size={16} fill={on ? "#E8795A" : "none"} strokeWidth={2} />{counts && <span aria-hidden="true">{hearts}</span>}
+          </button>
+          <button type="button" className="cm-lounge-reply" onClick={() => onReply(message.who)}>Reply<span className="cm-sr">{` to ${name}`}</span></button>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+/** "Here right now": who is in the lounge, with a wave for each. A wave can't be taken back, like a real one. */
+function HereNow() {
   const memory = useCommunity();
   const later = useLater();
   // Waves sent in this visit wait a moment for their wave back. Earlier waves already have one.
@@ -23,8 +58,8 @@ function WaveCard() {
   return (
     <section className="cm-card cm-side-card" aria-labelledby={titleId}>
       <div className="cm-card-row">
-        <h3 className="cm-overline" id={titleId}>Wave hello</h3>
-        <span className="cm-card-aside">Here right now</span>
+        <h3 className="cm-side-title" id={titleId}>Here right now</h3>
+        <span className="cm-card-aside">Wave to say hello</span>
       </div>
       <ul className="cm-wave-list">
         {lounge.waves.filter(({ who }) => !isBlocked(memory, who)).map(({ who, note }) => {
@@ -33,16 +68,28 @@ function WaveCard() {
           const name = people[who].name;
           return (
             <li key={who} className="cm-wave-row">
-              <span className="cm-face-live"><Face who={who} size={44} /><span className="cm-online-dot cm-live" aria-hidden="true" /></span>
+              <OnlineFace who={who} size={44} online />
               <span className="cm-wave-text"><b>{name}</b><span className={back ? "is-back" : ""}>{back ? "Waved back!" : note}</span></span>
               <button type="button" className={`cm-wave ${waved ? "is-on" : ""}`} onClick={() => wave(who)} aria-disabled={waved || undefined}>
-                <span className={`cm-wave-hand ${waiting.includes(who) ? "cm-wiggle" : ""}`}><HandIcon size={18} /></span>
+                <span className={`cm-wave-hand ${waiting.includes(who) ? "cm-wiggle" : ""}`}><HandIcon size={16} /></span>
                 <span>{waved ? "Waved" : "Wave"}</span><span className="cm-sr">{` to ${name}`}</span>
               </button>
             </li>
           );
         })}
       </ul>
+    </section>
+  );
+}
+
+function HouseRules() {
+  const titleId = useId();
+  return (
+    <section className="cm-card cm-side-card" aria-labelledby={titleId}>
+      <h3 className="cm-side-title" id={titleId}>House rules</h3>
+      <ol className="cm-rules">
+        {lounge.rules.map((rule, index) => <li key={rule}><span className="cm-rule-number" aria-hidden="true">{index + 1}</span><span>{rule}</span></li>)}
+      </ol>
     </section>
   );
 }
@@ -74,21 +121,38 @@ function PollCard() {
   );
 }
 
+/** The Sunday circle, beside the lounge: how full it is, and the way in. */
+export function CircleNote() {
+  const memory = useCommunity();
+  const taken = circleSeatsTaken(memory);
+  return (
+    <section className="cm-circle-note" aria-labelledby="cm-circle-note-title">
+      <div>
+        <h3 id="cm-circle-note-title">Sunday circle</h3>
+        <p>{`Live now · ${taken} of ${CIRCLE_SEATS} seats taken`}</p>
+      </div>
+      <Link className="cm-btn cm-btn-gold" href={communityHref("circle")}>Open<span className="cm-sr"> the Sunday circle</span></Link>
+    </section>
+  );
+}
+
 /**
- * F1: the lounge. Messages and people arrive while it is open; anyone can join in with a tap.
- * Messages from people the person has blocked or hidden are left out.
+ * F1: the lounge. Messages and people arrive while it is open; anyone can join in with a tap, give
+ * a message a heart, or reply to someone. Messages from people the person has blocked or hidden
+ * are left out, and so are quick replies to them.
  */
 export default function LoungeView({ active, here, onHere }: { active: boolean; here: number; onHere: (change: (here: number) => number) => void }) {
   const memory = useCommunity();
-  const seated = memory.seated;
   // Blocked people are out of sight, their faces included.
   const faces = lounge.faces.filter(who => !isBlocked(memory, who));
-  const [lines, setLines] = useState<Line[]>(() => lounge.messages.map(message => ({ kind: "theirs" as const, message })));
+  const [lines, setLines] = useState<Line[]>(() => lounge.messages.map(message => ({ kind: "theirs" as const, at: communityStore.visitStart - (message.minutesAgo ?? 0) * 60_000, message })));
   const [step, setStep] = useState(0);
   const [typing, setTyping] = useState<PersonId | null>(null);
   const [toast, setToast] = useState<{ who: PersonId; text: string; n: number } | null>(null);
+  const [replyTo, setReplyTo] = useState<PersonId | null>(null);
   const [sent, setSent] = useState(0);
   const [sentNote, setSentNote] = useState("");
+  const room = useRef<HTMLElement>(null);
   const { bursts, burst } = useBursts();
   const later = useLater();
   const { box, onScroll } = usePinnedToEnd<HTMLDivElement>(lines.length + (typing ? 0.5 : 0), active);
@@ -102,7 +166,7 @@ export default function LoungeView({ active, here, onHere }: { active: boolean; 
       if (event.kind === "typing") setTyping(event.who);
       else if (event.kind === "message") {
         setTyping(null);
-        setLines(list => [...list, { kind: "theirs", message: event.message }]);
+        setLines(list => [...list, { kind: "theirs", at: Date.now(), message: event.message }]);
       } else {
         setToast({ who: event.who, text: event.text, n: step });
         onHere(count => count + 1);
@@ -112,69 +176,86 @@ export default function LoungeView({ active, here, onHere }: { active: boolean; 
     return () => window.clearTimeout(timer);
   }, [active, step, onHere, later]);
 
+  const field = () => room.current?.querySelector<HTMLInputElement>(".cm-chat-field input") ?? null;
+  const reply = (who: PersonId) => { setReplyTo(who); window.requestAnimationFrame(() => field()?.focus()); };
   const send = (draft: NoteDraft) => {
     const text = draft.text.trim();
     if (!text) return;
-    setLines(list => [...list, { kind: "mine", id: `mine-${sent}`, note: { text, voice: !!draft.voice } }]);
+    setLines(list => [...list, { kind: "mine", at: Date.now(), id: `mine-${sent}`, text, voice: !!draft.voice, to: replyTo }]);
     setSent(count => count + 1);
-    setSentNote(`Sent: ${text}`);
+    setSentNote(replyTo ? `Sent to ${people[replyTo].name}: ${text}` : `Sent: ${text}`);
+    setReplyTo(null);
   };
+  const replyName = replyTo && canSee(memory, replyTo) ? people[replyTo].name : null;
 
   return (
-    <div className="cm-layout">
-      <section className="cm-card cm-chat" aria-labelledby="cm-lounge-title">
+    <div className="cm-layout cm-lounge">
+      <section ref={room} className="cm-card cm-chat cm-lounge-room" aria-labelledby="cm-lounge-title">
         {toast && canSee(memory, toast.who) && (
           <div key={toast.n} className="cm-toast" aria-hidden="true">
             <Face who={toast.who} size={32} /><span>{toast.text}</span>
           </div>
         )}
-        <header className="cm-chat-head">
-          <span className="cm-round-icon"><ChatIcon size={24} /></span>
-          <div className="cm-chat-titles">
+        <header className="cm-lounge-head">
+          <div className="cm-lounge-titles">
             <h2 id="cm-lounge-title" tabIndex={-1} data-view-heading>The lounge</h2>
-            <p className="cm-live-line"><LiveDot /><span>{here} chatting now</span></p>
+            <p className="cm-live-line"><LiveDot /><span>{`${here} people here now`}</span><span className="cm-live-soft">· Open to everyone in the community</span></p>
           </div>
           <span className="cm-face-stack cm-chat-faces" aria-hidden="true">
-            {faces.map(who => <Face key={who} who={who} size={38} />)}
+            {faces.map(who => <Face key={who} who={who} size={40} />)}
             <span className="cm-face-more">+{Math.max(0, here - faces.length)}</span>
           </span>
         </header>
         <div className="cm-starter">
-          <AliraMark size={34} />
+          <span className="cm-starter-mark" aria-hidden="true"><PulseIcon size={20} /></span>
           <div>
-            <p className="cm-overline cm-overline-dark">Alira's chat starter</p>
+            <p className="cm-overline cm-overline-gold">Today's conversation starter from Alira</p>
             <p className="cm-starter-text">{lounge.starter}</p>
           </div>
-          <span className="cm-shine" aria-hidden="true" />
         </div>
         <div className="cm-chat-log" ref={box} onScroll={onScroll} role="log" aria-live="off" aria-label="Messages in the lounge" tabIndex={0}>
           <div className="cm-chat-fade" aria-hidden="true" />
-          <ol className="cm-messages">
-            {lines.filter(line => line.kind === "mine" || canSee(memory, line.message.who)).map(line => line.kind === "theirs"
-              ? <TheirMessage key={line.message.id} message={line.message} heartKey={`lounge:${line.message.id}`} />
-              : <MyMessage key={line.id} note={{ text: line.note.text, voice: line.note.voice, photo: null }} />)}
+          <ol className="cm-messages cm-lounge-lines">
+            <li className="cm-lounge-day" aria-hidden="true"><span>Today</span></li>
+            {lines.map(line => {
+              if (line.kind === "theirs") return canSee(memory, line.message.who) ? <LoungeLine key={line.message.id} message={line.message} at={line.at} onReply={reply} /> : null;
+              const to = line.to && canSee(memory, line.to) ? people[line.to].name : null;
+              return (
+                <li key={line.id} className="cm-lounge-line is-mine cm-msg-in">
+                  <MyFace size={44} />
+                  <div className="cm-lounge-body">
+                    <p className="cm-lounge-meta"><b>You</b><span className="cm-lounge-time">{clockLabel(line.at)}</span></p>
+                    {to && <p className="cm-lounge-to">{`Replying to ${to}`}</p>}
+                    {line.voice ? <VoiceNote words={line.text} label="your voice note" wordsClassName="cm-lounge-text" /> : <p className="cm-lounge-text">{line.text}</p>}
+                  </div>
+                </li>
+              );
+            })}
           </ol>
           {typing && canSee(memory, typing) && <TypingRow who={typing} />}
         </div>
         <FloatingHearts bursts={bursts} className="cm-hearts-chat" />
-        <div className="cm-chat-foot">
+        <div className="cm-chat-foot cm-lounge-foot">
+          {replyName && (
+            <p className="cm-lounge-replying">
+              <span>{`Replying to ${replyName}`}</span>
+              <button type="button" className="cm-dm-icon" aria-label={`Stop replying to ${replyName}`} onClick={() => { setReplyTo(null); field()?.focus(); }}><CloseIcon size={14} /></button>
+            </p>
+          )}
           <div className="cm-quick-row" role="group" aria-label="Quick replies">
-            {lounge.quickReplies.map(reply => <button key={reply.label} type="button" className={`cm-quick ${toneClass(reply.tone)}`} onClick={() => send({ text: reply.text })}>{reply.label}</button>)}
-            <button type="button" className="cm-love" aria-label="Send a heart" onClick={burst}><HeartIcon size={22} fill="currentColor" strokeWidth={1.6} /></button>
+            {lounge.quickReplies.filter(item => !item.to || canSee(memory, item.to)).map(item => <button key={item.label} type="button" className={`cm-quick cm-quick-chip ${toneClass(item.tone)}`} onClick={() => send({ text: item.text })}>{item.label}</button>)}
+            <button type="button" className="cm-love" aria-label="Send a heart" onClick={burst}><HeartIcon size={20} fill="currentColor" strokeWidth={1.6} /></button>
           </div>
-          <ChatInput label="Say something to the lounge" placeholder="Say something to the lounge" onSend={send} />
+          <ChatInput label={replyName ? `Reply to ${replyName}` : "Say something to the lounge"} placeholder={replyName ? `Reply to ${replyName}` : "Say something to the lounge"} onSend={send} sendText="Send" />
           <p className="cm-sr" role="status">{sentNote}</p>
         </div>
       </section>
 
       <div className="cm-side">
-        <WaveCard />
+        <HereNow />
+        <HouseRules />
+        <CircleNote />
         <PollCard />
-        <Link className="cm-circle-link" href={communityHref("circle")}>
-          <span className="cm-circle-link-icon"><RingIcon size={24} /></span>
-          <span className="cm-circle-link-text"><b>Sunday circle is open</b><span>{seated ? "Your seat is kept for you" : "A seat is waiting for you"}</span></span>
-          <NextIcon size={20} />
-        </Link>
       </div>
     </div>
   );

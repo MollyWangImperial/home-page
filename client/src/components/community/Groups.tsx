@@ -4,7 +4,7 @@ import { groupQuickReplies, inviteFriends, people, suggestedGroups, type GroupMe
 import { canSee, communityHref, communityStore, isBlocked, listNames, useCommunity, type NoteDraft, type OwnNote } from "@/lib/community-store";
 import { lastLine, myGroups, type GroupModel } from "./group-model";
 import { useBursts, usePinnedToEnd } from "./hooks";
-import { HeartIcon, PlusIcon, StarIcon } from "./icons";
+import { CheckIcon, HeartIcon, PlusIcon } from "./icons";
 import { ChatInput, Cover, Face, FloatingHearts, LiveDot, MyFace, MyMessage, TheirMessage, toneClass, TypingRow } from "./parts";
 
 const nameOf = (who: PersonId) => people[who].name;
@@ -14,24 +14,28 @@ type LogLine =
   | { kind: "mine"; at: number; note: OwnNote }
   | { kind: "hello"; at: number; text: string };
 
+/** "This week: a photo of something growing" becomes "A photo of something growing", under "This week's group challenge". */
+const challengeWords = (text: string) => { const words = text.replace(/^This week:\s*/i, ""); return words.charAt(0).toUpperCase() + words.slice(1); };
+
 function Challenge({ group }: { group: GroupModel }) {
   const joined = useCommunity().challenges.includes(group.id);
   const { done: base, total, text } = group.challenge;
   const done = Math.min(total, base + (joined ? 1 : 0));
   return (
-    <div className="cm-challenge" style={{ background: group.tint }}>
-      <span className="cm-challenge-icon" style={{ color: group.ink }} aria-hidden="true"><StarIcon size={22} /></span>
+    <div className="cm-challenge">
+      <span className="cm-challenge-count" aria-hidden="true">{done}</span>
       <div className="cm-challenge-body">
-        <p className="cm-challenge-text">{text}</p>
+        <p className="cm-overline cm-overline-gold">This week's group challenge</p>
+        <p className="cm-challenge-text">{challengeWords(text)}</p>
         <div className="cm-progress-row">
           <span className="cm-progress" role="progressbar" aria-label="Done this week" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done} aria-valuetext={`${done} of ${total}`}>
-            <span className="cm-progress-fill" style={{ width: `${Math.round((done * 100) / total)}%`, background: group.ink }} />
+            <span className="cm-progress-fill" style={{ width: `${Math.round((done * 100) / total)}%` }} />
           </span>
-          <span className="cm-progress-text" style={{ color: group.ink }} aria-hidden="true">{done} of {total}</span>
+          <span className="cm-progress-text" aria-hidden="true">{done} of {total} done</span>
         </div>
       </div>
-      <button type="button" className={`cm-challenge-join ${joined ? "is-on" : ""}`} style={joined ? { background: group.ink, color: "#FFFFFF" } : { color: group.ink }} onClick={() => communityStore.toggleChallenge(group.id)}>
-        {joined ? "You're in!" : "Join in"}<span className="cm-sr">{joined ? ", tap to leave the challenge" : " the challenge"}</span>
+      <button type="button" className={`cm-challenge-join ${joined ? "is-on" : ""}`} aria-pressed={joined} onClick={() => communityStore.toggleChallenge(group.id)}>
+        {joined ? <><CheckIcon size={14} />You're in</> : "Join in"}<span className="cm-sr">{joined ? ", tap to leave the challenge" : " the challenge"}</span>
       </button>
     </div>
   );
@@ -132,26 +136,80 @@ export default function GroupsView({ active, requested }: { active: boolean; req
     navigate(communityHref("groups"), { replace: true });
   };
 
+  const side = (
+    <div className="cm-side">
+      <section className="cm-card cm-side-card cm-group-list" aria-labelledby="cm-group-list-title">
+        <h3 className="cm-side-title" id="cm-group-list-title">Your groups</h3>
+        <ul>
+          {groups.map(group => {
+            const on = group.id === selected.id;
+            const unread = on ? 0 : group.unread;
+            return (
+              <li key={group.id}>
+                <Link className={`cm-group-pick ${on ? "is-on" : ""}`} href={communityHref("groups", group.id)} aria-current={on ? "page" : undefined}>
+                  <span className="cm-cover-wrap">
+                    <Cover cover={group.cover} className="cm-cover-thumb" />
+                    {group.active && <span className="cm-cover-live cm-live" aria-hidden="true" />}
+                  </span>
+                  <span className="cm-group-text"><b>{group.name}</b><span>{lastLine(group, memory, delivered[group.id] ?? null, nameOf, shown)}</span></span>
+                  {unread > 0 && <span className="cm-badge cm-pop"><span aria-hidden="true">{unread}</span><span className="cm-sr">{`, ${unread} unread`}</span></span>}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+        <Link className="cm-start-link" href={communityHref("start")}><PlusIcon size={18} /><span>Start a group</span></Link>
+      </section>
+
+      <section className="cm-card cm-side-card" aria-labelledby="cm-suggest-title">
+        <h3 className="cm-overline cm-overline-rust" id="cm-suggest-title">Groups you might like</h3>
+        <ul className="cm-suggestions">
+          {suggestedGroups.map(group => {
+            const on = memory.joined.includes(group.id as SuggestedGroupId);
+            return (
+              <li key={group.id}>
+                <Cover cover={group.cover} className="cm-cover-thumb" />
+                <span className="cm-group-text">
+                  <b>{group.name}</b>
+                  {on ? <Link className="cm-inline-link" href={communityHref("groups", group.id)}>Welcome! Say hello</Link> : <span>{group.why}</span>}
+                </span>
+                <button type="button" className={`cm-join ${on ? "is-on cm-pop" : ""}`} onClick={() => { communityStore.toggleJoined(group.id as SuggestedGroupId); if (!on) burst(); }}>
+                  {on ? "Joined" : "Join"}<span className="cm-sr">{` ${group.name}`}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    </div>
+  );
+
   return (
-    <div className="cm-layout">
+    <div className="cm-layout cm-groups">
+      {side}
       <section className="cm-card cm-chat cm-group" aria-labelledby="cm-group-title">
         <Cover cover={selected.cover} className="cm-group-band" iconSize={56} />
         <header className="cm-group-head">
+          <Cover cover={selected.cover} className="cm-group-tile" iconSize={34} />
           <div className="cm-group-titles">
             <h2 id="cm-group-title" tabIndex={-1} data-view-heading>{selected.name}</h2>
             <p className="cm-group-meta">
               <span>{selected.meta}</span>
               {selected.online > 0 && <><LiveDot tone="green" className="cm-meta-dot" /><span className="cm-online">{selected.online} online</span></>}
+              <span className="cm-face-stack cm-group-faces" aria-hidden="true">
+                {started && <MyFace size={28} />}
+                {selected.faces.filter(inSight).slice(0, 4).map(who => <Face key={who} who={who} size={28} />)}
+              </span>
             </p>
           </div>
-          <span className="cm-face-stack cm-group-faces" aria-hidden="true">
-            {started && <MyFace size={36} />}
-            {selected.faces.filter(inSight).slice(0, 4).map(who => <Face key={who} who={who} size={36} />)}
+          <span className="cm-group-actions">
+            <button type="button" className={`cm-invite ${!started && invited.length ? "is-on" : ""}`} aria-expanded={inviting} aria-controls={inviting ? panelId : undefined} onClick={() => setInviting(!inviting)}>
+              {!started && invited.length ? `${invited.length} invited` : "+ Invite a friend"}
+            </button>
+            <span className="cm-joined-pill"><CheckIcon size={14} />{started ? "Yours" : "Joined"}</span>
           </span>
-          <button type="button" className={`cm-invite ${!started && invited.length ? "is-on" : ""}`} aria-expanded={inviting} aria-controls={inviting ? panelId : undefined} onClick={() => setInviting(!inviting)}>
-            {!started && invited.length ? `${invited.length} invited` : "+ Invite a friend"}
-          </button>
         </header>
+        <p className="cm-group-about">{selected.about}</p>
         {inviting && <InvitePanel group={selected} id={panelId} invited={invited} onToggle={toggleInvite} />}
         {started && (
           <div className="cm-started-bar">
@@ -188,56 +246,10 @@ export default function GroupsView({ active, requested }: { active: boolean; req
             {groupQuickReplies.map(reply => <button key={reply.label} type="button" className={`cm-quick ${toneClass(reply.tone)}`} onClick={() => send({ text: reply.text })}>{reply.label}</button>)}
             <button type="button" className="cm-love" aria-label="Send a heart" onClick={burst}><HeartIcon size={22} fill="currentColor" strokeWidth={1.6} /></button>
           </div>
-          <ChatInput label="Message the group" placeholder="Message the group" onSend={send} allowPhoto />
+          <ChatInput label="Message the group" placeholder="Message the group" onSend={send} allowPhoto sendText="Send" />
           <p className="cm-sr" role="status">{sentNote}</p>
         </div>
       </section>
-
-      <div className="cm-side">
-        <section className="cm-card cm-side-card cm-group-list" aria-labelledby="cm-group-list-title">
-          <h3 id="cm-group-list-title">My groups</h3>
-          <ul>
-            {groups.map(group => {
-              const on = group.id === selected.id;
-              const unread = on ? 0 : group.unread;
-              return (
-                <li key={group.id}>
-                  <Link className={`cm-group-pick ${on ? "is-on" : ""}`} href={communityHref("groups", group.id)} aria-current={on ? "page" : undefined}>
-                    <span className="cm-cover-wrap">
-                      <Cover cover={group.cover} className="cm-cover-thumb" />
-                      {group.active && <span className="cm-cover-live cm-live" aria-hidden="true" />}
-                    </span>
-                    <span className="cm-group-text"><b>{group.name}</b><span>{lastLine(group, memory, delivered[group.id] ?? null, nameOf, shown)}</span></span>
-                    {unread > 0 && <span className="cm-badge cm-pop"><span aria-hidden="true">{unread}</span><span className="cm-sr">{`, ${unread} unread`}</span></span>}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-          <Link className="cm-start-link" href={communityHref("start")}><PlusIcon size={20} /><span>Start a group</span></Link>
-        </section>
-
-        <section className="cm-card cm-side-card" aria-labelledby="cm-suggest-title">
-          <h3 className="cm-overline cm-overline-rust" id="cm-suggest-title">Groups you might like</h3>
-          <ul className="cm-suggestions">
-            {suggestedGroups.map(group => {
-              const on = memory.joined.includes(group.id as SuggestedGroupId);
-              return (
-                <li key={group.id}>
-                  <Cover cover={group.cover} className="cm-cover-thumb" />
-                  <span className="cm-group-text">
-                    <b>{group.name}</b>
-                    {on ? <Link className="cm-inline-link" href={communityHref("groups", group.id)}>Welcome! Say hello</Link> : <span>{group.why}</span>}
-                  </span>
-                  <button type="button" className={`cm-join ${on ? "is-on cm-pop" : ""}`} onClick={() => { communityStore.toggleJoined(group.id as SuggestedGroupId); if (!on) burst(); }}>
-                    {on ? "Joined" : "Join"}<span className="cm-sr">{` ${group.name}`}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      </div>
     </div>
   );
 }

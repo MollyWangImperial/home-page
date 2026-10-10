@@ -47,7 +47,7 @@ export default function FindPanel({ onClose, anchor, over, fallbackFocus }: Find
       <div className="cm-dialog-head">
         <span className="cm-round-icon cm-round-icon-small" aria-hidden="true"><SearchIcon size={22} /></span>
         <div className="cm-dialog-titles">
-          <h2 id={titleId} className="cm-dialog-title cm-dialog-title-small" tabIndex={-1}>Find</h2>
+          <h2 id={titleId} className="cm-dialog-title cm-dialog-title-small" tabIndex={-1}>Search</h2>
           <p>People, groups and places in My community</p>
         </div>
         <button type="button" className="cm-dialog-close" aria-label="Close" onClick={onClose}><CloseIcon size={22} /></button>

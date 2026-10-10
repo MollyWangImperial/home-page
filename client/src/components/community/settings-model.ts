@@ -45,7 +45,7 @@ export function settingsSummaries(settings: CommunitySettings, town: string, now
     ],
     friends: [
       settings.requestsFrom === "noOne" ? "No new requests" : `Requests from ${labelOf(settingsChoices.requestsFrom, settings.requestsFrom).toLowerCase()}`,
-      settings.messagesFrom === "friends" ? "messages from friends only" : "messages from friends and groups",
+      settings.messagesFrom === "friends" ? "messages from friends only" : settings.messagesFrom === "noOne" ? "messages off" : "messages from friends and groups",
       postsAudience(settings.postsSeenBy).summary,
     ],
     see: [settings.gentleMode ? "Gentle mode on" : "Gentle mode off", counted(settings.hiddenWords.length, "hidden word", "hidden words", "no hidden words")],
@@ -91,7 +91,7 @@ export function cardLine(showTown: boolean, town: string, groups: number, friend
 
 /** The note under the card. It says "would": in this preview, nobody else sees it. */
 export const cardNote = (messagesFrom: MessagesFrom): string =>
-  `What other members would see when they tap your name.${messagesFrom === "friends" ? " Only friends could message you." : ""}`;
+  `What other members would see when they tap your name.${messagesFrom === "friends" ? " Only friends could message you." : messagesFrom === "noOne" ? " No one could message you." : ""}`;
 
 /** What "Show my town" puts on the card, from the town in the person's profile. */
 export const townHint = (town: string): string => (town ? `Puts “${town}” under your name on your card` : "Your profile doesn't have a town yet.");

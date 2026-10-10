@@ -1,8 +1,9 @@
 import { useId, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link } from "wouter";
-import { feedPosts, feelings, isPersonId, members, PERSON_IDS, people, sampleGroups, settingsChoices, type FeelingId, type PersonId, type PostsSeenBy, type SampleGroup, type SamplePost } from "@/content/community-samples";
+import { circle, CIRCLE_SEATS, feedPosts, feelings, friendSuggestions, isPersonId, lounge, members, PERSON_IDS, people, sampleGroups, settingsChoices, type FeelingId, type PersonId, type PostsSeenBy, type SampleGroup, type SamplePost } from "@/content/community-samples";
 import {
   canSee,
+  circleSeatsTaken,
   communityHref,
   communityStore,
   hiddenThisVisit,
@@ -10,6 +11,7 @@ import {
   listNames,
   postVisibility,
   preparePostPhoto,
+  relationship,
   timeAgo,
   useCommunity,
   type CommunityMemory,
@@ -20,7 +22,7 @@ import {
 import { coverForTheme, lastLine, myGroups } from "./group-model";
 import { useVoiceNote, voiceSeconds } from "./hooks";
 import { ArrowIcon, ChatIcon, CloseIcon, DotsIcon, EyeIcon, EyeOffIcon, GlobeIcon, LockIcon, MicIcon, PhotoIcon, PlusIcon, SmileIcon, SpeakerIcon, StarIcon, StopIcon, UsersIcon } from "./icons";
-import { AliraMark, Cover, Face, FriendButton, LiveDot, MemberFace, MyFace, ReactionButton, TypingDots, VoiceNote } from "./parts";
+import { Cover, Face, FriendButton, LiveDot, MemberFace, MyFace, ReactionButton, VoiceNote } from "./parts";
 import { postsAudience } from "./settings-model";
 
 const feelingLabel = (id: FeelingId | null) => feelings.find(item => item.id === id)?.label.toLowerCase();
@@ -366,64 +368,71 @@ function HiddenWordsNote({ words, onShow }: { words: string[]; onShow: () => voi
 /* ------------------------------------------------------------ side column */
 
 // Blocked people are out of sight everywhere in My community, their faces included.
-const loungeFaces: PersonId[] = ["margaret", "david", "tomasz"];
+const loungeFaces: PersonId[] = ["margaret", "david", "anne", "tomasz"];
+const loungeQuote = lounge.messages.find(message => message.id === "l3");
 
 function LoungeCard({ here }: { here: number }) {
   const memory = useCommunity();
   const titleId = useId();
   return (
     <section className="cm-card cm-side-card cm-rise-2" aria-labelledby={titleId}>
-      <div className="cm-card-head">
-        <span className="cm-round-icon cm-round-icon-small"><ChatIcon size={22} /></span>
-        <div className="cm-card-titles"><h3 id={titleId}>The lounge</h3><p>Drop in for a chat</p></div>
+      <div className="cm-card-row">
+        <h3 className="cm-side-title" id={titleId}>The lounge</h3>
         <span className="cm-live-pill"><LiveDot />Live</span>
       </div>
-      {canSee(memory, "anne") && (
-        <div className="cm-peek-line">
-          <Face who="anne" size={30} />
-          <p className="cm-peek-bubble"><span className="cm-sr">Anne: </span>It does get lighter, promise.</p>
-        </div>
-      )}
-      {canSee(memory, "priya") && (
-        <div className="cm-peek-line">
-          <Face who="priya" size={30} />
-          <span className="cm-typing-pill"><TypingDots /></span><span className="cm-sr">Priya is writing</span>
-        </div>
-      )}
       <div className="cm-card-foot">
-        <span className="cm-face-stack">{loungeFaces.filter(who => !isBlocked(memory, who)).map(who => <Face key={who} who={who} size={30} />)}</span>
-        <span className="cm-here">{here} here</span>
-        <Link className="cm-btn cm-btn-green cm-btn-small" href={communityHref("lounge")}>Jump in<span className="cm-sr"> to the lounge</span></Link>
+        <span className="cm-face-stack" aria-hidden="true">{loungeFaces.filter(who => !isBlocked(memory, who)).map(who => <Face key={who} who={who} size={30} />)}</span>
+        <span className="cm-here">{`${here} people chatting now`}</span>
       </div>
+      {loungeQuote && canSee(memory, loungeQuote.who) && (
+        <figure className="cm-quote">
+          <blockquote>{`“${loungeQuote.text}”`}</blockquote>
+          <figcaption>{`${people[loungeQuote.who].name} · ${loungeQuote.minutesAgo ?? 0} min ago`}</figcaption>
+        </figure>
+      )}
+      <Link className="cm-btn cm-btn-green cm-btn-wide" href={communityHref("lounge")}>Join the conversation<span className="cm-sr"> in the lounge</span></Link>
     </section>
   );
 }
 
-const miniSeats: { who: PersonId; left: number; top: number }[] = [
-  { who: "joan", left: 63, top: 6 }, { who: "david", left: 167, top: 6 }, { who: "margaret", left: 25, top: 20 }, { who: "liwei", left: 205, top: 20 },
-  { who: "samuel", left: 25, top: 58 }, { who: "tomasz", left: 205, top: 58 }, { who: "anne", left: 63, top: 72 }, { who: "priya", left: 167, top: 72 },
-];
-
 function CircleCard({ seated, memory }: { seated: boolean; memory: CommunityMemory }) {
   const titleId = useId();
+  const taken = circleSeatsTaken(memory);
   return (
     <section className="cm-circle-card cm-rise-3" aria-labelledby={titleId}>
-      <div className="cm-mini-circle" aria-hidden="true">
-        <span className="cm-mini-glow" />
-        <span className="cm-mini-ring" />
-        <span className="cm-mini-seat" style={{ left: 115, top: 1 }}><AliraMark size={34} light /></span>
-        {miniSeats.filter(seat => !isBlocked(memory, seat.who)).map(seat => <Face key={seat.who} who={seat.who} size={34} className="cm-mini-seat cm-mini-face" style={{ left: seat.left, top: seat.top }} />)}
-        <span className="cm-mini-seat" style={{ left: 115, top: 77 }}>
-          {seated
-            ? <MyFace size={34} className="cm-mini-face" />
-            : <span className="cm-empty-seat"><span className="cm-seat-pulse" /><span className="cm-empty-plus"><PlusIcon size={16} strokeWidth={2.4} /></span></span>}
-        </span>
-      </div>
+      <p className="cm-circle-card-over"><LiveDot /><span>Live now · Hosted by Alira</span></p>
       <div className="cm-circle-card-text">
         <h3 id={titleId}>Sunday circle</h3>
-        <p>{seated ? "Open now. Your seat is kept for you." : "Open now. One seat is yours."}</p>
+        <p>{circle.topic}</p>
       </div>
-      <Link className="cm-btn cm-btn-rust" href={communityHref("circle")} onClick={() => communityStore.takeSeat()}>{seated ? "Go to your seat" : "Take your seat"}</Link>
+      <div className="cm-seat-meter">
+        <span className="cm-seat-bar" role="progressbar" aria-label="Seats taken" aria-valuemin={0} aria-valuemax={CIRCLE_SEATS} aria-valuenow={taken} aria-valuetext={`${taken} of ${CIRCLE_SEATS} seats taken`}>
+          <span style={{ width: `${Math.round((taken * 100) / CIRCLE_SEATS)}%` }} />
+        </span>
+        <span aria-hidden="true">{`${taken} of ${CIRCLE_SEATS} seats taken${seated ? " · yours is kept" : ""}`}</span>
+      </div>
+      <Link className="cm-btn cm-btn-gold" href={communityHref("circle")} onClick={() => communityStore.takeSeat()}>{seated ? "Go to your seat" : "Take your seat"}</Link>
+    </section>
+  );
+}
+
+/** "People you may know": a request with one tap, and taken back with another. */
+function PeopleCard({ memory }: { memory: CommunityMemory }) {
+  const titleId = useId();
+  const suggestions = friendSuggestions.filter(({ who }) => ["none", "sent"].includes(relationship(memory, who)));
+  if (!suggestions.length) return null;
+  return (
+    <section className="cm-card cm-side-card cm-rise-4" aria-labelledby={titleId}>
+      <h3 className="cm-side-title" id={titleId}>People you may know</h3>
+      <ul className="cm-people">
+        {suggestions.map(({ who, why }) => (
+          <li key={who}>
+            <Face who={who} size={40} />
+            <span className="cm-group-text"><b>{people[who].name}</b><span>{why}</span></span>
+            <FriendButton who={who} />
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -450,8 +459,8 @@ function GroupsCard({ memory }: { memory: CommunityMemory }) {
   return (
     <section className="cm-card cm-side-card cm-rise-4" aria-labelledby={titleId}>
       <div className="cm-card-row">
-        <h3 id={titleId}>My groups</h3>
-        <Link className="cm-see-all" href={communityHref("groups")}>See all<span className="cm-sr"> my groups</span></Link>
+        <h3 className="cm-side-title" id={titleId}>Your groups</h3>
+        <Link className="cm-see-all" href={communityHref("groups")}>See all<span className="cm-sr"> your groups</span></Link>
       </div>
       <ul className="cm-group-links">
         {newest && (
@@ -462,7 +471,7 @@ function GroupsCard({ memory }: { memory: CommunityMemory }) {
             </Link>
           </li>
         )}
-        {sampleGroups.slice(0, 2).map(group => {
+        {sampleGroups.slice(0, newest ? 3 : 4).map(group => {
           const unread = (memory.read as string[]).includes(group.id) ? 0 : group.unread;
           return (
             <li key={group.id}>
@@ -514,6 +523,11 @@ export default function FeedView({ name, here, onMore, openPostId = null }: { na
         <LoungeCard here={here} />
         <CircleCard seated={memory.seated} memory={memory} />
         <GroupsCard memory={memory} />
+        <PeopleCard memory={memory} />
+        <div className="cm-side-foot">
+          <Link className="cm-inline-link" href={communityHref("safety")}>Community guidelines and safety</Link>
+          <p>Rehyn is not an emergency service. If you think someone is having a stroke, call 999.</p>
+        </div>
       </aside>
     </div>
   );

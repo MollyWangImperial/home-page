@@ -244,8 +244,9 @@ export function TypingRow({ who }: { who: PersonId }) {
 /**
  * The writing row under a chat: a voice-note switch, an optional photo, the words and Send.
  * Recording isn't switched on in this preview, so a voice note is made from written words.
+ * `sendText` writes Send on the button ("Send"), where there is room, instead of an arrow.
  */
-export function ChatInput({ label, placeholder, onSend, allowPhoto = false }: { label: string; placeholder: string; onSend: (draft: NoteDraft) => void; allowPhoto?: boolean }) {
+export function ChatInput({ label, placeholder, onSend, allowPhoto = false, sendText }: { label: string; placeholder: string; onSend: (draft: NoteDraft) => void; allowPhoto?: boolean; sendText?: string }) {
   const [text, setText] = useState("");
   const [voice, setVoice] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
@@ -292,7 +293,9 @@ export function ChatInput({ label, placeholder, onSend, allowPhoto = false }: { 
           <span className="cm-sr">{voice ? `${label}, as a voice note` : label}</span>
           <input ref={field} type="text" value={text} maxLength={400} placeholder={voice ? "Write the words for your voice note" : placeholder} onChange={event => { setText(event.target.value); setProblem(""); }} enterKeyHint="send" autoComplete="off" />
         </label>
-        <button type="submit" className="cm-round cm-round-send" aria-label="Send"><ArrowIcon size={22} /></button>
+        {sendText
+          ? <button type="submit" className="cm-send-pill">{sendText}</button>
+          : <button type="submit" className="cm-round cm-round-send" aria-label="Send"><ArrowIcon size={22} /></button>}
       </div>
       {voice && <p className="cm-hint" id={hintId}>Recording isn't switched on in this preview. Write your words, and Play will read them aloud on this device.</p>}
       {problem && <p className="cm-problem" role="alert">{problem}</p>}

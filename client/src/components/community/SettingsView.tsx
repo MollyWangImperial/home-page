@@ -326,6 +326,7 @@ function HiddenWords({ words, save }: { words: string[]; save: Save }) {
 function CardPreview({ name, settings, town, groups, friends, photo, initial }: { name: string; settings: CommunitySettings; town: string; groups: number; friends: number; photo: boolean; initial: string }) {
   const taking = settings.requestsFrom !== "noOne";
   const friendsOnly = settings.messagesFrom === "friends";
+  const noMessages = settings.messagesFrom === "noOne";
   const look = settings.picture === "drawn" ? "Your drawn face" : settings.picture === "photo" && photo ? "Your photo" : `Your initial, ${initial}`;
   return (
     <div className="cm-card cm-set-card">
@@ -342,9 +343,11 @@ function CardPreview({ name, settings, town, groups, friends, photo, initial }: 
         </div>
         <p className="cm-set-card-buttons">
           <span className={`cm-set-pill ${taking ? "cm-set-pill-add" : "cm-set-pill-off"}`}>{taking ? "Add friend" : "Not taking requests"}</span>
-          <span className={`cm-set-pill cm-set-pill-message${friendsOnly ? " is-limited" : ""}`}>
-            {friendsOnly && <LockIcon size={15} />}Message{friendsOnly && <span className="cm-sr"> (friends only)</span>}
-          </span>
+          {noMessages ? <span className="cm-set-pill cm-set-pill-off">Not taking messages</span> : (
+            <span className={`cm-set-pill cm-set-pill-message${friendsOnly ? " is-limited" : ""}`}>
+              {friendsOnly && <LockIcon size={15} />}Message{friendsOnly && <span className="cm-sr"> (friends only)</span>}
+            </span>
+          )}
         </p>
         <p className="cm-set-card-note">{cardNote(settings.messagesFrom)}</p>
       </div>

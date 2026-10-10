@@ -7,7 +7,9 @@ import {
   blockedList,
   blockedSince,
   canSee,
+  circleSeatsTaken,
   cleanGroupName,
+  clockLabel,
   cleanHiddenWord,
   COMMUNITY_KEY,
   communityHref,
@@ -25,6 +27,7 @@ import {
   isBlocked,
   leadsHere,
   listNames,
+  messagesHref,
   mutedList,
   onBreak,
   parseCommunityMemory,
@@ -35,6 +38,7 @@ import {
   relationship,
   requestList,
   sentList,
+  shortWhen,
   timeAgo,
   unreadCount,
   unseenAlertCount,
@@ -757,5 +761,62 @@ describe("photos chosen for a post", () => {
   it("explains when a photo can't be opened", async () => {
     vi.stubGlobal("createImageBitmap", vi.fn().mockRejectedValue(new Error("decode")));
     await expect(preparePostPhoto({ type: "image/webp", size: 100 } as File)).rejects.toThrow("couldn't be opened");
+  });
+});
+
+describe("messages and the Friends tab", () => {
+  it("reads Messages with a conversation, and Friends, from the address and builds links back to them", () => {
+    expect(communityViewFromQuery("space=messages&chat=margaret")).toEqual({ space: "messages", group: null, chat: "margaret" });
+    expect(communityViewFromQuery("space=messages&chat=bad%20id")).toEqual({ space: "messages", group: null });
+    // A chat belongs to Messages only.
+    expect(communityViewFromQuery("space=lounge&chat=margaret")).toEqual({ space: "lounge", group: null });
+    expect(communityViewFromQuery("space=friends")).toEqual({ space: "friends", group: null });
+    expect(messagesHref("garden")).toBe("/community?space=messages&chat=garden");
+    expect(messagesHref()).toBe("/community?space=messages");
+    expect(communityHref("lounge", null, { chat: "margaret" })).toBe("/community?space=lounge");
+    expect(viewHref(communityViewFromQuery("space=messages&chat=anne&panel=friends"))).toBe("/community?space=messages&chat=anne&panel=friends");
+    // The Friends drawer opens over the conversation, and closes back to it.
+    const view = communityViewFromQuery("space=messages&chat=anne");
+    expect(friendsHref(null, placeOf(view))).toBe("/community?space=messages&chat=anne&panel=friends");
+    expect(leadsHere("/community?space=messages&chat=anne", "space=messages&chat=david")).toBe(false);
+    expect(leadsHere("/community?space=messages&chat=anne", "space=messages&chat=anne")).toBe(true);
+  });
+
+  it("keeps the person's messages to friends, what they have read and muted, and only those", () => {
+    const storage = memoryStorage();
+    const store = createCommunityStore(() => storage);
+    expect(store.addDirect("margaret", { text: "  See you   Sunday " }, NOW)?.text).toBe("See you Sunday");
+    expect(store.addDirect("margaret", { text: "   " }, NOW)).toBeNull();
+    store.markChatRead("david");
+    store.toggleChatMuted("anne");
+    expect(saved(storage)).toMatchObject({ chatsRead: ["david"], chatsMuted: ["anne"] });
+    const back = parseCommunityMemory(JSON.stringify({ ...saved(storage), direct: { ...saved(storage).direct, gary: [{ id: "dm-x", text: "Hi", createdAt: NOW }] }, chatsRead: ["david", "nobody"], chatsMuted: "anne" }));
+    expect(back.direct.margaret?.map(note => note.text)).toEqual(["See you Sunday"]);
+    expect(back.direct.gary).toBeUndefined();
+    expect(back.chatsRead).toEqual(["david"]);
+    expect(back.chatsMuted).toEqual([]);
+    store.toggleChatMuted("anne");
+    expect(store.load().chatsMuted).toEqual([]);
+  });
+
+  it("gives up the circle seat on Leave quietly, and counts the seats taken", () => {
+    const store = createCommunityStore(() => null);
+    expect(circleSeatsTaken(store.load())).toBe(9);
+    store.takeSeat();
+    expect(circleSeatsTaken(store.load())).toBe(10);
+    store.leaveSeat();
+    expect(store.load().seated).toBe(false);
+    store.block("margaret", NOW);
+    expect(circleSeatsTaken(store.load())).toBe(8);
+  });
+
+  it("dates a line for its conversation row and the bubble under it", () => {
+    const at = new Date(2026, 9, 10, 14, 41).getTime();
+    expect(clockLabel(at)).toBe("2:41 pm");
+    expect(clockLabel(new Date(2026, 9, 10, 0, 5).getTime())).toBe("12:05 am");
+    expect(shortWhen(at, at + 12 * 60_000)).toBe("12 min");
+    expect(shortWhen(at, at + 20_000)).toBe("Now");
+    expect(shortWhen(at, new Date(2026, 9, 11, 9, 0).getTime())).toBe("Yesterday");
+    expect(shortWhen(at, new Date(2026, 9, 13, 9, 0).getTime())).toBe("Sat");
   });
 });

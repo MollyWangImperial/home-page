@@ -22,6 +22,8 @@ export type PostMenuProps = {
   returnFocus: HTMLElement | null;
   /** Where the focus goes if that button has gone (the post was hidden). Pass it to CommunityDialog. */
   fallbackFocus: () => HTMLElement | null | undefined;
+  /** "block" opens the sheet at "Block them?" (a Block button pressed), rather than at the menu. */
+  startAt?: "block";
 };
 
 /** The sheet's steps: the menu, the two report steps and their end, and the ends of blocking and hiding. */
@@ -315,11 +317,11 @@ function nearOpener(target: SafetyTarget): HTMLElement | null {
   return row?.querySelector<HTMLElement>("button") ?? null;
 }
 
-export default function PostMenu({ target, name, onClose, returnFocus, fallbackFocus }: PostMenuProps) {
+export default function PostMenu({ target, name, onClose, returnFocus, fallbackFocus, startAt }: PostMenuProps) {
   const titleId = useId();
   return (
     <CommunityDialog kind="sheet" labelledBy={titleId} onClose={onClose} returnFocus={returnFocus} fallbackFocus={() => nearOpener(target) ?? fallbackFocus()} className="cm-sa-sheet">
-      <SafetySheetSteps target={target} name={name} titleId={titleId} onClose={onClose} />
+      <SafetySheetSteps target={target} name={name} titleId={titleId} onClose={onClose} start={startAt ? { step: startAt } : undefined} />
     </CommunityDialog>
   );
 }
