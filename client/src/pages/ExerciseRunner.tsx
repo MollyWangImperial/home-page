@@ -22,6 +22,7 @@ import { drawToeDemo, drawToeDial, drawToeFootGuide, drawToeGuide, drawToeScene,
 import { drawSlideDemo, drawSlideGhost, drawSlideTargets, OTHER_IN_VIEW_HINT, restCircle, SLIDE_PRACTICE_SPANS, SLIDE_RISE, SLIDE_STEP, slideCanvasCircle, slideDemoState, slideFrame, slideGhostContact, slideGhostTarget, slideOutward, slideRestCheck, slideRestOn, slideRestPrompt, SlideTarget, type SlideSupport } from "@/lib/exercise-engine/slide-target";
 import { drawPeg, drawPegTray, drawPinchDemo, drawPinchGhost, gapOf, imageGap, pegsDropped, pinchCircle, pinchDemoState, PINCH_FINGERS, pinchFinger, pinchFrame, pinchGap, pinchGhostContact, pinchGhostTarget, pinchHand, pinchPracticeGoal, PinchTarget, startGap, tipAlong, TOUCH_CLOSURE, trayPoint, type PinchStep } from "@/lib/exercise-engine/pinch-target";
 import { LightingProbe, type Lighting } from "@/lib/exercise-engine/lighting";
+import { contrastPart, contrastRegions, type Contrast } from "@/lib/exercise-engine/contrast";
 import { TARGET_COMPLETION_MS } from "@/lib/exercise-engine/target-timing";
 import { NEXT_REP_COUNTDOWN_LINE } from "@/lib/exercise-engine/spoken";
 import { compensationStatus, HAND_LINES, POSE_LINES, handFrameValues, handVisible, inView, POSE_NEEDS, poseFrameValues, poseJoints, poseVisibility, reachLapRest, type Frame } from "@/lib/exercise-engine/metrics";
@@ -220,6 +221,7 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
   // The movement check's hand opening: the step whose ring the fingertips are on (they stay on until they close inside it).
   const handOnRef = useRef<string | null>(null);
   const [said, setSaid] = useState("");
+  const saidInReview = useRef(false);
   const [muted, setMuted] = useState(false);
   const [englishAvailable, setEnglishAvailable] = useState(true);
   const [debugClips, setDebugClips] = useState<DebugClip[]>([]);
@@ -423,11 +425,15 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
           const slideNow = session.cfg.id === SLIDE_ID;
           // Pinch and Peg checks the lighting at set-up too: fingertips are the first landmarks poor light loses.
           const pinchNow = session.cfg.id === PINCH_ID;
-          if ((graspNow || dialEx || slideNow || pinchNow) && now.phase === "setup") {
+          // Every exercise checks the lighting and the clothing at set-up; the movement check keeps its own set-up.
+          const conditionsNow = !assess || graspNow || dialEx || slideNow || pinchNow;
+          if (conditionsNow && now.phase === "setup") {
             if (graspNow) graspLayoutRef.current = followLayout(graspLayoutRef.current, graspLayout(tracked.pose, opts.side, video.videoWidth / video.videoHeight, now.rung));
             else if (dialEx) kneeDialRef.current = followDial(kneeDialRef.current, dialNow);
             else if (slideNow) slideOutRef.current = slideOutward(tracked.pose, opts.side) ?? slideOutRef.current;
-            lighting.current = lightingProbe.current.sample(video, tracked.pose, t);
+            // Every exercise checks the lighting at set-up, and whether the part of the body it tracks stands out from
+            // the background (contrast.ts), from one small copy of the frame every half second.
+            lighting.current = lightingProbe.current.sample(video, tracked.pose, t, assess ? null : contrastRegions(tracked.pose, opts.side, contrastPart(session.cfg.id), video.videoWidth / video.videoHeight));
           }
           // Seated Toe Lift: where the feet go, drawn on the floor during set-up.
           toeFootRef.current = toeNow && now.phase === "setup" ? followToeFootGuide(toeFootRef.current, toeFootGuide(tracked.pose, opts.side, video.videoWidth / video.videoHeight)) : null;
@@ -440,13 +446,18 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
           else if (assess?.taskId === "H4") frame.comps.other_hand_near = otherHandNear(detection, affectedHand(detection, opts.side), opts.side, aspectNow);
           // Hand to mouth's chest point follows the body during set-up and stays where it was learned.
           if (assess?.taskId === "T3" && now.phase === "setup") chestRef.current = followPoint(chestRef.current, chestFrom(tracked.pose, opts.side), 0.2);
-          if ((graspNow || dialEx || slideNow || pinchNow) && now.phase === "setup") {
-            const light = lighting.current;
+          if (conditionsNow && now.phase === "setup") {
+            // Graded Forward Reach speaks only lines recorded in Alira's voice, and these hints are not (yet): for it
+            // the lighting and clothing rows show their hints on screen without holding set-up for them.
+            const unrecorded = session.cfg.id === EVERYDAY_EXERCISE_ID;
+            const light = unrecorded ? null : lighting.current, contrast = unrecorded ? null : lightingProbe.current.contrast();
             if (graspNow && !graspLayoutRef.current) { frame.lapRest = undefined; frame.lapMissing = "Sit back so your shoulders and both hips are in view."; }
             else if (graspNow && handOpenness(graspHand(detection, opts.side)) === undefined) { frame.lapRest = undefined; frame.lapMissing = GRASP_HAND_HINT; }
             else if (dialEx && frame.lapRest && (!dialNow || !kneeDialRef.current)) { frame.lapRest = undefined; frame.lapMissing = KNEE_DIAL_HINT; }
-            // The knee and the slide name a body position to fix first; the light comes once the body is in place.
+            // The exercises name a body position to fix first; the light comes once the body is in place.
             else if ((graspNow || frame.lapRest) && light && !light.ok && !lightingProbe.current.waived()) { frame.lapRest = undefined; frame.lapMissing = light.hint; }
+            // Then the clothing against the background: a reminder, held only briefly (contrastWaived), never a block.
+            else if (frame.lapRest && contrast && !contrast.ok && !lightingProbe.current.contrastWaived()) { frame.lapRest = undefined; frame.lapMissing = contrast.hint; }
           }
           // The movement check's reach: set-up also waits for room above the head for the top level's circle.
           const room = assess?.taskId === "T1" && now.phase === "setup" ? reachRoom(detection.pose, opts.side, frame.lapRest?.y, assess.levels, video.videoWidth, video.videoHeight) : null;
@@ -459,7 +470,7 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
           if (now.phase === "setup") {
             const dt = Math.min(100, Math.max(0, t - (bodyLastT.current || t)));
             bodyLastT.current = t;
-            setBodyChecks(cameraBodyChecks(session, detection, opts.side, handZoneRef.current, video.videoWidth / video.videoHeight, graspNow || dialEx || slideNow || pinchNow ? { lighting: lighting.current, waived: lightingProbe.current.waived(), dialFits: dialEx ? dialNow !== null : undefined, support: opts.armrest ? "armrest" : "table" } : undefined).map(check => {
+            setBodyChecks(cameraBodyChecks(session, detection, opts.side, handZoneRef.current, video.videoWidth / video.videoHeight, conditionsNow ? { lighting: lighting.current, waived: lightingProbe.current.waived(), contrast: assess ? undefined : lightingProbe.current.contrast(), contrastWaived: lightingProbe.current.contrastWaived(), dialFits: dialEx ? dialNow !== null : undefined, support: opts.armrest ? "armrest" : "table" } : undefined).map(check => {
               const progress = Math.max(0, Math.min(1, (bodyProgress.current[check.id] ?? 0) + dt / (check.visible ? 1400 : -550)));
               bodyProgress.current[check.id] = progress;
               return { ...check, progress };
@@ -1044,7 +1055,7 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
     mouthHoldKey.current = "";
     bodyProgress.current = {};
     bodyLastT.current = 0;
-    setBodyChecks(cameraBodyChecks({ cfg }, { pose: null, hands: [] } as unknown as Detection, opts.side).map(check => ({ ...check, progress: 0 })));
+    setBodyChecks(cameraBodyChecks({ cfg }, { pose: null, hands: [] } as unknown as Detection, opts.side, null, 4 / 3, task ? undefined : { lighting: null, waived: false, contrast: null }).map(check => ({ ...check, progress: 0 })));
     // The movement check's own rows: the other hand and thigh for the seated arm tasks, then the reach's room above the head.
     if (task?.taskId === "T1" || task?.taskId === "T3") setBodyChecks(checks => [...checks, ...otherHandRows(null, opts.side).map(row => ({ ...row, progress: 0 }))]);
     if (task?.taskId === "T1") setBodyChecks(checks => [...checks, { ...ROOM_CHECK, visible: false, progress: 0 }]);
@@ -1053,7 +1064,8 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
     const voice = task ? createVoice() : createVoice({ alira: base.id === EVERYDAY_EXERCISE_ID, aliraOnly: base.id === EVERYDAY_EXERCISE_ID });
     voice.stop();
     voice.setMuted(muted);
-    voice.onSay = setSaid;
+    // A line said during a repetition's review (its score, advice, countdown) is not shown once the next one starts.
+    voice.onSay = text => { saidInReview.current = sessionRef.current?.snapshot().review != null; setSaid(text); };
     setEnglishAvailable(true);
     voice.onAvailability = setEnglishAvailable;
     voiceRef.current = voice;
@@ -1313,7 +1325,7 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
               <h2>{snap.phase === "setup" ? (snap.calibrationProgress > 0 ? "Hold still..." : "Get in view") : snap.phase === "demo" && !snap.demoReady ? "Watch the demonstration on the right" : snap.caption || (snap.phase === "demo" ? "Watch the movement" : "Get ready")}</h2>
               {snap.phase === "demo" && (snap.demoReady || usesTargetFlow(cfg.id)) && (preview || !opts.sim) && <canvas ref={ghostRef} className="xe-ghost" width={300} height={240} aria-label={reachDemo ? `Movement demonstration: ${reachDemo.instruction}` : "Movement ghost"} />}
               {reachDemo && <p className="xe-hint">{reachDemo.instruction}</p>}
-              <p className="xe-said" aria-live="polite">{viewSaid && !(viewSaid === NEXT_REP_COUNTDOWN_LINE && !snap.review) ? `"${viewSaid}"` : ""}</p>
+              <p className="xe-said" aria-live="polite">{viewSaid && !(!snap.review && (viewSaid === NEXT_REP_COUNTDOWN_LINE || (!preview && saidInReview.current))) ? `"${viewSaid}"` : ""}</p>
               {snap.phase === "setup" && <div className="xe-meter"><i style={{ width: `${snap.calibrationProgress * 100}%` }} /></div>}
               {(snap.phase === "warm" || snap.phase === "reps") && (
                 <>
@@ -1368,7 +1380,7 @@ export default function ExerciseRunner({ assessment }: { assessment?: Assessment
                   const progress = !preview && opts.sim ? snap.calibrationProgress : check.progress;
                   const visible = (!preview && opts.sim) || check.visible;
                   return <div className={`xe-body-check ${visible ? "is-visible" : "is-missing"}`} key={check.id}>
-                    <div className="xe-body-label"><b>{check.label}</b><span>{visible ? progress >= 1 ? "In view ✓" : "Found · keep in view" : "Move into view"}</span></div>
+                    <div className="xe-body-label"><b>{check.label}</b><span>{CONDITION_ROWS.has(check.id) ? visible ? progress >= 1 ? "Good ✓" : "Checking…" : "Needs a change" : visible ? progress >= 1 ? "In view ✓" : "Found · keep in view" : "Move into view"}</span></div>
                     <div className="xe-body-meter" role="progressbar" aria-label={`${check.label} visibility`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}><i style={{ transform: `scaleX(${progress})` }} /></div>
                     {!visible && <p>{check.hint}</p>}
                   </div>;
@@ -1789,7 +1801,29 @@ function drawGhostFor(canvas: HTMLCanvasElement | null, session: ExerciseSession
 }
 
 
-function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Detection, side: Side, zone: HandZone | null = null, aspect = 4 / 3, lightingInfo?: { lighting: Lighting | null; waived: boolean; dialFits?: boolean; support?: SlideSupport }): Omit<BodyCheck, "progress">[] {
+type SetupLighting = { lighting: Lighting | null; waived: boolean; contrast?: Contrast | null; contrastWaived?: boolean; dialFits?: boolean; support?: SlideSupport };
+
+/** The ids of the set-up rows about the room and clothes rather than a part of the body (they read differently). */
+const CONDITION_ROWS = new Set(["lighting", "contrast"]);
+
+/**
+ * Every exercise's set-up rows: its own body rows (exerciseBodyChecks), then the lighting (where its rows do not
+ * already end with it) and the clothing against the background (contrast.ts). Without lightingInfo (the movement
+ * check's tasks other than those below) only the body rows, and without a contrast verdict no clothing row.
+ */
+function cameraBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Detection, side: Side, zone: HandZone | null = null, aspect = 4 / 3, lightingInfo?: SetupLighting): Omit<BodyCheck, "progress">[] {
+  const rows = exerciseBodyChecks(session, detection, side, zone, aspect, lightingInfo);
+  if (!lightingInfo) return rows;
+  const light = lightingInfo?.lighting, contrast = lightingInfo?.contrast;
+  const lightingRow = { id: "lighting", label: lightingInfo?.waived && light && !light.ok ? "Lighting (could be better)" : "Lighting", visible: Boolean(light?.ok || lightingInfo?.waived), hint: light?.hint ?? "Checking the light..." };
+  const contrastRow = {
+    id: "contrast", label: lightingInfo?.contrastWaived && contrast && !contrast.ok ? "Clothes against the background (could be better)" : "Clothes stand out from the background",
+    visible: Boolean(contrast?.ok || lightingInfo?.contrastWaived), hint: contrast?.hint ?? "Checking your clothes against the background...",
+  };
+  return [...rows, ...(rows.some(row => row.id === "lighting") ? [] : [lightingRow]), ...(contrast === undefined ? [] : [contrastRow])];
+}
+
+function exerciseBodyChecks(session: Pick<ExerciseSession, "cfg">, detection: Detection, side: Side, zone: HandZone | null = null, aspect = 4 / 3, lightingInfo?: SetupLighting): Omit<BodyCheck, "progress">[] {
   const labels: Record<string, string> = { nose: "Face", shoulder: `${side === "right" ? "Right" : "Left"} shoulder`, shoulderOther: "Other shoulder", elbow: `${side === "right" ? "Right" : "Left"} elbow`, wrist: `${side === "right" ? "Right" : "Left"} hand`, hip: "Top of thigh", knee: "Knee", ankle: "Ankle", foot: "Foot & toes" };
   const joints = poseJoints(side);
   if (session.cfg.id === "ex_handopen") {

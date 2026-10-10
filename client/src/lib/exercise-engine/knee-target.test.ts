@@ -375,7 +375,7 @@ describe("Seated Knee Extension demonstration, simulator and previews", () => {
   it("previews its two steps, the set-up checks with the lighting, and the results", () => {
     expect(exerciseScreenPreview("warm-reach", 1, "right", ID).snapshot).toMatchObject({ kind: "reach", stepIndex: 0, stepCount: 2 });
     expect(exerciseScreenPreview("reps-return", 1, "right", ID).snapshot).toMatchObject({ kind: "return", stepIndex: 1 });
-    expect(exerciseScreenPreview("setup", 1, "right", ID).bodyChecks.map(check => check.label)).toEqual(["Face", "Both shoulders", "Both hips", "Both knees", "Both feet", "Feet flat, space around you", "Lighting"]);
+    expect(exerciseScreenPreview("setup", 1, "right", ID).bodyChecks.map(check => check.label)).toEqual(["Face", "Both shoulders", "Both hips", "Both knees", "Both feet", "Feet flat, space around you", "Lighting", "Clothes stand out from the background"]);
     const results = exerciseScreenPreview("results", 1, "right", ID).snapshot.record!;
     expect(results.compensation_counts).toEqual({ trunk_lean: 2, trunk_forward: 1 });
     expect(results.best_label).toBe("knee straightening");

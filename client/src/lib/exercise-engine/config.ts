@@ -108,6 +108,12 @@ export type CycleStep = {
   readyGate?: boolean;
   /** A short cue said as this step starts in each scored repetition; the full voice line is said in practice only. */
   cue?: string;
+  /**
+   * The movement check's own wording where it reuses this step (session.ts withAssessment): the check keeps its fuller
+   * instructions while the daily exercise, which has just shown a demonstration, says the short ones.
+   */
+  checkVoice?: string;
+  checkCue?: string;
   /** Target flow: the measures this step's practice hold learns as personal goals (default: the exercise's own set). */
   learn?: string[];
   /** A close step decided by the camera's target, held like a movement step (not a relaxed pause). */
@@ -165,12 +171,13 @@ function pinchSteps(fingers: number[]): CycleStep[] {
     const name = PINCH_FINGER_NAMES[finger], first = index === 0;
     const pinch: CycleStep = {
       caption: `Pinch your thumb to your ${name}`,
-      voice: first ? `Bring your thumb and ${name} together, tip to tip like an O, to pick up the peg in the circle, and hold.` : `Now bring your thumb and ${name} together, tip to tip, to pick up the next peg, and hold.`,
+      voice: first ? `Bring your thumb and ${name} together, tip to tip, to pick up the peg, and hold.` : `Now your thumb and ${name}, tip to tip, and hold.`,
+      checkVoice: first ? `Bring your thumb and ${name} together, tip to tip like an O, to pick up the peg in the circle, and hold.` : `Now bring your thumb and ${name} together, tip to tip, to pick up the next peg, and hold.`,
       kind: "reach", gate: [PINCH_METRICS[finger]], holdMs: 1500, finger, learn: [PINCH_METRICS[finger]], cue: `Pinch your ${name}.`,
       // Each repetition starts once the palm faces the camera in the shaded area with the thumb apart.
       ...(first ? { readyGate: true } : {}),
     };
-    return [pinch, { ...ret("Let go", "Now open your thumb and finger to let the peg drop into the tray."), cue: "Let go." }];
+    return [pinch, { ...ret("Let go", "Now let the peg drop into the tray."), cue: "Let go.", checkVoice: "Now open your thumb and finger to let the peg drop into the tray." }];
   });
 }
 
@@ -251,8 +258,8 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
       cr("shoulder_hike", "shoulder hike", "shoulder_hike_rel_delta", 7, 4, 0, "Relax the shoulder before bending the elbow again.", { minConsecutiveMs: 300 }),
     ],
     cycle: [
-      { caption: "Bring the cup to your mouth and hold, as if taking a sip", voice: "Bend your elbow and bring the cup up to your mouth, slowly and smoothly. Hold it at your lips as if taking a sip. Head up, shoulder relaxed.", kind: "reach", gate: ["elbow_flexion", "shoulder_flexion"], holdMs: 1500 },
-      ret("Lower the cup and return to your lap", "Now lower the cup and bring your hand back to the same place on your lap."),
+      { caption: "Bring the cup to your mouth and hold, as if taking a sip", voice: "Bring the cup slowly to your mouth and hold, head up, shoulder relaxed.", kind: "reach", gate: ["elbow_flexion", "shoulder_flexion"], holdMs: 1500, checkVoice: "Bend your elbow and bring the cup up to your mouth, slowly and smoothly. Hold it at your lips as if taking a sip. Head up, shoulder relaxed." },
+      { ...ret("Lower the cup and return to your lap", "Now lower it back to your lap."), checkVoice: "Now lower the cup and bring your hand back to the same place on your lap." },
     ],
     feedback: [
       // Worded like the reach's advice, so the final repetition's version drops "on the next ..." the same way.
@@ -302,8 +309,8 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
       cr("other_hand", "other hand helping", "other_hand_pct", 100, 4, 0, "Keep your other hand resting still.", { unit: "%", minConsecutiveMs: 400, steps: [0] }),
     ],
     cycle: [
-      { caption: "Move your hand out to the cup and hold", voice: "Follow the arrow: slowly slide your hand out to the side and a little forward along the table until it reaches the cup, keeping your hand low, close to the table. Keep your shoulder relaxed and your body upright, and stop before pain. Hold it there.", kind: "reach", gate: ["slide_out"], holdMs: 1500, cue: "Out to the cup." },
-      { ...ret("Bring your hand back to rest", "Now slowly slide your hand back to rest where it started."), cue: "Back to rest." },
+      { caption: "Move your hand out to the cup and hold", voice: "Follow the arrow: slide your hand out to the cup, keeping it low, close to the table, and hold. Stop before pain.", kind: "reach", gate: ["slide_out"], holdMs: 1500, cue: "Out to the cup." },
+      { ...ret("Bring your hand back to rest", "Now slide your hand back to rest."), cue: "Back to rest." },
     ],
     feedback: [
       // Worded like the other target-flow exercises, so the final repetition's version drops "on the next ..." the same way.
@@ -348,8 +355,8 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
     ],
     cycle: [
       // Each step starts once the palm faces the camera in the shaded area; scored repetitions say only the short cue.
-      { caption: "Open your hand to the ring and hold", voice: "Slowly open your fingers out to the ring, as wide as is comfortable, and hold. Keep your wrist straight and your palm facing the camera.", kind: "open", gate: ["finger_extension"], holdMs: 1500, readyGate: true, cue: "Open your hand." },
-      { ...ret("Close your hand gently", "Now gently close your hand, letting your fingers curl back into the small circle."), cue: "Now close it gently." },
+      { caption: "Open your hand to the ring and hold", voice: "Open your fingers out to the ring and hold, wrist straight.", kind: "open", gate: ["finger_extension"], holdMs: 1500, readyGate: true, cue: "Open your hand.", checkVoice: "Slowly open your fingers out to the ring, as wide as is comfortable, and hold. Keep your wrist straight and your palm facing the camera." },
+      { ...ret("Close your hand gently", "Now close your hand gently."), cue: "Close gently.", checkVoice: "Now gently close your hand, letting your fingers curl back into the small circle.", checkCue: "Now close it gently." },
     ],
     feedback: [
       // Worded like the reach's advice, so the final repetition's version drops "on the next ..." the same way.
@@ -399,11 +406,11 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
       cr("cup_tipping", "cup tipping", "cup_tilt_deg", 20, 4, 0, "Keep the cup upright as you carry it.", { minConsecutiveMs: 300, steps: [2] }),
     ],
     cycle: [
-      { caption: "Reach to the cup and open your hand", voice: "Reach toward the cup on your screen, opening your hand as you go, and hold your open hand at the cup.", kind: "reach", gate: ["elbow_extension", "shoulder_flexion"], holdMs: 1500, learn: ["elbow_extension", "shoulder_flexion", "finger_extension", "hand_openness"], cue: "Reach for the cup." },
-      { caption: "Close your hand around the cup", voice: "Now close your fingers around the cup and hold it.", kind: "close", gate: [], holdMs: 1500, learn: [], contactStep: true, timeoutMs: 10000, cue: "Grasp the cup." },
-      { caption: "Carry the cup across", voice: "Carry the cup slowly across your body to the other circle, keeping it upright, and hold it there.", kind: "reach", gate: ["carry_across"], holdMs: 1500, learn: ["carry_across"], cue: "Carry it across." },
-      { caption: "Open your hand to let go", voice: "Now open your hand to set the cup down.", kind: "open", gate: [], holdMs: 1500, learn: [], contactStep: true, timeoutMs: 10000, cue: "Let it go." },
-      { ...ret("Return your hand to your lap", "Now bring your empty hand back to rest on your lap."), cue: "Back to your lap." },
+      { caption: "Reach to the cup and open your hand", voice: "Reach for the cup, opening your hand, and hold.", kind: "reach", gate: ["elbow_extension", "shoulder_flexion"], holdMs: 1500, learn: ["elbow_extension", "shoulder_flexion", "finger_extension", "hand_openness"], cue: "Reach for the cup." },
+      { caption: "Close your hand around the cup", voice: "Now close your hand around the cup and hold.", kind: "close", gate: [], holdMs: 1500, learn: [], contactStep: true, timeoutMs: 10000, cue: "Grasp the cup." },
+      { caption: "Carry the cup across", voice: "Carry it across to the other circle, upright, and hold.", kind: "reach", gate: ["carry_across"], holdMs: 1500, learn: ["carry_across"], cue: "Carry it across." },
+      { caption: "Open your hand to let go", voice: "Now open your hand to let it go.", kind: "open", gate: [], holdMs: 1500, learn: [], contactStep: true, timeoutMs: 10000, cue: "Let it go." },
+      { ...ret("Return your hand to your lap", "Now back to your lap."), cue: "Back to your lap." },
     ],
     feedback: [
       // Worded like the other target-flow exercises, so the final repetition's version drops "on the next ..." the same way.
@@ -502,8 +509,8 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
       // The foot comes forward toward the camera and a little out to the side, along the arrow: exactly straight at
       // the camera, it can hardly see the knee straighten. The circle is on the knee dial: it measures the knee, it
       // is not a place for the foot.
-      { caption: "Straighten your knee and hold", voice: "Slowly straighten your knee, bringing your foot forward toward the camera and a little out to the side, along the arrow, until the knee dial reaches its circle. Keep your thigh on the chair and sit tall. Hold it there.", kind: "reach", gate: ["knee_extension"], holdMs: 1500, cue: "Straighten your knee, forward along the arrow." },
-      { ...ret("Lower your foot to the floor", "Now slowly bend your knee and lower your foot back to the floor."), cue: "Lower slowly." },
+      { caption: "Straighten your knee and hold", voice: "Straighten your knee along the arrow, toward the camera, and hold. Keep your thigh on the chair.", kind: "reach", gate: ["knee_extension"], holdMs: 1500, cue: "Straighten along the arrow." },
+      { ...ret("Lower your foot to the floor", "Now lower your foot slowly."), cue: "Lower slowly." },
     ],
     feedback: [
       // Worded like the other target-flow exercises, so the final repetition's version drops "on the next ..." the same way.
@@ -556,8 +563,8 @@ export const EXERCISES: Record<string, ExerciseConfig> = {
       cr("trunk_lean", "leaning back", "trunk_retreat_pct", 4, 4, 0, "Sit tall and let your ankle do the lifting.", { unit: "%", minConsecutiveMs: 300, steps: [0] }),
     ],
     cycle: [
-      { caption: "Lift your toes and hold", voice: "With your foot turned out and your heel on the floor, slowly lift your toes and the whole front of your foot, until the ankle dial reaches its circle. Keep your knee still and sit tall. Hold it there.", kind: "reach", gate: ["toe_lift"], holdMs: 1500, cue: "Lift your toes, heel down." },
-      { ...ret("Lower your toes slowly", "Now slowly lower the front of your foot to the floor."), cue: "Lower slowly." },
+      { caption: "Lift your toes and hold", voice: "With your foot turned out and your heel down, lift your toes to the circle, and hold.", kind: "reach", gate: ["toe_lift"], holdMs: 1500, cue: "Lift your toes, heel down." },
+      { ...ret("Lower your toes slowly", "Now lower your toes slowly."), cue: "Lower slowly." },
     ],
     feedback: [
       // Worded like the other target-flow exercises, so the final repetition's version drops "on the next ..." the same way.
@@ -632,8 +639,8 @@ export const EXERCISE_RUNGS: Record<string, Record<Rung, RungSpec>> = Object.fro
 /** Supported Arm Elevation from the chair's armrest: the hand lifts from it toward a raised cup. */
 const SLIDE_ARMREST = {
   setupVoice: "Welcome. We are going to practise lifting your arm out to the side toward a cup on your screen. Rest your forearm on the armrest of your chair, with your elbow bent, and your other hand on your thigh or the other armrest. Place the camera in front of you at chest height so I can see you from your head to your thighs, with room beside your arm. Move only in a comfortable, pain-free range.",
-  reach: "Follow the arrow: slowly lift your hand from the armrest, out to the side and a little forward, until it reaches the cup. Keep your shoulder relaxed and your body upright, and stop before pain. Hold it there.",
-  back: "Now slowly lower your hand back to rest on the armrest.",
+  reach: "Follow the arrow: lift your hand from the armrest out to the cup, and hold. Stop before pain.",
+  back: "Now lower your hand back to the armrest.",
 };
 
 /** The exercise as it runs today: ex_reach in chair-back mode swaps in the stricter trunk check and the setup cue. */

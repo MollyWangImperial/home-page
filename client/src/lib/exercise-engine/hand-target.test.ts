@@ -282,7 +282,7 @@ describe("Active Hand Opening demonstration, simulator and previews", () => {
     expect(exerciseScreenPreview("warm-reach", 1, "right", "ex_handopen").snapshot.kind).toBe("open");
     expect(exerciseScreenPreview("warm-waiting", 1, "right", "ex_handopen").snapshot.awaitingReady).toBe(true);
     expect(exerciseScreenPreview("warm-waiting", 1, "right", "ex_reach").snapshot.awaitingReady).toBe(false);
-    expect(exerciseScreenPreview("setup", 1, "left", "ex_handopen").bodyChecks.map(check => check.label)).toEqual(["Face", "Left shoulder", "Other shoulder", "Left hand in the shaded area", "Palm to camera, fingers relaxed"]);
+    expect(exerciseScreenPreview("setup", 1, "left", "ex_handopen").bodyChecks.map(check => check.label)).toEqual(["Face", "Left shoulder", "Other shoulder", "Left hand in the shaded area", "Palm to camera, fingers relaxed", "Lighting", "Clothes stand out from the background"]);
     expect(exerciseScreenPreview("results", 1, "right", "ex_handopen").snapshot.record?.best_label).toBe("finger opening");
   });
 });

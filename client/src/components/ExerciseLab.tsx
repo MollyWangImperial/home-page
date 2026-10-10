@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Activity, ChevronRight, Hand, Play } from "lucide-react";
-import { DOMAIN_LABEL, EXERCISE_RUNGS, EXERCISES, LAUNCH_EXERCISE_IDS, SOLO_EXCLUDED_IDS, type Domain, type Rung } from "@/lib/exercise-engine/config";
+import { DOMAIN_LABEL, EXERCISE_RUNGS, EXERCISES, LAUNCH_EXERCISE_IDS, SOLO_EXCLUDED_IDS, type Domain } from "@/lib/exercise-engine/config";
 import { metricUnitName } from "@/lib/exercise-engine/calibration";
 import "@/pages/exercise-engine.css";
 import { clearLabSessions, readLabOptions, readLabSessions, writeLabOptions, type LabOptions } from "@/lib/exercise-engine/lab-storage";
+
+const LAB_RUNG = 2;
 
 const DOMAINS: Domain[] = ["upper_limb", "hand", "lower_limb"];
 
@@ -13,10 +15,9 @@ const targetText = (value: number, metric: string) => {
   return unit.startsWith("degrees") ? `${value}°` : unit.startsWith("percent") ? `${value}%` : `${value} ${unit}`;
 };
 
-/** Settings panel: open each launch exercise on its own, at any rung, to test it one by one. */
+/** Settings panel: open each launch exercise on its own at the default level to test it one by one. */
 export function ExerciseLabPanel({ onLaunch }: { onLaunch: (path: string) => void }) {
   const [options, setOptions] = useState<LabOptions>(readLabOptions);
-  const [rungs, setRungs] = useState<Record<string, Rung>>({});
   const [sessions, setSessions] = useState(readLabSessions);
   const update = (patch: Partial<LabOptions>) => {
     const next = { ...options, ...patch };
@@ -24,7 +25,7 @@ export function ExerciseLabPanel({ onLaunch }: { onLaunch: (path: string) => voi
     writeLabOptions(next);
   };
   const launch = (id: string) => {
-    const rung = rungs[id] ?? 2;
+    const rung = LAB_RUNG;
     const q = new URLSearchParams({ rung: String(rung), side: options.side, quick: options.quick ? "1" : "0", sim: options.sim ? "1" : "0", chair: options.chairBack ? "1" : "0" });
     onLaunch(`/exercise/${id}?${q.toString()}`);
   };
@@ -32,7 +33,7 @@ export function ExerciseLabPanel({ onLaunch }: { onLaunch: (path: string) => voi
   return (
     <div className="xe-lab">
       <p className="settings-document-intro">
-        Test bench for the daily exercise engine. Open any of the 8 launch exercises, pick its level, and run the full six-beat session: camera check, show-me demo, practice rep, scored reps, rescue, wrap-up. Tomorrow's level changes (the adaptation engine) are not included yet.
+        Test bench for the daily exercise engine. Open any of the 8 launch exercises and run the full six-beat session: camera check, show-me demo, practice rep, scored reps, rescue, wrap-up. Tomorrow's level changes (the adaptation engine) are not included yet.
       </p>
 
       <section className="xe-lab-options" aria-label="Test options">
@@ -49,7 +50,7 @@ export function ExerciseLabPanel({ onLaunch }: { onLaunch: (path: string) => voi
           <h3 id={`xe-${domain}`}>{DOMAIN_LABEL[domain]}</h3>
           {LAUNCH_EXERCISE_IDS.filter(id => EXERCISES[id].domain === domain).map(id => {
             const ex = EXERCISES[id];
-            const rung = rungs[id] ?? 2;
+            const rung = LAB_RUNG;
             const spec = EXERCISE_RUNGS[id][rung];
             return (
               <article key={id} className="xe-lab-card">
@@ -66,11 +67,6 @@ export function ExerciseLabPanel({ onLaunch }: { onLaunch: (path: string) => voi
                   <div><dt>Dose</dt><dd>{options.quick ? 3 : spec.reps} reps · hold ×{spec.holdScale}</dd></div>
                 </dl>
                 <div className="xe-lab-actions">
-                  <div className="xe-lab-rungs" role="radiogroup" aria-label={`${ex.name} level`}>
-                    {([1, 2, 3] as Rung[]).map(r => (
-                      <button key={r} role="radio" aria-checked={rung === r} className={rung === r ? "is-on" : ""} onClick={() => setRungs(v => ({ ...v, [id]: r }))}>Level {r}</button>
-                    ))}
-                  </div>
                   <button className="xe-lab-open" onClick={() => launch(id)}><Play size={15} aria-hidden="true" /> Open <ChevronRight size={15} aria-hidden="true" /></button>
                 </div>
               </article>

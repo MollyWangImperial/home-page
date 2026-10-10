@@ -493,7 +493,7 @@ describe("Seated Toe Lift demonstration, simulator and previews", () => {
   it("previews its two steps, the set-up checks with the heel and toes and the lighting, and the results", () => {
     expect(exerciseScreenPreview("warm-reach", 1, "right", ID).snapshot).toMatchObject({ kind: "reach", stepIndex: 0, stepCount: 2 });
     expect(exerciseScreenPreview("reps-return", 1, "right", ID).snapshot).toMatchObject({ kind: "return", stepIndex: 1 });
-    expect(exerciseScreenPreview("setup", 1, "left", ID).bodyChecks.map(check => check.label)).toEqual(["Face", "Both shoulders", "Both hips", "Both knees", "Both feet", "Left heel and toes", "Feet in the floor areas, space around you", "Lighting"]);
+    expect(exerciseScreenPreview("setup", 1, "left", ID).bodyChecks.map(check => check.label)).toEqual(["Face", "Both shoulders", "Both hips", "Both knees", "Both feet", "Left heel and toes", "Feet in the floor areas, space around you", "Lighting", "Clothes stand out from the background"]);
     const results = exerciseScreenPreview("results", 1, "right", ID).snapshot.record!;
     const ids = EXERCISES[ID].compensations.map(item => item.id);
     for (const id of Object.keys(results.compensation_counts)) expect(ids).toContain(id);

@@ -287,6 +287,35 @@ describe("hand-to-mouth level 1 progression and scoring", () => {
     p.until(() => p.session.snapshot().review === "complete");
     expect(p.session.snapshot().reps[0].compensations).toEqual(["shoulder_hike"]);
   });
+  it("says the score and the shoulder's short correction after a hiked repetition, and no best measure at the end", () => {
+    const hiked = { head_forward_pct: 0, trunk_approach_pct: 0, shoulder_hike_rel_delta: 10 };
+    const p = scored();
+    for (let n = 0; n < 30; n++) p.push({ contact: false, progress: 0.25 + 0.01 * n, level: 0.6, comps: hiked });
+    p.until(() => p.session.snapshot().review === "complete");
+    expect(p.session.snapshot().reps[0].compensations).toEqual(["shoulder_hike"]);
+    const correction = p.session.cfg.compensations.find(rule => rule.id === "shoulder_hike")!.correction;
+    expect(p.said.at(-2)).toMatch(/^Your score is \d+ out of 100\.$/);
+    expect(p.said.at(-1)).toBe(correction);
+    // The card keeps the longer advice.
+    expect(p.session.snapshot().reviewAdvice.join(" ")).toMatch(/shoulder/i);
+    p.until(() => p.session.snapshot().phase === "done");
+    expect(p.said.some(line => line.startsWith("Your best"))).toBe(false);
+  });
+  it("says a fault that keeps coming back every other repetition, not after each one", () => {
+    const hiked = { head_forward_pct: 0, trunk_approach_pct: 0, shoulder_hike_rel_delta: 10 };
+    const p = scored("right", 3);
+    const correction = p.session.cfg.compensations.find(rule => rule.id === "shoulder_hike")!.correction;
+    const spokenAfter: string[][] = [];
+    for (let rep = 0; rep < 3; rep++) {
+      for (let n = 0; n < 30; n++) p.push({ contact: false, progress: 0.25 + 0.01 * n, level: 0.6, comps: hiked });
+      const from = p.said.length;
+      p.until(() => p.session.snapshot().review === "complete");
+      spokenAfter.push(p.said.slice(from));
+      expect(p.session.snapshot().reps[rep].compensations).toEqual(["shoulder_hike"]);
+      if (rep < 2) p.until(() => p.session.snapshot().review === null && p.session.snapshot().targetArmed);
+    }
+    expect(spokenAfter.map(lines => lines.includes(correction))).toEqual([true, false, true]);
+  });
   it("keeps a head lean near the mouth running through a one-frame wrist glitch", () => {
     const leaning = { head_forward_pct: 40, trunk_approach_pct: 0, shoulder_hike_rel_delta: 0 };
     const p = scored();
@@ -507,7 +536,8 @@ describe("hand-to-mouth follows Graded Forward Reach's flow", () => {
     expect(countdowns).toBe(3);
     expect(said.filter(line => line === reach.voice)).toHaveLength(1);
     expect(said.filter(line => line === back.voice)).toHaveLength(1);
-    expect(said.filter(line => line === "The next repetition starts in three seconds.")).toHaveLength(3);
+    // Said before the first scored repetition only; the ring and the card show the later countdowns.
+    expect(said.filter(line => line === "The next repetition starts in three seconds.")).toHaveLength(1);
     expect(p.session.snapshot().record?.repetition_scores).toEqual([100, 100, 100]);
   });
   it.each(TARGET_FLOW)("%s: touching the target and lowering the arm before the hold ends the movement as touched", id => {

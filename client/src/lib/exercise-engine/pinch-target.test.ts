@@ -225,7 +225,7 @@ describe("Pinch and Peg on the shared target flow", () => {
   it("previews its steps, the set-up checks with the lighting, and the results", () => {
     expect(exerciseScreenPreview("warm-reach", 1, "right", "ex_pinch").snapshot).toMatchObject({ kind: "reach", stepIndex: 0, stepCount: 4 });
     expect(exerciseScreenPreview("warm-waiting", 1, "right", "ex_pinch").snapshot.awaitingReady).toBe(true);
-    expect(exerciseScreenPreview("setup", 1, "right", "ex_pinch").bodyChecks.map(check => check.label)).toEqual(["Face", "Right shoulder", "Other shoulder", "Right hand in the shaded area", "Palm to camera, fingers open", "Lighting"]);
+    expect(exerciseScreenPreview("setup", 1, "right", "ex_pinch").bodyChecks.map(check => check.label)).toEqual(["Face", "Right shoulder", "Other shoulder", "Right hand in the shaded area", "Palm to camera, fingers open", "Lighting", "Clothes stand out from the background"]);
     expect(exerciseScreenPreview("results", 1, "right", "ex_pinch").snapshot.record!.compensation_counts).toEqual({ trunk_forward: 2, shoulder_hike: 1 });
   });
   it("the no-camera simulator completes every step", () => {
@@ -316,7 +316,9 @@ describe("Pinch and Peg session from camera landmarks", () => {
     // The middle finger does not move at first; the session must not start the scored repetitions without its goal.
     let tries = 0;
     const { session, said } = pinchPatient("right", () => ({}), 1, { frames: 3000, close: finger => (finger === 1 ? (tries++ < 700 ? 0 : 1) : 1) });
-    expect(said.filter(line => line.startsWith("Now one practice repetition"))).toHaveLength(2);
+    // The practice introduced once in full, then again in a few words.
+    expect(said.filter(line => line.startsWith("Your turn. One practice repetition"))).toHaveLength(1);
+    expect(said.filter(line => line === "Let's practise once more.")).toHaveLength(1);
     expect(session.learnedValue("pinch_middle")).toBeDefined();
     expect(session.snapshot().phase).toBe("done");
   });

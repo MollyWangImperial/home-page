@@ -15,6 +15,9 @@ export const repScoreLine = (score: number) => `Your score is ${score} out of 10
 export const repsAheadLine = (planned: number) => `Good. Now ${word(planned)} repetitions.`;
 /** Said as each scored repetition's 3-2-1 countdown starts (recorded once in Alira's voice). */
 export const NEXT_REP_COUNTDOWN_LINE = "The next repetition starts in three seconds.";
+/** The practice after the demonstration, which has already shown the movement. */
+export const PRACTICE_LINE = "Your turn. One practice repetition, not scored.";
+export const PRACTISE_AGAIN_LINE = "Let's practise once more.";
 export const goodRepsLine = (good: number, planned: number) => `${cap(word(good))} of ${word(planned)} good reps.`;
 /** units: how the measure is read out (degrees unless calibration.ts metricUnitName says otherwise, as for the pinch). */
 export const bestLine = (label: string, degrees: number, units = "degrees") => `Your best ${label} was ${Math.round(degrees)} ${units}.`;

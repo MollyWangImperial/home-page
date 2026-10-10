@@ -17,6 +17,7 @@ import { checkPinchDemoDuration, checkPinchDemoState, drawCheckPinchDemo } from 
 import { drawReachDemo, reachDemoDuration, reachDemoState } from "@/lib/exercise-engine/reach-demo";
 import { TARGET_COMPLETION_MS, TARGET_HOLD_MS } from "@/lib/exercise-engine/target-timing";
 import { createVoice, type RunnerVoice } from "@/lib/exercise-engine/voice";
+import { demoLeadLine, yourTurnLine } from "@/lib/assessment-engine/demo-lines";
 import "./demo-reel.css";
 
 export type DemoReelProps = {
@@ -49,7 +50,7 @@ export type DemoSpec = {
 export const DEMO_SPECS: Record<AssessmentTaskId, DemoSpec> = {
   T1: {
     title: "Reach",
-    narration: "Reach. Watch first. When the circle lights up, reach your hand up into it and hold it there for a moment, then bring your hand back to your lap. In the check there can be up to three circles, each a little higher.",
+    narration: "Reach. When the circle lights up, reach your hand up into it and hold it there for a moment, then bring your hand back to your lap. In the check there can be up to three circles, each a little higher.",
     whatToDo: side => `With your ${side} arm, reach up into the circle and hold, then bring your hand back to your lap.`,
   },
   T3: {
@@ -257,6 +258,7 @@ export default function DemoReel({ taskIds, side, onDone, onExit, autoAdvance = 
   const cardRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const voiceRef = useRef<RunnerVoice | null>(null);
   const fitRef = useRef<(DemoCanvasFit & { dpr: number; version: number }) | null>(null);
   const reducedRef = useRef(reduced);
@@ -267,7 +269,11 @@ export default function DemoReel({ taskIds, side, onDone, onExit, autoAdvance = 
   // An auto-advancing demonstration moves on by itself (finishRef: the latest render's "done").
   const autoRef = useRef(autoAdvance);
   autoRef.current = autoAdvance;
+  const progressRef = useRef(progress);
+  progressRef.current = progress;
   const finishRef = useRef<() => void>(() => {});
+  // An automatic demonstration's Skip: first to "your turn" (true when it went there), then straight on.
+  const skipRef = useRef<(() => boolean) | null>(null);
   useEffect(() => { onDoneRef.current = onDone; onExitRef.current = onExit; }, [onDone, onExit]);
   useEffect(() => { reducedRef.current = reduced; }, [reduced]);
 
@@ -320,14 +326,19 @@ export default function DemoReel({ taskIds, side, onDone, onExit, autoAdvance = 
     if (!task) return;
     const voice = (voiceRef.current ??= createVoice());
     const narration = DEMO_SPECS[task].narration;
+    // The movement check says first that a demonstration is coming, and when it ends that the task is next
+    // (demo-lines.ts). The task starts only once that has been said, so it never talks over the runner's voice.
+    const auto = autoRef.current, lead = auto ? demoLeadLine(progressRef.current?.index ?? 0) : "", turn = auto ? yourTurnLine(task) : "";
+    const spoken = lead ? `${lead} ${narration}` : narration;
     const openedAt = performance.now();
-    let armedAt: number | null = null, raf = 0, stopped = false, drawnKey = "", caption = "";
+    let armedAt: number | null = null, turnAt: number | null = null, raf = 0, stopped = false, drawnKey = "", caption = "";
     voice.stop();
+    if (lead) voice.say(lead);
     voice.say(narration);
     const frame = () => {
       if (stopped) return;
       const now = performance.now();
-      if (armedAt === null && narrationFinished(now - openedAt, voice.busy(now), narration)) armedAt = now;
+      if (armedAt === null && narrationFinished(now - openedAt, voice.busy(now), spoken)) armedAt = now;
       const armedMs = armedAt === null ? null : now - armedAt;
       const still = reducedRef.current, fit = fitRef.current, ctx = canvasRef.current?.getContext("2d");
       if (ctx && fit) {
@@ -339,21 +350,34 @@ export default function DemoReel({ taskIds, side, onDone, onExit, autoAdvance = 
           drawDemo(ctx, task, armedMs, fit, now, still);
         }
       }
-      const text = demoCaption(task, armedMs, still);
+      // After one whole movement, "your turn" is said (and shown), and the task starts once it has been said.
+      if (auto && turnAt === null && armedMs !== null && armedMs >= autoAdvanceAfterMs(task, still)) { turnAt = now; voice.say(turn); }
+      const text = turnAt !== null ? turn : demoCaption(task, armedMs, still);
       if (text !== caption) { caption = text; setLive({ key: demoKey, text }); }
-      if (autoRef.current && armedMs !== null && armedMs >= autoAdvanceAfterMs(task, still)) { finishRef.current(); return; }
+      if (turnAt !== null && narrationFinished(now - turnAt, voice.busy(now), turn)) { finishRef.current(); return; }
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
     // Auto-advancing: also by the clock, so a page whose frames stall (hidden, throttled) still lets the task start.
-    const fallback = autoRef.current ? window.setTimeout(() => { if (!stopped) finishRef.current(); }, narrationCapMs(narration) + demoLoopMs(task) + 2000) : 0;
-    const stop = () => { stopped = true; cancelAnimationFrame(raf); window.clearTimeout(fallback); voice.stop(); };
+    const fallback = auto ? window.setTimeout(() => { if (!stopped) finishRef.current(); }, narrationCapMs(spoken) + demoLoopMs(task) + narrationCapMs(turn) + 2000) : 0;
+    // Skipped before "your turn": the narration stops and "your turn" is said, so the patient still hears what comes next.
+    skipRef.current = auto ? () => {
+      if (stopped || turnAt !== null) return false;
+      const now = performance.now();
+      voice.stop();
+      armedAt ??= now;
+      turnAt = now;
+      voice.say(turn);
+      return true;
+    } : null;
+    const stop = () => { stopped = true; skipRef.current = null; cancelAnimationFrame(raf); window.clearTimeout(fallback); voice.stop(); };
     stopRef.current = stop;
     return stop;
   }, [task, demoKey]);
 
-  // Each demonstration opens with the focus on its primary button.
-  useEffect(() => { if (task) nextRef.current?.focus({ preventScroll: true }); }, [current, task]);
+  // Each demonstration opens with the focus on its primary button; an automatic one (no buttons to press) on its
+  // heading, so the focus leaves the page underneath and Enter cannot skip it by accident.
+  useEffect(() => { if (task) (nextRef.current ?? headingRef.current)?.focus({ preventScroll: true }); }, [current, task]);
 
   if (!task) return null;
   const spec = DEMO_SPECS[task];
@@ -370,6 +394,7 @@ export default function DemoReel({ taskIds, side, onDone, onExit, autoAdvance = 
   };
   // Exit hushes the reel and asks the page; if the page keeps the reel open, "Watch again" or "Next demo" carry on.
   finishRef.current = done;
+  const skip = () => { if (autoAdvance && skipRef.current?.()) return; done(); };
   const exit = () => { halt(); onExitRef.current(); };
   const next = () => {
     if (last) { done(); return; }
@@ -385,10 +410,10 @@ export default function DemoReel({ taskIds, side, onDone, onExit, autoAdvance = 
           <ArrowLeft size={18} aria-hidden="true" />Exit
         </button>
         <div className="demo-reel-heading">
-          <p className="demo-reel-eyebrow">{progress ? `Movement check · Task ${progress.index + 1} of ${progress.count} · Watch first` : demoProgressLabel(current, tasks.length)}</p>
-          <h1 id={titleId} className="demo-reel-title">{spec.title}</h1>
+          {!autoAdvance && <p className="demo-reel-eyebrow">{demoProgressLabel(current, tasks.length)}</p>}
+          <h1 id={titleId} ref={headingRef} tabIndex={-1} className="demo-reel-title">{spec.title}</h1>
         </div>
-        <button type="button" className="demo-reel-btn demo-reel-secondary demo-reel-skip" onClick={done}>
+        <button type="button" className="demo-reel-btn demo-reel-secondary demo-reel-skip" onClick={skip}>
           <SkipForward size={17} aria-hidden="true" />{autoAdvance ? "Skip the demo" : "Skip the demos"}
         </button>
       </header>
@@ -402,9 +427,8 @@ export default function DemoReel({ taskIds, side, onDone, onExit, autoAdvance = 
 
       <footer className="demo-reel-bottom">
         <p className="demo-reel-caption">{caption}</p>
-        <p className="demo-reel-what"><b>What to do:</b> {spec.whatToDo(side)}</p>
-        {autoAdvance && <p className="demo-reel-auto">The task starts by itself when the demonstration ends.</p>}
-        <div className="demo-reel-controls">
+        {!autoAdvance && <p className="demo-reel-what"><b>What to do:</b> {spec.whatToDo(side)}</p>}
+        {!autoAdvance && <div className="demo-reel-controls">
           {!autoAdvance && <ol className="demo-reel-dots" aria-label="Demonstrations">
             {tasks.map((id, i) => (
               <li key={id} data-task={id} className={`demo-reel-dot${i === current ? " is-current" : i < current ? " is-done" : ""}`} aria-current={i === current ? "step" : undefined}>
@@ -417,10 +441,10 @@ export default function DemoReel({ taskIds, side, onDone, onExit, autoAdvance = 
               <RotateCcw size={17} aria-hidden="true" />Watch again
             </button>
             <button type="button" ref={nextRef} className="demo-reel-btn demo-reel-primary" onClick={next}>
-              {autoAdvance ? <><Play size={17} aria-hidden="true" />Start the task now</> : last ? <><Play size={17} aria-hidden="true" />{primaryLabel(current, tasks.length)}</> : <>{primaryLabel(current, tasks.length)}<ArrowRight size={17} aria-hidden="true" /></>}
+              {last ? <><Play size={17} aria-hidden="true" />{primaryLabel(current, tasks.length)}</> : <>{primaryLabel(current, tasks.length)}<ArrowRight size={17} aria-hidden="true" /></>}
             </button>
           </div>
-        </div>
+        </div>}
       </footer>
     </section>
   );

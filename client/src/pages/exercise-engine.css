@@ -149,7 +149,7 @@
 .xe-lab-card dl div { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 12px; padding:6px 0; border-top:1px solid #edf0e8; }
 .xe-lab-card dt { color:#647565; font-size:12px; font-weight:600; }
 .xe-lab-card dd { margin:0; font-size:12px; font-weight:700; text-align:right; }
-.xe-lab-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; }
+.xe-lab-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:10px; margin-top:12px; }
 .xe-lab-rungs { display:inline-flex; overflow:hidden; border:1px solid #d9e2d2; border-radius:11px; }
 .xe-lab-rungs button { min-height:36px; padding:0 13px; border:0; color:#516958; background:#fff; font:650 12px "Manrope",sans-serif; cursor:pointer; }
 .xe-lab-rungs button + button { border-left:1px solid #d9e2d2; }

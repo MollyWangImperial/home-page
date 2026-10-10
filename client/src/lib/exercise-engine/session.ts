@@ -2,7 +2,7 @@
 // Frame-driven and free of DOM and speech APIs so it can run against camera frames, simulated frames
 // or a test harness. Timing comes from frame.t.
 
-import { ANGLE_ADVICE, bestLine, CLOSER_TARGET_LINE, ELBOW_ADVICE, finalRepAdvice, finishedLevelLine, goodRepsLine, keepInViewLine, handInViewLine, graspHandInViewLine, bodyInViewLine, slideHandsInViewLine, moveFurtherLine, NEXT_REP_COUNTDOWN_LINE, reachedTargetsLine, repCompleteLine, repsAheadLine, repScoreLine, SHOULDER_ADVICE, word, cap } from "./spoken";
+import { ANGLE_ADVICE, bestLine, CLOSER_TARGET_LINE, ELBOW_ADVICE, finalRepAdvice, finishedLevelLine, goodRepsLine, keepInViewLine, handInViewLine, graspHandInViewLine, bodyInViewLine, slideHandsInViewLine, moveFurtherLine, NEXT_REP_COUNTDOWN_LINE, PRACTICE_LINE, PRACTISE_AGAIN_LINE, reachedTargetsLine, repsAheadLine, repScoreLine, SHOULDER_ADVICE, word, cap } from "./spoken";
 import { cycleFor, EVERYDAY_EXERCISE_ID, REPS_BY_RUNG, resolveExercise, DOSE_PRESETS, LEVEL_BY_RUNG, usesTargetFlow, type CycleStep, type ExerciseConfig, type Rung, type Side } from "./config";
 import { compensationStatus, medianGeo, type Frame, type Geo, type LapRest } from "./metrics";
 import { attainment, romAttainment, EXERCISE_SCORE_VERSION, isGoodRep, isMiss, repScore, sessionScore, type HoldOutcome } from "./scoring";
@@ -180,7 +180,10 @@ const CHEST_STEP = { caption: "Bring your hand to your chest and hold", voice: "
 
 /** The exercise as the movement check runs it: the task's posture checks, and its own repetition steps when it has them. */
 export function withAssessment(cfg: ExerciseConfig, assessment?: { compensations: ExerciseConfig["compensations"]; cycle?: CycleStep[] } | null): ExerciseConfig {
-  return assessment ? { ...cfg, compensations: assessment.compensations, ...(assessment.cycle ? { cycle: assessment.cycle } : {}) } : cfg;
+  if (!assessment) return cfg;
+  // The check says its own fuller wording where it reuses an exercise's steps (CycleStep checkVoice, checkCue).
+  const cycle = (assessment.cycle ?? cfg.cycle).map(step => ({ ...step, voice: step.checkVoice ?? step.voice, ...(step.checkCue ? { cue: step.checkCue } : {}) }));
+  return { ...cfg, compensations: assessment.compensations, cycle };
 }
 
 
@@ -298,6 +301,9 @@ export class ExerciseSession {
   private stepStart = 0;
   private armed = false;
   private touched = false;
+  /** How many practices have begun (a repeat is introduced in a few words), and the advice said after the last repetition. */
+  private warmCount = 0;
+  private lastSpokenAdvice: string | null = null;
   /**
    * Seated Toe Lift: the lift step's first frames (the legs at rest), whether its legs were re-checked, and its foot's
    * resting angle and reach across the picture.
@@ -785,14 +791,18 @@ export class ExerciseSession {
     this.reachTargetCalibration.reset();
     this.prompt = "";
     // The movement check's try-out is one unscored try at the easiest level: it learns no goal, so it is never repeated.
+    // The demonstration has just shown the movement, so the practice says only what it cannot show: that this one is
+    // not scored, where the hand goes first, and that the dial follows the leg. Each step then says its own short
+    // instruction. A practice said again (no goal learned yet) is introduced in a few words. Graded Forward Reach keeps
+    // its line, recorded in Alira's voice.
+    const again = this.warmCount++ > 0;
     this.voice.say(this.assess ? this.tryOutLine() : this.cfg.id === "ex_reach" ? "Now one practice repetition. It is not scored. Reach to the circle and hold while I learn your movement, then return to your lap."
-      : this.cfg.id === "ex_h2m" ? "Now one practice repetition. It is not scored. Bring your hand to the mouth circle and hold while I learn your movement, then return to your lap."
-      : this.cfg.id === "ex_handopen" ? "Now one practice repetition. It is not scored. Show me your palm in the shaded area. Then open your fingers out to the ring and hold while I learn your movement, and then close your hand gently."
-      : this.cfg.id === "ex_grasp" ? "Now one practice repetition. It is not scored. Reach for the cup and open your hand, close it around the cup, carry it across, let it go, then return to your lap. I will learn your movement as you go."
-      : this.cfg.id === TOE_ID ? "Now one practice repetition. It is not scored. Look at the ankle dial beside your shoulder: it moves with your foot, so as you lift your toes, its toes turn up toward the circle. With your foot turned out and your heel down, lift your toes until the dial reaches its circle, and hold while I learn your movement. Then lower your toes." : this.cfg.id === KNEE_ID ? "Now one practice repetition. It is not scored. Look at the knee dial beside your shoulder: it moves with your knee, so as you straighten your knee, its foot moves toward the circle. Straighten your knee, bringing your foot forward toward the camera and a little out to the side, along the arrow, until the dial reaches its circle, and hold while I learn your movement. Then lower your foot to the floor."
-      : this.cfg.id === SLIDE_ID ? "Now one practice repetition. It is not scored. Follow the arrow and move your hand out to the cup, and hold while I learn your movement, then bring it back to rest."
-      : this.cfg.id === PINCH_ID ? "Now one practice repetition. It is not scored. Show me your open palm in the shaded area. Then bring your thumb toward your first finger as far as is comfortable, tip to tip if you can, and hold while I learn your movement. Then let go, and do the same with your middle finger."
-      : "Now one practice repetition. It is not scored, and it helps me learn your starting position.");
+      : again ? PRACTISE_AGAIN_LINE
+      : this.cfg.id === "ex_handopen" ? `${PRACTICE_LINE} Show me your palm in the shaded area.`
+      : this.cfg.id === PINCH_ID ? `${PRACTICE_LINE} Show me your open palm in the shaded area.`
+      : this.cfg.id === TOE_ID ? `${PRACTICE_LINE} The ankle dial beside your shoulder moves with your foot.`
+      : this.cfg.id === KNEE_ID ? `${PRACTICE_LINE} The knee dial beside your shoulder moves with your knee.`
+      : PRACTICE_LINE);
     this.resetRep(t);
   }
 
@@ -805,6 +815,7 @@ export class ExerciseSession {
     if (this.assess) this.targetsReady = true;
     this.repNumber = this.reps.length;
     this.prompt = "";
+    this.lastSpokenAdvice = null;
     this.voice.say(this.assess ? ASSESSMENT_LINES.levels : repsAheadLine(this.plannedReps));
     this.resetRep(t);
     if (this.countdownReps()) {
@@ -830,8 +841,10 @@ export class ExerciseSession {
     this.review = "countdown";
     this.reviewStarted = t;
     this.countdownQueued = false;
-    // The movement check names the level coming up instead ("Next, reach to the circle overhead.").
-    this.voice.say(this.assess ? this.levelLine() : NEXT_REP_COUNTDOWN_LINE);
+    // The movement check names the level coming up instead ("Next, reach to the circle overhead."). An on-screen target
+    // exercise says the countdown before its first scored repetition only: after that, the ring and the card show it.
+    if (this.assess) this.voice.say(this.levelLine());
+    else if (!this.reps.length || !usesTargetFlow(this.cfg.id)) this.voice.say(NEXT_REP_COUNTDOWN_LINE);
   }
 
   private nextRepNumber() {
@@ -1323,22 +1336,37 @@ export class ExerciseSession {
         ?? (rom.id === "elbow_extension" ? ELBOW_ADVICE
         : rom.id === "shoulder_flexion" ? SHOULDER_ADVICE
         : moveFurtherLine(rom.label, finalRep)));
+      // The first goal not reached, said if nothing more important is (below).
+      const angleAdvice = this.reviewAdvice[0] as string | undefined, angleCount = this.reviewAdvice.length;
       for (const comp of compsHit) {
         const rule = this.cfg.feedback.find(rule => rule.comp === comp);
         if (rule) this.reviewAdvice.push(finalRep ? finalRepAdvice(rule.say) : rule.say);
       }
+      // The first posture advice, worded as the card has it (and as recorded in Alira's voice).
+      const compAdvice = this.reviewAdvice[angleCount] as string | undefined;
       if (unmeasured.length) this.reviewAdvice.push(this.cfg.id === "ex_handopen" || this.cfg.id === PINCH_ID ? handInViewLine(finalRep)
         : this.cfg.id === "ex_grasp" && unmeasured.every(id => GRASP_HAND_CHECKS.includes(id)) ? graspHandInViewLine(finalRep)
         : this.cfg.id === KNEE_ID || this.cfg.id === TOE_ID ? bodyInViewLine(finalRep)
         : this.cfg.id === SLIDE_ID && unmeasured.every(id => SLIDE_HAND_CHECKS.includes(id)) ? slideHandsInViewLine(finalRep)
         : keepInViewLine(finalRep));
+      const inViewAdvice = unmeasured.length ? this.reviewAdvice.at(-1) : undefined;
       if (!this.reviewAdvice.length) this.reviewAdvice = [reachedTargetsLine(finalRep)];
       if (result.rung !== this.rung) this.reviewAdvice.push(CLOSER_TARGET_LINE);
       this.feedback = this.reviewAdvice.join(" ");
-      // Spoken as separate short lines, each recorded once in Alira's voice.
-      this.voice.say(repCompleteLine(this.repNumber));
+      // The card lists it all; spoken, the score and at most one short piece of advice (a posture correction first,
+      // then keeping in view, then moving further), not the same one as after the last repetition. A clean repetition
+      // is just its score. Each line is recorded once in Alira's voice.
       this.voice.say(repScoreLine(score));
-      for (const advice of this.reviewAdvice) this.voice.say(advice);
+      // A posture correction: Graded Forward Reach says its card line (recorded in Alira's voice), the others the
+      // compensation's own short correction.
+      const advised = compsHit.find(id => this.cfg.feedback.some(rule => rule.comp === id));
+      const correction = this.cfg.id === EVERYDAY_EXERCISE_ID ? compAdvice : this.cfg.compensations.find(rule => rule.id === advised)?.correction ?? compAdvice;
+      // The first that was not said after the last repetition: a fault that keeps coming back is said every other time,
+      // and the next piece of advice gets its turn in between.
+      const candidates = result.rung !== this.rung ? [CLOSER_TARGET_LINE] : [correction, inViewAdvice, angleAdvice];
+      const advice = candidates.find(line => line && line !== this.lastSpokenAdvice);
+      if (advice) this.voice.say(advice);
+      this.lastSpokenAdvice = advice ?? null;
       return;
     }
     if (this.reps.length >= this.plannedReps) return this.finish(t, false);
@@ -1452,7 +1480,10 @@ export class ExerciseSession {
     this.idleAsked = false;
     // The summary is spoken as short lines; only "your best ... degrees" is generated live.
     if (!early || !notAttempted) {
-      const spokenWrap = notAttempted ? [wrap] : [goodRepsLine(good, this.plannedReps), ...(best !== null ? [bestLine(this.cfg.bestLabel, best, bestUnits)] : []), finishedLevelLine(this.rung)];
+      // The on-screen target exercises stay at one level here, and their best measure is on the results card: neither
+      // is said (Graded Forward Reach still says its best).
+      const target = usesTargetFlow(this.cfg.id), sayBest = best !== null && (!target || this.cfg.id === EVERYDAY_EXERCISE_ID);
+      const spokenWrap = notAttempted ? [wrap] : [goodRepsLine(good, this.plannedReps), ...(sayBest ? [bestLine(this.cfg.bestLabel, best, bestUnits)] : []), ...(target ? [] : [finishedLevelLine(this.rung)])];
       for (const line of spokenWrap) this.voice.say(line);
     }
     void t;

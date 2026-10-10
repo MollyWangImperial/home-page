@@ -36,6 +36,29 @@ function recordingContext() {
 }
 
 describe("DemoReel", () => {
+  it("keeps each automatic assessment demo focused on its title, canvas and live caption", () => {
+    for (const side of ["left", "right"] as const) for (let index = 0; index < ALL.length; index++) {
+      const task = ALL[index];
+      const html = renderToStaticMarkup(createElement(DemoReel, {
+        taskIds: [task], side, autoAdvance: true, progress: { index, count: ALL.length },
+        onDone: () => {}, onExit: () => {},
+      }));
+      expect(html).toContain(DEMO_SPECS[task].title);
+      expect(html).toContain("<canvas");
+      expect(html).toContain('class="demo-reel-caption"');
+      for (const removed of ["demo-reel-eyebrow", "demo-reel-what", "demo-reel-auto", "demo-reel-controls", "Watch again", "Start the task now"]) {
+        expect(html).not.toContain(removed);
+      }
+      expect(text(html)).toContain("Exit");
+      expect(text(html)).toContain("Skip the demo");
+    }
+  });
+
+  it("moves the focus into an automatic demonstration: its heading takes it, with no button to press by accident", () => {
+    const html = renderToStaticMarkup(createElement(DemoReel, { taskIds: ["T1"], side: "right", autoAdvance: true, progress: { index: 0, count: 5 }, onDone: () => {}, onExit: () => {} }));
+    expect(html).toMatch(/<h1[^>]*tabindex="-1"[^>]*>Reach<\/h1>/);
+  });
+
   it("opens on the first demonstration: where we are, its title, the canvas, the controls and a dot per task", () => {
     const html = render(ALL);
     const words = text(html);
@@ -94,6 +117,8 @@ describe("narration", () => {
       expect(narration.length).toBeLessThan(260);
       expect(narration).not.toMatch(/\b(color|center|meter|practicing)\b/i);
       expect(whatToDo("right").length).toBeGreaterThan(20);
+      // The movement check says "just watch" before each demonstration (demo-lines.ts), not the narration.
+      expect(narration).not.toMatch(/watch first/i);
     }
     expect(DEMO_SPECS.H3.narration).toBe("Pinch. Bring your thumb and first finger together, tip to tip, and hold. Then let go.");
     expect(DEMO_SPECS.L6.narration).toContain("Prop your phone sideways at hip height.");

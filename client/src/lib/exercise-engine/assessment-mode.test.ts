@@ -325,10 +325,23 @@ describe("movement check: the exercise as the task runs it", () => {
     const tuning = { ...DEFAULT_EXERCISE_TUNING, holdFactor: 2, adapted: true, changed: { "exercise.hold_seconds": 3 } };
     const { session, attempts } = task("H3", able(1), { start: 1, tuning });
     expect(session.cfg.compensations.map(comp => comp.id)).toEqual(spec.compensations.map(comp => comp.id));
-    expect(session.cfg.cycle).toEqual(spec.cycle);
+    // The task's steps, saying the check's own wording.
+    expect(session.cfg.cycle).toEqual(spec.cycle!.map(step => ({ ...step, voice: step.checkVoice ?? step.voice, ...(step.checkCue ? { cue: step.checkCue } : {}) })));
     expect(session.tuning.holdFactor).toBe(1);
     expect(attempts[0].completed).toBe(true);
     expect(withAssessment(EXERCISES.ex_reach, null)).toBe(EXERCISES.ex_reach);
+  });
+  it("keeps the check's fuller instructions where it reuses an exercise's shorter steps", () => {
+    const voices = (id: CameraTaskId, exercise: keyof typeof EXERCISES) => withAssessment(EXERCISES[exercise], CAMERA_TASKS[id]).cycle;
+    const h4 = voices("H4", "ex_handopen");
+    expect(h4[0].voice).toBe("Slowly open your fingers out to the ring, as wide as is comfortable, and hold. Keep your wrist straight and your palm facing the camera.");
+    expect(h4[1].cue).toBe("Now close it gently.");
+    expect(voices("T3", "ex_h2m")[1].voice).toBe("Now lower the cup and bring your hand back to the same place on your lap.");
+    const h3 = voices("H3", "ex_pinch");
+    expect(h3[0].voice).toBe("Bring your thumb and first finger together, tip to tip like an O, to pick up the peg in the circle, and hold.");
+    expect(h3[1].voice).toBe("Now open your thumb and finger to let the peg drop into the tray.");
+    // The daily exercises say the short lines.
+    expect(EXERCISES.ex_handopen.cycle[0].voice).toBe("Open your fingers out to the ring and hold, wrist straight.");
   });
   it("the pinch's goal is its level's, from the resting thumb", () => {
     const { session } = task("H3", able(1), { start: 0, stopAt: snap => snap.phase === "reps" });

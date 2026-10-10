@@ -124,11 +124,16 @@ export function exerciseScreenPreview(screen: ExercisePreviewScreen, rung: Rung,
     { id: "hip", label: "Top of thigh" },
     ...(grasp ? [{ id: "hipOther", label: "Top of other thigh" }, { id: "lighting", label: "Lighting" }] : []),
   ]).map(check => ({ ...check, visible: check.id !== "wrist" && check.id !== "fingers", progress: check.id === "wrist" || check.id === "fingers" ? 0.2 : 1, hint: hand ? `Rest your elbow on an armrest or table and hold your ${side} hand up in the shaded area beside your body.` : `Bring your ${side} hand into view.` }));
+  // Every exercise's set-up ends with the lighting and the clothing against the background (ExerciseRunner cameraBodyChecks).
+  const conditions = [
+    ...(bodyChecks.some(check => check.id === "lighting") ? [] : [{ id: "lighting", label: "Lighting" }]),
+    { id: "contrast", label: "Clothes stand out from the background" },
+  ].map(check => ({ ...check, visible: true, progress: 1, hint: "" }));
   return {
     snapshot,
     // Scored repetitions are not instructed again: only their countdown speaks.
     said: phase === "setup" ? cfg.calibrationInstruction : phase === "demo" ? `${snapshot.caption}.` : screen === "countdown" ? NEXT_REP_COUNTDOWN_LINE : scored ? "" : returning ? cfg.cycle[back].voice : cfg.cycle[0].voice,
-    bodyChecks,
+    bodyChecks: [...bodyChecks, ...conditions],
     live: {
       roms: cfg.romSteps.map(rom => ({ label: rom.label, value: returning ? startingAngles[rom.id as keyof typeof targets] : targets[rom.id as keyof typeof targets], target: targets[rom.id as keyof typeof targets], start: startingAngles[rom.id as keyof typeof targets], unit: "°", scale: metricUnit(rom.metric), units: metricUnitName(rom.metric) })),
       comps: cfg.compensations.map(comp => ({ label: comp.label, value: screen === "rescue" && comp.id === lean ? 1.25 : 0.25, limit: 1 })),

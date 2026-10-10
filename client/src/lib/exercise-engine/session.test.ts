@@ -320,8 +320,11 @@ it("speaks feedback in one completion popup, then counts down three seconds befo
   }
   expect(session.snapshot().review).toBe("complete");
   expect(session.snapshot().reps).toHaveLength(1);
-  expect(spoken.join(" ")).toContain("Repetition 1 complete.");
+  // Spoken: the score, then the one piece of advice that matters most (here keeping in view: these frames carry no
+  // posture), which the card also lists; not "Repetition 1 complete.", which the card shows.
+  expect(spoken).toContain(`Your score is ${session.snapshot().reps[0].score} out of 100.`);
   expect(spoken.at(-1)).toBe(session.snapshot().reviewAdvice.at(-1));
+  expect(spoken).not.toContain("Repetition 1 complete.");
   speechBusy = true;
   t += 2000;
   session.push(simFrame(t, session.cfg, session.targets(), { level: 1, compensations: [] }));
@@ -369,9 +372,12 @@ it("shows and speaks final-repetition feedback before the summary without anothe
   expect(session.snapshot().phase).toBe("reps");
   expect(session.snapshot().record).toBeNull();
   expect(session.snapshot().reps[0].score).toBe(15);
-  expect(spoken.join(" ")).toContain("Repetition 1 complete. Your score is 15 out of 100.");
-  expect(spoken.join(" ")).toContain("back leaned forward");
-  expect(spoken.join(" ")).toContain("shoulder lifted");
+  expect(spoken).toContain("Your score is 15 out of 100.");
+  // The card lists both compensations; spoken, the first one's advice only, worded as on the card.
+  expect(session.snapshot().reviewAdvice.join(" ")).toContain("back leaned forward");
+  expect(session.snapshot().reviewAdvice.join(" ")).toContain("shoulder lifted");
+  expect(spoken.at(-1)).toContain("back leaned forward");
+  expect(session.snapshot().reviewAdvice).toContain(spoken.at(-1));
   expect(spoken.at(-1)).not.toContain("next repetition");
   busy = true;
   session.push(simFrame(t += 2000, session.cfg, session.targets(), { level: 0, compensations: [] }));
@@ -383,10 +389,10 @@ it("shows and speaks final-repetition feedback before the summary without anothe
   expect(session.snapshot().record?.score).toBe(15);
   // Only the first repetition's countdown, before it started; none after the final repetition.
   expect(spoken.filter(line => line.includes("next repetition starts"))).toHaveLength(1);
-  expect(spoken.slice(spoken.indexOf("Repetition 1 complete.")).some(line => line.includes("next repetition starts"))).toBe(false);
+  expect(spoken.slice(spoken.indexOf("Your score is 15 out of 100.")).some(line => line.includes("next repetition starts"))).toBe(false);
 });
 
-it("speaks each missed movement target and confirmed compensation in the completion popup", () => {
+it("lists each missed movement target and confirmed compensation in the completion popup, and speaks the most important", () => {
   const spoken: string[] = [];
   const voice: Voice = { say: line => spoken.push(line), busy: () => false, stop: () => {} };
   const session = new ExerciseSession({ exerciseId: "ex_reach", rung: 1, side: "right", reviewBetweenReps: true, repsOverride: 3 }, voice);
@@ -412,8 +418,11 @@ it("speaks each missed movement target and confirmed compensation in the complet
   expect(advice).toHaveLength(3);
   expect(advice.join(" ")).toContain("Lift your arm");
   expect(advice.join(" ")).toContain("Straighten your elbow");
-  // Each piece of advice is spoken as its own line, right after the score.
-  expect(spoken.slice(-advice.length)).toEqual(advice);
+  // Spoken right after the score: the compensation's advice as on the card, not the movement targets.
+  expect(spoken.at(-2)).toMatch(/^Your score is \d+ out of 100\.$/);
+  expect(spoken.at(-1)).toContain("shoulder lifted");
+  expect(advice).toContain(spoken.at(-1));
+  expect(spoken.some(line => line.includes("Lift your arm") || line.includes("Straighten your elbow"))).toBe(false);
 });
 
 it.each([[6, []], [7, ["trunk_lean"]], [12, ["trunk_lean"]], [13, ["trunk_lean", "shoulder_hike"]]] as const)("requires 200ms for lean and 400ms for shoulder hiking (%i frames)", (overFrames, detected) => {
@@ -461,7 +470,8 @@ it("starts every seated scored repetition from the 3-2-1 countdown without repea
   const [reach, back] = session.cfg.cycle;
   expect(spoken.filter(line => line === reach.voice)).toHaveLength(1);
   expect(spoken.filter(line => line === back.voice)).toHaveLength(1);
-  expect(spoken.filter(line => line === "The next repetition starts in three seconds.")).toHaveLength(2);
+  // Said before the first scored repetition only; the ring and the card show the later countdowns.
+  expect(spoken.filter(line => line === "The next repetition starts in three seconds.")).toHaveLength(1);
   expect(session.snapshot().record?.repetition_scores).toEqual([100, 100]);
 });
 
